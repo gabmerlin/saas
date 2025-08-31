@@ -1,12 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase/admin';
-import { subdomainRegex, reservedSubdomains } from '@/lib/validators';
+
+const subdomainRegex = /^[a-z0-9]([a-z0-9-]*[a-z0-9])?$/;
+const reserved = new Set(['www','api','app','admin','owner','mail','ftp','vercel','static','assets']);
 
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const q = (searchParams.get('q') ?? '').toLowerCase();
 
-  if (!subdomainRegex.test(q) || reservedSubdomains.has(q)) {
+  if (!subdomainRegex.test(q) || reserved.has(q)) {
     return NextResponse.json({ ok: true, available: false, reason: 'invalid' });
   }
 

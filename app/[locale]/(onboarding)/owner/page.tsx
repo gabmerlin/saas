@@ -1,10 +1,20 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import Link from 'next/link';
 
-type ApiResult =
-  | { ok: true; tenant: { id: string; name: string; subdomain: string; locale: string }; owner_email: string; invite_sent: boolean; next: string }
-  | { ok: false; error: unknown };
+type ApiOk = {
+  ok: true;
+  tenant: { id: string; name: string; subdomain: string; locale: string };
+  owner_email: string;
+  invite_sent: boolean;
+  next: string;
+};
+type ApiErr = { ok: false; error: unknown };
+type ApiResult = ApiOk | ApiErr;
+
+const subdomainRegex = /^[a-z0-9]([a-z0-9-]*[a-z0-9])?$/;
+const reserved = new Set(['www','api','app','admin','owner','mail','ftp','vercel','static','assets']);
 
 export default function OwnerOnboardingPage() {
   const [name, setName] = useState('');
@@ -13,10 +23,53 @@ export default function OwnerOnboardingPage() {
   const [loading, setLoading] = useState(false);
   const [res, setRes] = useState<ApiResult | null>(null);
 
+  const [available, setAvailable] = useState<null | boolean>(null);
+  const [checking, setChecking] = useState(false);
+  const abortRef = useRef<AbortController | null>(null);
+
+  const root = process.env.NEXT_PUBLIC_ROOT_DOMAIN ?? 'qgchatting.com';
+
+  // Vérif disponibilité sous-domaine avec debounce 400ms
+  useEffect(() => {
+    setAvailable(null);
+    if (!subdomain || !subdomainRegex.test(subdomain) || reserved.has(subdomain)) return;
+
+    setChecking(true);
+    const t = setTimeout(async () => {
+      try {
+        abortRef.current?.abort();
+        const ctrl = new AbortController();
+        abortRef.current = ctrl;
+        const r = await fetch(`/api/onboarding/check-subdomain?q=${encodeURIComponent(subdomain)}`, { signal: ctrl.signal });
+        const j = (await r.json()) as { ok: boolean; available?: boolean };
+        setAvailable(j.ok ? !!j.available : null);
+      } catch {
+        setAvailable(null);
+      } finally {
+        setChecking(false);
+      }
+    }, 400);
+
+    return () => clearTimeout(t);
+  }, [subdomain]);
+
+  const subdomainHint = useMemo(() => {
+    if (!subdomain) return 'ex: monagence';
+    if (!subdomainRegex.test(subdomain)) return 'Le sous-domaine ne respecte pas le format.';
+    if (reserved.has(subdomain)) return 'Sous-domaine réservé.';
+    if (checking) return 'Vérification…';
+    if (available === true) return 'Disponible ✅';
+    if (available === false) return 'Déjà pris ❌';
+    return '';
+  }, [subdomain, checking, available]);
+
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
-    setLoading(true);
     setRes(null);
+    if (!name || !email || !subdomainRegex.test(subdomain) || reserved.has(subdomain)) return;
+    if (available === false) return;
+
+    setLoading(true);
     try {
       const r = await fetch('/api/onboarding/owner', {
         method: 'POST',
@@ -32,8 +85,6 @@ export default function OwnerOnboardingPage() {
     }
   }
 
-  const root = process.env.NEXT_PUBLIC_ROOT_DOMAIN ?? 'qgchatting.com';
-
   return (
     <main className="min-h-dvh grid place-items-center p-6">
       <form onSubmit={onSubmit} className="w-full max-w-lg rounded-xl border p-6 bg-white shadow-sm grid gap-4">
@@ -46,8 +97,17 @@ export default function OwnerOnboardingPage() {
 
         <label className="grid gap-1">
           <span className="text-sm">Sous-domaine</span>
-          <input className="border rounded-md p-2" value={subdomain} onChange={e => setSubdomain(e.target.value)} required pattern="^[a-z0-9]([a-z0-9-]*[a-z0-9])?$" />
-          <span className="text-xs text-gray-500">{subdomain || 'monagence'}.{root}</span>
+          <input
+            className="border rounded-md p-2"
+            value={subdomain}
+            onChange={e => setSubdomain(e.target.value.toLowerCase())}
+            required
+            pattern="^[a-z0-9]([a-z0-9-]*[a-z0-9])?$"
+          />
+          <div className="flex items-center gap-2 text-xs text-gray-600">
+            <code>{(subdomain || 'monagence')}.{root}</code>
+            <span>• {subdomainHint}</span>
+          </div>
         </label>
 
         <label className="grid gap-1">
@@ -55,9 +115,16 @@ export default function OwnerOnboardingPage() {
           <input type="email" className="border rounded-md p-2" value={email} onChange={e => setEmail(e.target.value)} required />
         </label>
 
-        <button disabled={loading} className="inline-flex items-center justify-center rounded-md border px-4 py-2 text-sm font-medium hover:bg-gray-100 disabled:opacity-50">
+        <button
+          disabled={loading || available === false}
+          className="inline-flex items-center justify-center rounded-md border px-4 py-2 text-sm font-medium hover:bg-gray-100 disabled:opacity-50"
+        >
           {loading ? 'Création…' : 'Créer et inviter'}
         </button>
+
+        <div className="text-xs text-gray-500">
+          Besoin d’aide ? <Link className="underline" href="/fr">Retour accueil</Link>
+        </div>
 
         {res && (
           <div className="mt-2 text-sm">
@@ -67,7 +134,7 @@ export default function OwnerOnboardingPage() {
                 <div>Sous-domaine : <code>{res.tenant.subdomain}.{root}</code></div>
                 <div>Owner invité : <code>{res.owner_email}</code> {res.invite_sent ? '(email envoyé)' : '(invitation non envoyée)'}</div>
                 <div className="mt-2">
-                  <a className="underline" href={res.next} target="_blank">Ouvrir l’agence</a>
+                  <a className="underline" href={res.next} target="_blank" rel="noreferrer">Ouvrir l’agence</a>
                 </div>
               </div>
             ) : (
