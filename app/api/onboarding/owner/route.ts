@@ -5,10 +5,12 @@ type Json = Record<string, unknown>;
 const subdomainRegex = /^[a-z0-9]([a-z0-9-]*[a-z0-9])?$/;
 const reserved = new Set(['www','api','app','admin','owner','mail','ftp','vercel','static','assets']);
 
-function redirectToUrl(): string {
+function redirectToUrl(tenantSub?: string): string {
   const base = (process.env.APP_BASE_URL ?? '').replace(/\/+$/, '');
-  return base ? `${base}/auth/callback` : 'http://localhost:3000/auth/callback';
+  const cb = base ? `${base}/auth/callback` : 'http://localhost:3000/auth/callback';
+  return tenantSub ? `${cb}?sub=${encodeURIComponent(tenantSub)}` : cb;
 }
+
 
 export async function POST(req: NextRequest) {
   const body = (await req.json().catch(() => ({}))) as Json;

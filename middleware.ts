@@ -7,30 +7,27 @@ const defaultLocale = 'fr';
 export function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
-  // ✅ Ne jamais toucher aux API, fichiers statiques, _next, etc.
+  // ⚠️ Ne pas toucher aux API, assets, Next internals et AUTH
   if (
-    pathname.startsWith('/api') ||               // <-- exclusion API
+    pathname.startsWith('/api') ||
+    pathname.startsWith('/auth') ||   // <--- clé
     pathname.startsWith('/_next') ||
-    pathname.includes('.')                       // fichiers (ex: .ico, .png, .js)
+    pathname.includes('.')            // fichiers (ico, png, js, etc.)
   ) {
     return NextResponse.next();
   }
 
-  // i18n: si pas de /fr|/en → redirige vers /fr
   const hasLocale = locales.some(
     (l) => pathname === `/${l}` || pathname.startsWith(`/${l}/`)
   );
-
   if (!hasLocale) {
     const url = req.nextUrl.clone();
     url.pathname = `/${defaultLocale}${pathname}`;
     return NextResponse.redirect(url);
   }
-
   return NextResponse.next();
 }
 
-// ✅ Matcher qui exclut aussi /api
 export const config = {
-  matcher: ['/((?!api|_next|.*\\..*).*)'],
+  matcher: ['/((?!api|auth|_next|.*\\..*).*)'],
 };
