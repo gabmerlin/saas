@@ -1,6 +1,7 @@
 'use client';
 
 import { useParams } from 'next/navigation';
+import Link from 'next/link';
 
 export default function LocaleHome() {
   const params = useParams<{ locale: string }>();
@@ -15,12 +16,19 @@ export default function LocaleHome() {
         </p>
 
         <div className="mt-4 space-x-2">
-          <a className="inline-flex rounded-md border px-3 py-2 text-sm hover:bg-gray-100" href="/fr">
+         import Link from next/link;
+            <Link
+            className="inline-flex rounded-md border px-3 py-2 text-sm hover:bg-gray-100"
+            href="/fr"
+            >
             /fr
-          </a>
-          <a className="inline-flex rounded-md border px-3 py-2 text-sm hover:bg-gray-100" href="/en">
+            </Link>
+            <Link
+            className="inline-flex rounded-md border px-3 py-2 text-sm hover:bg-gray-100"
+            href="/en"
+            >
             /en
-          </a>
+            </Link>
         </div>
       </div>
     </main>
