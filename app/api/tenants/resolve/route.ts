@@ -1,14 +1,24 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { getSubdomainFromHost } from '@/lib/tenant';
-import { supabaseAdmin } from '@/lib/supabase/admin';
+// app/api/tenant/resolve/route.ts
+import { NextResponse } from 'next/server'
+import type { NextRequest } from 'next/server'
+
+export const runtime = 'nodejs'
 
 export async function GET(req: NextRequest) {
-  const host = req.headers.get('host') ?? '';
-  const sub = getSubdomainFromHost(host);
-  if (!sub) return NextResponse.json({ ok: true, tenant: null, reason: 'no-subdomain' });
+  const host = req.headers.get('host') ?? ''
+  const root = process.env.NEXT_PUBLIC_ROOT_DOMAIN ?? ''
+  const sub = extractSubdomain(host, root)
+  return NextResponse.json({
+    ok: true,
+    tenant: sub,
+    reason: sub ? 'has-subdomain' : 'no-subdomain',
+  })
+}
 
-  const { data, error } = await supabaseAdmin.rpc('tenant_id_by_subdomain', { p_subdomain: sub });
-  if (error) return NextResponse.json({ ok: false, error: error.message }, { status: 500 });
-
-  return NextResponse.json({ ok: true, tenant: data?.[0] ?? null, subdomain: sub });
+function extractSubdomain(host: string, rootDomain: string): string | null {
+  if (!host || !rootDomain) return null
+  const h = host.toLowerCase()
+  const r = rootDomain.toLowerCase()
+  if (h === r || h === `www.${r}`) return null
+  return h.endsWith(`.${r}`) ? h.slice(0, -(r.length + 1)) : null
 }

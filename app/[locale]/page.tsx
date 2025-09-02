@@ -1,36 +1,29 @@
-'use client';
+// app/[locale]/page.tsx
+import Link from 'next/link'
 
-import { useParams } from 'next/navigation';
-import Link from 'next/link';
-
-export default function LocaleHome() {
-  const params = useParams<{ locale: string }>();
-  const locale = params?.locale ?? 'fr';
+export default async function LocaleHome({
+  params,
+}: {
+  params: Promise<{ locale: string }>
+}) {
+  const { locale } = await params
 
   return (
-    <main className="min-h-dvh grid place-items-center p-6">
-      <div className="rounded-xl border p-6 shadow-sm bg-white max-w-lg w-full">
-        <h1 className="text-2xl font-bold">Setup OK ✅</h1>
-        <p className="text-sm text-gray-500 mt-1">
-          Locale active : <span className="font-mono">{locale}</span>
+    <main className="flex min-h-screen items-center justify-center">
+      <div className="rounded-xl border p-6 shadow-sm">
+        <h1 className="text-2xl font-semibold">Setup OK ✅</h1>
+        <p className="mt-2 text-muted-foreground">
+          Next.js (App Router) + Tailwind v4 + shadcn/ui — locale: <b>{locale}</b>
         </p>
-
-        <div className="mt-4 space-x-2">
-         import Link from next/link;
-            <Link
-            className="inline-flex rounded-md border px-3 py-2 text-sm hover:bg-gray-100"
-            href="/fr"
-            >
-            /fr
-            </Link>
-            <Link
-            className="inline-flex rounded-md border px-3 py-2 text-sm hover:bg-gray-100"
-            href="/en"
-            >
-            /en
-            </Link>
+        <div className="mt-4 space-x-4">
+          <Link className="underline" href={`/${locale}/owner`}>
+            Ouvrir l’onboarding owner
+          </Link>
+          <Link className="underline" href="/api/health">
+            /api/health
+          </Link>
         </div>
       </div>
     </main>
-  );
+  )
 }

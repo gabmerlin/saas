@@ -1,13 +1,19 @@
-import { NextResponse } from "next/server";
+// app/api/ping/route.ts
+import { NextResponse } from 'next/server'
+import type { NextRequest } from 'next/server'
 
-export const runtime = "nodejs";
-export const dynamic = "force-dynamic";
+export const runtime = 'nodejs'
 
 export async function GET() {
-  return NextResponse.json({ ok: true, route: "/api/ping", method: "GET" });
+  return NextResponse.json({ ok: true, route: '/api/ping', method: 'GET' })
 }
 
-export async function POST(req: Request) {
-  const json = await req.json().catch(() => ({}));
-  return NextResponse.json({ ok: true, route: "/api/ping", method: "POST", received: json });
+export async function POST(req: NextRequest) {
+  const data = (await req.json().catch(() => ({}))) as Record<string, unknown>
+  return NextResponse.json({
+    ok: true,
+    route: '/api/ping',
+    method: 'POST',
+    received: data,
+  })
 }

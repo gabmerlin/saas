@@ -1,94 +1,111 @@
-"use client";
+// app/[locale]/(onboarding)/owner/page.tsx
+import Link from "next/link"
+import { redirect } from "next/navigation"
 
-import { useState } from "react";
-import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
+export default async function OwnerOnboardingPage({
+  params,
+}: {
+  params: Promise<{ locale: string }>
+}) {
+  const { locale } = await params
 
-const SUBDOMAIN_RE = /^[a-z0-9]([-a-z0-9]*[a-z0-9])?$/;
+  // Server Action: appelée par <form action={provision}>
+  async function provision(formData: FormData) {
+    "use server"
 
-export default function OwnerOnboardingPage() {
-  const [name, setName] = useState("");
-  const [subdomain, setSubdomain] = useState("");
-  const [loading, setLoading] = useState(false);
-  const supabase = createClientComponentClient();
+    const sub = formData.get("subdomain")?.toString().trim().toLowerCase()
+    if (!sub) throw new Error("Sous-domaine requis.")
 
-  async function onSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    if (!SUBDOMAIN_RE.test(subdomain)) {
-      alert("Sous-domaine invalide");
-      return;
+    // Validation minimale
+    const ok =
+      /^[a-z0-9-]{3,30}$/.test(sub) && !sub.startsWith("-") && !sub.endsWith("-")
+    if (!ok) {
+      throw new Error(
+        "Sous-domaine invalide. Utilise 3–30 caractères : a-z, 0-9 et tiret (pas en début/fin).",
+      )
     }
-    setLoading(true);
 
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user?.id) {
-      alert("Non authentifié");
-      setLoading(false);
-      return;
-    }
+    const secret = process.env.DOMAIN_PROVISIONING_SECRET
+    if (!secret) throw new Error("DOMAIN_PROVISIONING_SECRET manquant.")
 
-    const res = await fetch("/api/onboarding/owner", {
+    // Base URL pour appeler l’API interne côté serveur
+    const base =
+      process.env.VERCEL_URL
+        ? `https://${process.env.VERCEL_URL}`
+        : process.env.APP_BASE_URL || "http://localhost:3000"
+
+    // Appel de ton endpoint interne (ne fuit pas le secret au client)
+    const res = await fetch(`${base}/api/tenants/domains`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        userId: user.id,
-        name,
-        subdomain: subdomain.toLowerCase(),
-        locale: "fr",
-      }),
-    });
+      headers: {
+        "content-type": "application/json",
+        "x-provisioning-secret": secret,
+      },
+      body: JSON.stringify({ subdomain: sub }),
+      cache: "no-store",
+    })
 
-    const json: { ok?: boolean; redirect?: string; error?: string } = await res.json();
-    setLoading(false);
-
-    if (!res.ok || !json.ok) {
-      alert(json.error || "Erreur lors de la création");
-      return;
+    const json = await res.json().catch(() => ({}))
+    if (!res.ok || !json?.ok) {
+      console.error("Provision error:", res.status, json)
+      throw new Error(json?.error || `Provisioning failed (HTTP ${res.status})`)
     }
-    // Redirection vers le nouveau sous-domaine
-    window.location.href = String(json.redirect);
+
+    // Redirection vers le nouveau sous-domaine (on garde la locale dans l’URL)
+    const root =
+      process.env.NEXT_PUBLIC_ROOT_DOMAIN || process.env.PRIMARY_ZONE || "qgchatting.com"
+    redirect(`https://${sub}.${root}/${locale}`)
   }
 
   return (
-    <div className="mx-auto max-w-xl p-6">
-      <h1 className="text-2xl font-semibold mb-4">Onboarding — Owner</h1>
-      <form onSubmit={onSubmit} className="space-y-4">
-        <div>
-          <label className="block text-sm mb-1">Nom de l’agence</label>
-          <input
-            className="w-full border rounded-lg px-3 py-2"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            placeholder="Ex: Dazz"
-            required
-          />
-        </div>
+    <main className="mx-auto max-w-2xl p-6">
+      <h1 className="mb-2 text-3xl font-bold">Onboarding Owner</h1>
+      <p className="text-muted-foreground">
+        Ici, on crée le tenant, on lie l’owner (plus tard), puis on provisionne un sous-domaine via l’API interne.
+      </p>
 
-        <div>
-          <label className="block text-sm mb-1">Sous-domaine</label>
-          <div className="flex">
+      <div className="my-6 rounded-xl border p-4">
+        <p className="font-medium mb-2">Étapes prévues :</p>
+        <ol className="list-decimal pl-5 space-y-1">
+          <li>Créer le tenant en base (à brancher ensuite)</li>
+          <li>Associer l’owner (user courant)</li>
+          <li>Appeler <code>POST /api/tenants/domains</code></li>
+          <li>Rediriger vers le sous-domaine une fois prêt</li>
+        </ol>
+      </div>
+
+      {/* Formulaire: appelle la Server Action ci-dessus */}
+      <form action={provision} className="space-y-4">
+        <label className="block">
+          <span className="text-sm font-medium">Sous-domaine souhaité</span>
+          <div className="mt-1 flex items-stretch overflow-hidden rounded-lg border">
             <input
-              className="flex-1 border rounded-l-lg px-3 py-2"
-              value={subdomain}
-              onChange={(e) => setSubdomain(e.target.value.toLowerCase())}
-              pattern={SUBDOMAIN_RE.source}
-              title="minuscules, chiffres, tirets; pas de tiret début/fin"
-              placeholder="ex: dazz"
+              name="subdomain"
               required
+              pattern="[a-z0-9-]{3,30}"
+              title="3–30 caractères (a-z, 0-9 et tiret)."
+              placeholder="ex. demo7"
+              className="flex-1 bg-transparent px-3 py-2 outline-none"
             />
-            <span className="inline-flex items-center border border-l-0 rounded-r-lg px-3">
-              .{process.env.NEXT_PUBLIC_ROOT_DOMAIN}
+            <span className="border-l px-3 py-2 text-sm text-muted-foreground">
+              .{process.env.NEXT_PUBLIC_ROOT_DOMAIN || "qgchatting.com"}
             </span>
           </div>
-        </div>
+        </label>
 
         <button
           type="submit"
-          disabled={loading}
-          className="px-4 py-2 rounded-lg border hover:bg-gray-50 disabled:opacity-50"
+          className="rounded-lg bg-black px-4 py-2 text-white hover:bg-black/90"
         >
-          {loading ? "Création..." : "Créer l’agence"}
+          Créer et provisionner →
         </button>
       </form>
-    </div>
-  );
+
+      <p className="mt-6">
+        <Link href={`/${locale}`} className="underline">
+          Revenir à l’accueil
+        </Link>
+      </p>
+    </main>
+  )
 }

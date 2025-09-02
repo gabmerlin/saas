@@ -1,34 +1,28 @@
-'use client';
+// app/(auth)/callback/page.tsx
+'use client'
 
-import { useEffect } from 'react';
-import { supabaseBrowser } from '@/lib/supabase/browser';
+import { Suspense } from 'react'
+import { useSearchParams } from 'next/navigation'
 
-export const dynamic = 'force-dynamic';
-
-export default function AuthCallbackPage() {
-  useEffect(() => {
-    const run = async () => {
-      const hash = new URLSearchParams(window.location.hash.slice(1));
-      const access_token = hash.get('access_token');
-      const refresh_token = hash.get('refresh_token');
-
-      const qs = new URLSearchParams(window.location.search);
-      const sub = qs.get('sub') ?? undefined;
-
-      if (access_token && refresh_token) {
-        await supabaseBrowser().auth.setSession({ access_token, refresh_token });
-      }
-
-      const root = process.env.NEXT_PUBLIC_ROOT_DOMAIN ?? 'qgchatting.com';
-      if (sub) window.location.replace(`https://${sub}.${root}/fr`);
-      else window.location.replace('/fr');
-    };
-    run();
-  }, []);
-
+function CallbackInner() {
+  const sp = useSearchParams()
+  const type = sp.get('type') ?? ''
   return (
-    <main className="min-h-dvh grid place-items-center p-6">
-      <div className="rounded-md border p-4 bg-white shadow-sm">Connexion en cours…</div>
+    <main className="mx-auto max-w-xl p-6">
+      <h1 className="text-xl font-semibold">Auth callback</h1>
+      <p className="mt-2 text-muted-foreground">type: {type || 'n/a'}</p>
+      <p className="mt-2">
+        (Cette page est juste un placeholder — l’application a bien un
+        Suspense autour de <code>useSearchParams</code>.)
+      </p>
     </main>
-  );
+  )
+}
+
+export default function CallbackPage() {
+  return (
+    <Suspense fallback={<div className="p-6">Chargement…</div>}>
+      <CallbackInner />
+    </Suspense>
+  )
 }
