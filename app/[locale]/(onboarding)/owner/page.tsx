@@ -1,116 +1,95 @@
-// app/[locale]/(onboarding)/owner/page.tsx
-import Link from "next/link"
-import { redirect } from "next/navigation"
+// app/(onboarding)/owner/page.tsx  (ou adapte le chemin)
+'use client';
 
-export default async function OwnerOnboardingPage({
-  params,
-}: {
-  params: Promise<{ locale: string }>
-}) {
-  const { locale } = await params
+import { useState } from 'react';
 
-  // Server Action: appelée par <form action={provision}>
-  async function provision(formData: FormData) {
-    "use server"
+const re = /^[a-z0-9](?:[a-z0-9-]{1,61}[a-z0-9])$/; // validateur côté client
 
-    const sub = formData.get("subdomain")?.toString().trim().toLowerCase()
-    if (!sub) throw new Error("Sous-domaine requis.")
+export default function OwnerOnboardingPage() {
+  const [sub, setSub] = useState('');
+  const [msg, setMsg] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
 
-    // Validation minimale
-    const ok =
-      /^[a-z0-9-]{3,30}$/.test(sub) && !sub.startsWith("-") && !sub.endsWith("-")
-    if (!ok) {
-      throw new Error(
-        "Sous-domaine invalide. Utilise 3–30 caractères : a-z, 0-9 et tiret (pas en début/fin).",
-      )
+  async function onSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setMsg(null);
+
+    const s = sub.trim().toLowerCase();
+    if (!re.test(s) || s === 'www') {
+      setMsg('Sous-domaine invalide (lettres/chiffres, tirets au milieu, 3–63).');
+      return;
     }
 
-    const secret = process.env.DOMAIN_PROVISIONING_SECRET
-    if (!secret) throw new Error("DOMAIN_PROVISIONING_SECRET manquant.")
-
-    // Base URL pour appeler l’API interne côté serveur
-    const base =
-      process.env.VERCEL_URL
-        ? `https://${process.env.VERCEL_URL}`
-        : process.env.APP_BASE_URL || "http://localhost:3000"
-
-    // Appel de ton endpoint interne (ne fuit pas le secret au client)
-    const res = await fetch(`${base}/api/tenants/domains`, {
-      method: "POST",
-      headers: {
-        "content-type": "application/json",
-        "x-provisioning-secret": secret,
-      },
-      body: JSON.stringify({ subdomain: sub }),
-      cache: "no-store",
-    })
-
-    const json = await res.json().catch(() => ({}))
-    if (!res.ok || !json?.ok) {
-      console.error("Provision error:", res.status, json)
-      throw new Error(json?.error || `Provisioning failed (HTTP ${res.status})`)
+    setBusy(true);
+    try {
+      // IMPORTANT : on appelle le WRAPPER côté serveur (étape 2),
+      // pour ne JAMAIS exposer le secret dans le navigateur.
+      const res = await fetch('/api/tenants/provision', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ subdomain: s }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setMsg(`Erreur ${res.status} : ${data?.error ?? 'échec'}`);
+        return;
+      }
+      setMsg(`✅ Provisionné : ${data.domain}`);
+      // Redirection si tu veux
+      // window.location.href = `https://${data.domain}/fr`;
+    } catch (err: any) {
+      setMsg(String(err?.message ?? err));
+    } finally {
+      setBusy(false);
     }
-
-    // Redirection vers le nouveau sous-domaine (on garde la locale dans l’URL)
-    const root =
-      process.env.NEXT_PUBLIC_ROOT_DOMAIN || process.env.PRIMARY_ZONE || "qgchatting.com"
-    redirect(`https://${sub}.${root}/${locale}`)
   }
 
   return (
-    <main className="mx-auto max-w-2xl p-6">
-      <h1 className="mb-2 text-3xl font-bold">Onboarding Owner</h1>
-      <p className="text-muted-foreground">
-        Ici, on crée le tenant, on lie l’owner (plus tard), puis on provisionne un sous-domaine via l’API interne.
+    <main className="mx-auto max-w-xl p-6">
+      <h1 className="text-2xl font-semibold mb-2">Onboarding Owner</h1>
+      <p className="text-muted-foreground mb-6">
+        Crée un tenant, associe l’owner et provisionne un sous-domaine.
       </p>
 
-      <div className="my-6 rounded-xl border p-4">
-        <p className="font-medium mb-2">Étapes prévues :</p>
+      <div className="rounded-lg border p-4 mb-6">
         <ol className="list-decimal pl-5 space-y-1">
-          <li>Créer le tenant en base (à brancher ensuite)</li>
+          <li>Créer le tenant en base</li>
           <li>Associer l’owner (user courant)</li>
-          <li>Appeler <code>POST /api/tenants/domains</code></li>
+          <li>Appeler POST <code>/api/tenants/provision</code></li>
           <li>Rediriger vers le sous-domaine une fois prêt</li>
         </ol>
       </div>
 
-      {/* Formulaire: appelle la Server Action ci-dessus */}
-      <form action={provision} className="space-y-4">
+      <form onSubmit={onSubmit} className="space-y-3">
         <label className="block">
-          <span className="text-sm font-medium">Sous-domaine souhaité</span>
-          <div className="mt-1 flex items-stretch overflow-hidden rounded-lg border">
-            <input
-              id="subdomain"
-              name="subdomain"
-              required
-              // 3–30 chars, lowercase letters, digits and hyphen
-              // hyphen escaped for maximum compatibility
-              pattern="^[a-z0-9\-]{3,30}$"
-              title="3–30 caractères en minuscules, chiffres et tirets ( - )"
-              autoComplete="off"
-              inputMode="url"
-              onChange={(e) => (e.currentTarget.value = e.currentTarget.value.toLowerCase())}
-              className="..."
+          <span className="text-sm">Sous-domaine</span>
+          <input
+            className="mt-1 w-full rounded border p-2"
+            placeholder="ex: monagence"
+            // surtout PAS de /…/v ici — juste une string (et on valide côté JS)
+            inputMode="text"          // or remove this line entirely
+            autoCorrect="off"
+            autoCapitalize="none"
+            spellCheck={false}
+            maxLength={63}
+            value={sub}
+            onChange={(e) => setSub(e.target.value)}
             />
-            <span className="border-l px-3 py-2 text-sm text-muted-foreground">
-              .{process.env.NEXT_PUBLIC_ROOT_DOMAIN || "qgchatting.com"}
-            </span>
-          </div>
         </label>
 
         <button
-          type="submit"
-          className="rounded-lg bg-black px-4 py-2 text-white hover:bg-black/90"
+          className="rounded bg-black px-4 py-2 text-white disabled:opacity-50"
+          disabled={busy}
         >
-          Créer et provisionner →
+          {busy ? 'Provisionnement…' : 'Provisionner'}
         </button>
+
+        {msg && <p className="mt-3 text-sm">{msg}</p>}
       </form>
 
-      <p className="mt-6">
-        <Link href={`/${locale}`} className="underline">
-          Revenir à l’accueil
-        </Link>
+      <p className="mt-6 text-sm">
+        <a className="underline" href="/api/health">/api/health</a>
       </p>
     </main>
-  )
+  );
 }
