@@ -29,5 +29,8 @@ export function middleware(req: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/((?!api|auth|_next|.*\\..*).*)'],
+  // Exclut clairement toutes les routes API/Next/statics
+  matcher: [
+    "/((?!api|_next/static|_next/image|favicon.ico|assets|.*\\..*).*)",
+  ],
 };
