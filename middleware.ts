@@ -5,52 +5,68 @@ import { createClient } from "@supabase/supabase-js";
 // i18n
 const locales = ["fr", "en"] as const;
 const defaultLocale = "fr";
+const LOCALE_PREFIX = `/${defaultLocale}`;
+const ONBOARDING_PATH = "/onboarding/owner";
 
-// Supabase (utilisation du client public côté edge)
+// Supabase (edge-friendly)
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 );
 
-// Helper: extraire domaine racine et sous-domaine de manière tolérante
+// --- Helpers ---
+
+function isStaticOrApi(pathname: string) {
+  return (
+    pathname.startsWith("/api") ||
+    pathname.startsWith("/auth") ||
+    pathname.startsWith("/_next") ||
+    pathname.includes(".")
+  );
+}
+
+function hasLocalePrefix(pathname: string) {
+  return locales.some((l) => pathname === `/${l}` || pathname.startsWith(`/${l}/`));
+}
+
+// onboarding peut exister en version sans locale (/onboarding/owner) ou avec locale (/fr/onboarding/owner)
+function isOnboardingPath(pathname: string) {
+  if (pathname === ONBOARDING_PATH || pathname.startsWith(ONBOARDING_PATH + "/")) return true;
+  return locales.some((l) => pathname === `/${l}${ONBOARDING_PATH}` || pathname.startsWith(`/${l}${ONBOARDING_PATH}/`));
+}
+
+// redirection i18n
+function ensureLocale(req: NextRequest, res: NextResponse) {
+  const { pathname } = req.nextUrl;
+  if (hasLocalePrefix(pathname)) return res;
+
+  const url = req.nextUrl.clone();
+  url.pathname = `${LOCALE_PREFIX}${pathname}`;
+  return NextResponse.redirect(url);
+}
+
+// parse host de façon tolérante
 function parseHost(host: string) {
   const root = process.env.NEXT_PUBLIC_ROOT_DOMAIN?.toLowerCase();
   const h = host.toLowerCase();
+  const hostname = h.split(":")[0];
 
-  // Cas localhost/127.0.0.1 : pas de multi-tenant
-  if (h.startsWith("localhost") || h.startsWith("127.0.0.1")) {
-    return { isRoot: true, rootDomain: "", subdomain: "", fqdn: h };
+  if (hostname === "localhost" || hostname === "127.0.0.1") {
+    return { isRoot: true, rootDomain: "", subdomain: "", fqdn: hostname };
   }
 
-  // Si root est défini (prod/vercel), on s’y fie
-  if (root && (h === root || h.endsWith(`.${root}`))) {
-    const sub = h === root ? "" : h.slice(0, -(root.length + 1));
-    return { isRoot: h === root, rootDomain: root, subdomain: sub, fqdn: h };
+  if (root && (hostname === root || hostname.endsWith(`.${root}`))) {
+    const sub = hostname === root ? "" : hostname.slice(0, -(root.length + 1));
+    return { isRoot: hostname === root, rootDomain: root, subdomain: sub, fqdn: hostname };
   }
 
-  // Fallback dev: on suppose un TLD simple (deux labels, ex: qgchatting.com)
-  const parts = h.split(":")[0].split("."); // strip port éventuel
+  const parts = hostname.split(".");
   if (parts.length <= 2) {
-    // ex: qgchatting.com → racine
-    return { isRoot: true, rootDomain: parts.join("."), subdomain: "", fqdn: h };
+    return { isRoot: true, rootDomain: parts.join("."), subdomain: "", fqdn: hostname };
   }
-  const rootDomain = parts.slice(-2).join("."); // qgchatting.com
-  const subdomain = parts.slice(0, -2).join("."); // ex: demo6
-  return { isRoot: false, rootDomain, subdomain, fqdn: h };
-}
-
-// i18n redirect helper
-function withLocale(req: NextRequest, res: NextResponse) {
-  const { pathname } = req.nextUrl;
-  const hasLocale = locales.some(
-    (l) => pathname === `/${l}` || pathname.startsWith(`/${l}/`)
-  );
-  if (!hasLocale) {
-    const url = req.nextUrl.clone();
-    url.pathname = `/${defaultLocale}${pathname}`;
-    return NextResponse.redirect(url);
-  }
-  return res;
+  const rootDomain = parts.slice(-2).join(".");
+  const subdomain = parts.slice(0, -2).join(".");
+  return { isRoot: false, rootDomain, subdomain, fqdn: hostname };
 }
 
 export async function middleware(req: NextRequest) {
@@ -58,40 +74,37 @@ export async function middleware(req: NextRequest) {
   const host = req.headers.get("host") || "";
 
   // 1) Bypass API/auth/statics
-  if (
-    pathname.startsWith("/api") ||
-    pathname.startsWith("/auth") ||
-    pathname.startsWith("/_next") ||
-    pathname.includes(".")
-  ) {
+  if (isStaticOrApi(pathname)) {
     return NextResponse.next();
   }
 
-  // 2) Analyse du host
-  const { isRoot, subdomain, fqdn } = parseHost(host);
-
-  // 3) Domaine racine (landing/onboarding marketing) → juste i18n
-  if (isRoot || !subdomain) {
-    return withLocale(req, NextResponse.next());
+  // 2) Toujours autoriser l'onboarding (et juste lui mettre la locale si absente)
+  if (isOnboardingPath(pathname)) {
+    return ensureLocale(req, NextResponse.next());
   }
 
-  // 4) Résolution tenant (double-tentative: par domaine PUIS par sous-domaine)
+  // 3) Analyse du host
+  const { isRoot, subdomain, fqdn } = parseHost(host);
+
+  // 4) Domaine racine → pas de résolution, juste i18n
+  if (isRoot || !subdomain) {
+    return ensureLocale(req, NextResponse.next());
+  }
+
+  // 5) Résolution tenant (par domaine puis fallback par sous-domaine)
   try {
     // a) par domaine exact (tenant_domains.domain)
-    let { data, error } = await supabase.rpc("tenant_by_domain", {
-      p_domain: fqdn,
-    });
-
+    let { data, error } = await supabase.rpc("tenant_by_domain", { p_domain: fqdn });
     if (error) {
       console.error("tenant_by_domain error:", error);
     }
 
-    // b) fallback par sous-domaine (public.tenants.subdomain)
+    // b) fallback: par 1er label de subdomain (public.tenants.subdomain)
     if (!data || data.length === 0) {
-      const { data: data2, error: error2 } = await supabase.rpc(
-        "tenant_id_by_subdomain",
-        { p_subdomain: subdomain.split(".")[0] } // si multi-niveaux, on prend le 1er label
-      );
+      const firstLabel = subdomain.split(".")[0];
+      const { data: data2, error: error2 } = await supabase.rpc("tenant_id_by_subdomain", {
+        p_subdomain: firstLabel,
+      });
       if (error2) {
         console.error("tenant_id_by_subdomain error:", error2);
       }
@@ -105,14 +118,18 @@ export async function middleware(req: NextRequest) {
       const res = NextResponse.next();
       res.headers.set("x-tenant-id", tenant.id);
       res.headers.set("x-tenant-subdomain", tenant.subdomain);
-      return withLocale(req, res);
+      return ensureLocale(req, res);
     }
 
-    // Aucun tenant trouvé → onboarding
-    return NextResponse.redirect(new URL("/onboarding/owner", req.url));
+    // 6) Aucun tenant → rediriger vers **URL localisée** d'onboarding
+    const url = req.nextUrl.clone();
+    url.pathname = `${LOCALE_PREFIX}${ONBOARDING_PATH}`;
+    return NextResponse.redirect(url);
   } catch (e) {
     console.error("Middleware exception:", e);
-    return NextResponse.redirect(new URL("/onboarding/owner", req.url));
+    const url = req.nextUrl.clone();
+    url.pathname = `${LOCALE_PREFIX}${ONBOARDING_PATH}`;
+    return NextResponse.redirect(url);
   }
 }
 

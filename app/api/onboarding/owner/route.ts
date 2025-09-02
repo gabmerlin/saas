@@ -1,80 +1,136 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { supabaseAdmin } from '@/lib/supabase/admin';
+// app/api/onboarding/owner/route.ts
+import { NextResponse } from "next/server";
+import { supabaseAdmin } from "@/lib/supabase/admin";
 
-type Json = Record<string, unknown>;
-const subdomainRegex = /^[a-z0-9]([a-z0-9-]*[a-z0-9])?$/;
-const reserved = new Set(['www','api','app','admin','owner','mail','ftp','vercel','static','assets']);
+type Body = {
+  userId: string;        // auth.users.id (UUID)
+  name: string;
+  subdomain: string;
+  locale?: "fr" | "en";
+};
 
-function redirectToUrl(tenantSub?: string): string {
-  const base = (process.env.APP_BASE_URL ?? '').replace(/\/+$/, '');
-  const cb = base ? `${base}/auth/callback` : 'http://localhost:3000/auth/callback';
-  return tenantSub ? `${cb}?sub=${encodeURIComponent(tenantSub)}` : cb;
+function bad(msg: string, code = 400) {
+  return NextResponse.json({ ok: false, error: msg }, { status: code });
 }
 
+const SUBDOMAIN_RE = /^[a-z0-9]([-a-z0-9]*[a-z0-9])?$/;
 
-export async function POST(req: NextRequest) {
-  const body = (await req.json().catch(() => ({}))) as Json;
-  const name = String(body?.name ?? '');
-  const subdomain = String(body?.subdomain ?? '').toLowerCase();
-  const email = String(body?.email ?? '');
-  const locale = (String(body?.locale ?? 'fr') === 'en' ? 'en' : 'fr');
-
-  if (name.length < 2 || name.length > 80) {
-    return NextResponse.json({ ok: false, error: 'INVALID_NAME' }, { status: 400 });
-  }
-  if (!subdomainRegex.test(subdomain) || reserved.has(subdomain)) {
-    return NextResponse.json({ ok: false, error: 'INVALID_SUBDOMAIN' }, { status: 400 });
-  }
-  if (!email.includes('@')) {
-    return NextResponse.json({ ok: false, error: 'INVALID_EMAIL' }, { status: 400 });
+export async function POST(req: Request) {
+  let body: Body;
+  try {
+    body = (await req.json()) as Body;
+  } catch {
+    return bad("invalid json body");
   }
 
-  // Disponibilité sous-domaine
-  const { data: existing, error: rpcErr } = await supabaseAdmin.rpc('tenant_id_by_subdomain', { p_subdomain: subdomain });
-  if (rpcErr) return NextResponse.json({ ok: false, error: rpcErr.message }, { status: 500 });
-  if (existing && (existing as unknown[]).length > 0) {
-    return NextResponse.json({ ok: false, error: 'SUBDOMAIN_TAKEN' }, { status: 409 });
+  if (!body?.userId || !body?.name || !body?.subdomain) {
+    return bad("missing fields: userId, name, subdomain");
+  }
+  if (!SUBDOMAIN_RE.test(body.subdomain)) {
+    return bad("invalid subdomain format");
   }
 
-  // Création tenant
-  const { data: tenant, error: insErr } = await supabaseAdmin
-    .from('tenants').insert({ name, subdomain, locale })
-    .select('id, name, subdomain, locale').single();
-  if (insErr || !tenant) return NextResponse.json({ ok: false, error: insErr?.message ?? 'INSERT_TENANT_FAILED' }, { status: 500 });
+  const locale = body.locale ?? "fr";
 
-  // Rôle owner id
-  const { data: roleRow, error: roleErr } = await supabaseAdmin.from('roles').select('id').eq('key', 'owner').single();
-  if (roleErr || !roleRow) return NextResponse.json({ ok: false, error: roleErr?.message ?? 'ROLE_NOT_FOUND' }, { status: 500 });
+  // 1) Créer/Idempotent tenant (find by subdomain, else insert)
+  let tenantId: string | undefined;
+  try {
+    const { data: existing, error: eFind } = await supabaseAdmin
+      .from("tenants")
+      .select("id")
+      .eq("subdomain", body.subdomain)
+      .single();
 
-  // Invitation / récupération user
-  const redirectTo = redirectToUrl();
-  const invite = await supabaseAdmin.auth.admin.inviteUserByEmail(email, { redirectTo });
-  let userId: string | null = invite.data?.user?.id ?? null;
-  let inviteSent = !invite.error;
-
-  if (!userId) {
-    const listed = await supabaseAdmin.auth.admin.listUsers({ page: 1, perPage: 100 });
-    if (!listed.error && listed.data?.users) {
-      const found = listed.data.users.find(u => u.email?.toLowerCase() === email.toLowerCase());
-      if (found) userId = found.id;
+    if (eFind && eFind.code !== "PGRST116") {
+      // PGRST116: no rows found (PostgREST)
+      throw eFind;
     }
-  }
-  if (!userId) {
-    const created = await supabaseAdmin.auth.admin.createUser({ email, email_confirm: false });
-    if (created.error || !created.data?.user?.id) {
-      return NextResponse.json({ ok: false, error: created.error?.message ?? 'USER_CREATE_FAILED' }, { status: 500 });
+    if (existing?.id) {
+      tenantId = existing.id;
+    } else {
+      const { data: inserted, error: eIns } = await supabaseAdmin
+        .from("tenants")
+        .insert({
+          name: body.name,
+          subdomain: body.subdomain,
+          locale,
+        })
+        .select("id")
+        .single();
+      if (eIns) throw eIns;
+      tenantId = inserted!.id;
     }
-    userId = created.data.user.id;
-    inviteSent = false;
+  } catch (e: any) {
+    return bad(`create/find tenant failed: ${e.message}`, 500);
   }
 
-  // Liens membership + rôle
-  const m = await supabaseAdmin.from('user_tenants').insert({ user_id: userId, tenant_id: tenant.id, is_owner: true });
-  if (m.error) return NextResponse.json({ ok: false, error: m.error.message, code: 'USER_TENANT_LINK_FAILED' }, { status: 500 });
+  // 2) user_tenants (Owner) — idempotent (PK (user_id, tenant_id))
+  try {
+    const { error: eUT } = await supabaseAdmin
+      .from("user_tenants")
+      .insert({ user_id: body.userId, tenant_id: tenantId!, is_owner: true });
 
-  const r = await supabaseAdmin.from('user_roles').insert({ user_id: userId, tenant_id: tenant.id, role_id: roleRow.id });
-  if (r.error) return NextResponse.json({ ok: false, error: r.error.message, code: 'USER_ROLE_LINK_FAILED' }, { status: 500 });
+    // 23505 = unique_violation
+    if (eUT && eUT.code !== "23505") throw eUT;
+  } catch (e: any) {
+    return bad(`user_tenants insert failed: ${e.message}`, 500);
+  }
 
-  const nextUrl = `https://${tenant.subdomain}.${process.env.NEXT_PUBLIC_ROOT_DOMAIN}`;
-  return NextResponse.json({ ok: true, tenant, owner_email: email, invite_sent: inviteSent, next: nextUrl });
+  // 3) user_roles → role owner — idempotent (PK (user_id, tenant_id, role_id))
+  try {
+    const { data: ownerRole, error: eRole } = await supabaseAdmin
+      .from("roles")
+      .select("id")
+      .eq("key", "owner")
+      .single();
+
+    if (eRole) throw eRole;
+    if (ownerRole?.id) {
+      const { error: eUR } = await supabaseAdmin
+        .from("user_roles")
+        .insert({ user_id: body.userId, tenant_id: tenantId!, role_id: ownerRole.id });
+
+      if (eUR && eUR.code !== "23505") throw eUR; // ignore unique_violation
+    }
+  } catch (e: any) {
+    return bad(`user_roles insert failed: ${e.message}`, 500);
+  }
+
+  // 4) Appel interne au provisioning (domaine + CNAME + DB tenant_domains)
+  const appBase = process.env.APP_BASE_URL;
+  const secret = process.env.DOMAIN_PROVISIONING_SECRET;
+  const rootDomain = process.env.NEXT_PUBLIC_ROOT_DOMAIN;
+
+  if (!appBase || !secret || !rootDomain) {
+    return bad("server env missing (APP_BASE_URL / DOMAIN_PROVISIONING_SECRET / NEXT_PUBLIC_ROOT_DOMAIN)", 500);
+  }
+
+  try {
+    const res = await fetch(`${appBase}/api/tenants/domains`, {
+      method: "POST",
+      headers: {
+        "x-provisioning-secret": secret,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        tenantId,
+        subdomain: body.subdomain,
+        makePrimary: true,
+        locale,
+      }),
+    });
+
+    if (!res.ok) {
+      const txt = await res.text();
+      return bad(`provisioning failed: ${txt}`, 502);
+    }
+  } catch (e: any) {
+    return bad(`provisioning request failed: ${e.message}`, 502);
+  }
+
+  // 5) URL finale
+  const fqdn = `${body.subdomain}.${rootDomain}`;
+  const redirect = `https://${fqdn}/${locale}`;
+
+  return NextResponse.json({ ok: true, tenantId, fqdn, redirect });
 }
