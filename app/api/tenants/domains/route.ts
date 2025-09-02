@@ -20,9 +20,7 @@ export const dynamic = "force-dynamic";
 
 // ===== Validation =====
 const schema = z.object({
-  subdomain: z
-    .string()
-    .regex(/^[a-z0-9-]{3,63}$/),
+  subdomain: z.string().regex(/^[a-z0-9-]{3,63}$/),
 });
 
 // ===== Utils OVH =====
@@ -64,11 +62,19 @@ async function ovhRequest<T>(
     const text = await res.text();
     throw new Error(`OVH ${method} ${path} -> ${res.status} ${text}`);
   }
-  // certaines routes OVH renvoient vide → on type sur unknown puis cast si besoin
   return (await res.json().catch(() => ({}))) as T;
 }
 
-async function ovhAddCNAME(sub: string): Promise<void> {
+async function ovhRecordExists(sub: string): Promise<boolean> {
+  const ids = await ovhRequest<number[]>(
+    "GET",
+    `/domain/zone/${PRIMARY_ZONE}/record?fieldType=CNAME&subDomain=${encodeURIComponent(sub)}`
+  );
+  return Array.isArray(ids) && ids.length > 0;
+}
+
+async function ovhEnsureCNAME(sub: string): Promise<void> {
+  if (await ovhRecordExists(sub)) return;
   await ovhRequest("POST", `/domain/zone/${PRIMARY_ZONE}/record`, {
     fieldType: "CNAME",
     subDomain: sub,
@@ -79,8 +85,8 @@ async function ovhAddCNAME(sub: string): Promise<void> {
 }
 
 // ===== Utils Vercel =====
-async function vercelAddDomainToProject(name: string): Promise<void> {
-  const r = await fetch(
+async function vercelEnsureDomain(name: string): Promise<void> {
+  const res = await fetch(
     `https://api.vercel.com/v10/projects/${VERCEL_PROJECT_ID}/domains`,
     {
       method: "POST",
@@ -92,10 +98,30 @@ async function vercelAddDomainToProject(name: string): Promise<void> {
       cache: "no-store",
     }
   );
-  if (!r.ok) {
-    const text = await r.text();
-    throw new Error(`Vercel add domain failed: ${r.status} ${text}`);
+  if (res.ok) return;
+
+  const text = await res.text();
+  // 409 domain_already_in_use => OK si c'est notre projet
+  try {
+    const data = JSON.parse(text);
+    if (
+      res.status === 409 &&
+      data?.error?.code === "domain_already_in_use"
+    ) {
+      const pid = data?.error?.domain?.projectId ?? data?.error?.projectId;
+      if (!pid || pid === VERCEL_PROJECT_ID) {
+        // Déjà attaché à CE projet -> considérer OK
+        return;
+      }
+      // Attaché à un AUTRE projet -> à transférer manuellement
+      throw new Error(
+        `domain_in_other_project:${pid}`
+      );
+    }
+  } catch {
+    // ignore JSON parse
   }
+  throw new Error(`Vercel add domain failed: ${res.status} ${text}`);
 }
 
 // ===== Handlers =====
@@ -111,18 +137,30 @@ export async function POST(req: Request) {
 
     const json = (await req.json().catch(() => ({}))) as unknown;
     const { subdomain } = schema.parse(json);
-
     const fqdn = `${subdomain}.${PRIMARY_ZONE}`;
 
-    // 1) Déclare le domaine à Vercel (pour SSL + routing)
-    await vercelAddDomainToProject(fqdn);
+    // 1) Ajoute/garantit le domaine dans le projet Vercel (409 traité comme OK)
+    await vercelEnsureDomain(fqdn);
 
-    // 2) Crée le CNAME côté OVH + refresh
-    await ovhAddCNAME(subdomain);
+    // 2) Crée/garantit le CNAME côté OVH
+    await ovhEnsureCNAME(subdomain);
 
     return NextResponse.json({ ok: true, domain: fqdn });
   } catch (e: unknown) {
     const message = e instanceof Error ? e.message : String(e);
+    // Améliore le message si attaché à un autre projet
+    if (message.startsWith("domain_in_other_project:")) {
+      const other = message.split(":")[1];
+      return NextResponse.json(
+        {
+          ok: false,
+          error:
+            `Le domaine est déjà attaché à un autre projet Vercel (${other}). ` +
+            `Va dans Vercel → Domaines → "Transfer" vers ce projet, puis relance.`,
+        },
+        { status: 409 }
+      );
+    }
     return NextResponse.json({ ok: false, error: message }, { status: 400 });
   }
 }
