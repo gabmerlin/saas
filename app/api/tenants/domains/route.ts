@@ -1,166 +1,181 @@
 // app/api/tenants/domains/route.ts
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import crypto from "crypto";
 
-// ===== ENV =====
-const OVH_ENDPOINT = process.env.OVH_API_ENDPOINT ?? "https://eu.api.ovh.com/1.0";
-const OVH_APP_KEY = process.env.OVH_APP_KEY!;
-const OVH_APP_SECRET = process.env.OVH_APP_SECRET!;
-const OVH_CONSUMER_KEY = process.env.OVH_CONSUMER_KEY!;
-const PRIMARY_ZONE = process.env.PRIMARY_ZONE!;
-
-const VERCEL_TOKEN = process.env.VERCEL_TOKEN!;
-const VERCEL_PROJECT_ID = process.env.VERCEL_PROJECT_ID!;
-
-const PROVISIONING_SECRET = process.env.DOMAIN_PROVISIONING_SECRET!;
-
+// Exécuter côté Node
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-// ===== Validation =====
-const schema = z.object({
-  subdomain: z.string().regex(/^[a-z0-9-]{3,63}$/),
-});
+// --- Helpers ---
+const SUBDOMAIN = z
+  .string()
+  .trim()
+  .min(1, "subdomain required")
+  .max(63)
+  // pas de point, lettres/chiffres/tiret uniquement, pas de tiret en début/fin
+  .regex(/^(?!-)[a-z0-9-]+(?<!-)$/i, "invalid subdomain");
 
-// ===== Utils OVH =====
-async function ovhTime(): Promise<number> {
-  const r = await fetch(`${OVH_ENDPOINT}/auth/time`, { cache: "no-store" });
-  const t = await r.text();
-  return parseInt(t, 10);
+const RESERVED = new Set(["www", "api", "cdn", "static"]);
+
+function json(status: number, data: any) {
+  return new NextResponse(JSON.stringify(data), {
+    status,
+    headers: { "content-type": "application/json" },
+  });
 }
 
-function ovhSign(method: string, url: string, body: string, ts: number): string {
-  const base = `${OVH_APP_SECRET}+${OVH_CONSUMER_KEY}+${method.toUpperCase()}+${url}+${body}+${ts}`;
-  const sha1 = crypto.createHash("sha1").update(base).digest("hex");
-  return `$1$${sha1}`;
+function envOrThrow(name: string) {
+  const v = process.env[name];
+  if (!v) throw new Error(`Missing env ${name}`);
+  return v;
 }
 
-async function ovhRequest<T>(
-  method: "GET" | "POST" | "DELETE",
+// --- Vercel client ---
+async function vercelAddDomain(projectId: string, token: string, fqdn: string) {
+  const res = await fetch(`https://api.vercel.com/v10/projects/${projectId}/domains`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "content-type": "application/json",
+    },
+    body: JSON.stringify({ name: fqdn }),
+  });
+
+  const text = await res.text();
+  if (!res.ok) {
+    throw new Error(`Vercel add-domain failed: ${res.status} ${text}`);
+  }
+  return JSON.parse(text);
+}
+
+async function vercelVerifyDomain(projectId: string, token: string, fqdn: string) {
+  const res = await fetch(`https://api.vercel.com/v9/projects/${projectId}/domains/${encodeURIComponent(fqdn)}/verify`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "content-type": "application/json",
+    },
+  });
+  const text = await res.text();
+  if (!res.ok) throw new Error(`Vercel verify failed: ${res.status} ${text}`);
+  return JSON.parse(text);
+}
+
+// --- OVH client minimal (signé) ---
+async function ovhSigned(
+  endpoint: string,
+  appKey: string,
+  appSecret: string,
+  consumerKey: string,
+  method: "GET" | "POST",
   path: string,
-  payload?: unknown
-): Promise<T> {
-  const url = `${OVH_ENDPOINT}${path}`;
-  const body = payload ? JSON.stringify(payload) : "";
-  const ts = await ovhTime();
+  bodyObj?: any
+) {
+  const url = `${endpoint}${path}`;
+  const body = bodyObj ? JSON.stringify(bodyObj) : "";
+  // time
+  const tRes = await fetch(`${endpoint}/auth/time`);
+  const t = await tRes.text();
+  const timestamp = parseInt(t, 10);
+
+  // signature $1$<sha1>
+  const toSign = `${appSecret}+${consumerKey}+${method}+${url}+${body}+${timestamp}`;
+  const hash = await crypto.subtle.digest("SHA-1", new TextEncoder().encode(toSign));
+  const hex = Array.from(new Uint8Array(hash)).map(b => b.toString(16).padStart(2, "0")).join("");
+  const signature = `$1$${hex}`;
 
   const res = await fetch(url, {
     method,
     headers: {
-      "X-Ovh-Application": OVH_APP_KEY,
-      "X-Ovh-Consumer": OVH_CONSUMER_KEY,
-      "X-Ovh-Timestamp": String(ts),
-      "X-Ovh-Signature": ovhSign(method, url, body, ts),
-      ...(payload ? { "Content-Type": "application/json" } : {}),
+      "X-Ovh-Application": appKey,
+      "X-Ovh-Consumer": consumerKey,
+      "X-Ovh-Timestamp": String(timestamp),
+      "X-Ovh-Signature": signature,
+      "content-type": "application/json",
     },
     body: body || undefined,
-    cache: "no-store",
   });
-
-  if (!res.ok) {
-    const text = await res.text();
-    throw new Error(`OVH ${method} ${path} -> ${res.status} ${text}`);
-  }
-  return (await res.json().catch(() => ({}))) as T;
-}
-
-async function ovhRecordExists(sub: string): Promise<boolean> {
-  const ids = await ovhRequest<number[]>(
-    "GET",
-    `/domain/zone/${PRIMARY_ZONE}/record?fieldType=CNAME&subDomain=${encodeURIComponent(sub)}`
-  );
-  return Array.isArray(ids) && ids.length > 0;
-}
-
-async function ovhEnsureCNAME(sub: string): Promise<void> {
-  if (await ovhRecordExists(sub)) return;
-  await ovhRequest("POST", `/domain/zone/${PRIMARY_ZONE}/record`, {
-    fieldType: "CNAME",
-    subDomain: sub,
-    target: "cname.vercel-dns.com",
-    ttl: 60,
-  });
-  await ovhRequest("POST", `/domain/zone/${PRIMARY_ZONE}/refresh`);
-}
-
-// ===== Utils Vercel =====
-async function vercelEnsureDomain(name: string): Promise<void> {
-  const res = await fetch(
-    `https://api.vercel.com/v10/projects/${VERCEL_PROJECT_ID}/domains`,
-    {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${VERCEL_TOKEN}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ name }),
-      cache: "no-store",
-    }
-  );
-  if (res.ok) return;
 
   const text = await res.text();
-  // 409 domain_already_in_use => OK si c'est notre projet
-  try {
-    const data = JSON.parse(text);
-    if (
-      res.status === 409 &&
-      data?.error?.code === "domain_already_in_use"
-    ) {
-      const pid = data?.error?.domain?.projectId ?? data?.error?.projectId;
-      if (!pid || pid === VERCEL_PROJECT_ID) {
-        // Déjà attaché à CE projet -> considérer OK
-        return;
-      }
-      // Attaché à un AUTRE projet -> à transférer manuellement
-      throw new Error(
-        `domain_in_other_project:${pid}`
-      );
-    }
-  } catch {
-    // ignore JSON parse
-  }
-  throw new Error(`Vercel add domain failed: ${res.status} ${text}`);
+  if (!res.ok) throw new Error(`OVH ${method} ${path} -> ${res.status} ${text}`);
+  return text ? JSON.parse(text) : {};
 }
 
-// ===== Handlers =====
+// --- Handlers ---
 export async function GET() {
-  return NextResponse.json({ ok: true, hint: "Use POST" });
+  return json(200, { ok: true, hint: "Use POST", example: { subdomain: "demo123" } });
 }
 
 export async function POST(req: Request) {
   try {
-    if (!PROVISIONING_SECRET || req.headers.get("x-provisioning-secret") !== PROVISIONING_SECRET) {
-      return NextResponse.json({ ok: false, error: "unauthorized" }, { status: 401 });
+    // 1) Secret
+    const secret = req.headers.get("x-provisioning-secret") || "";
+    if (secret !== envOrThrow("DOMAIN_PROVISIONING_SECRET")) {
+      return json(401, { ok: false, error: "Unauthorized (secret)" });
     }
 
-    const json = (await req.json().catch(() => ({}))) as unknown;
-    const { subdomain } = schema.parse(json);
-    const fqdn = `${subdomain}.${PRIMARY_ZONE}`;
+    // 2) Parse
+    const body = await req.json().catch(() => ({}));
+    const parsed = SUBDOMAIN.safeParse(body?.subdomain);
+    if (!parsed.success) {
+      return json(400, { ok: false, error: "Invalid subdomain", details: parsed.error.flatten() });
+    }
+    const sub = parsed.data.toLowerCase();
+    if (RESERVED.has(sub)) {
+      return json(422, { ok: false, error: "Subdomain reserved" });
+    }
 
-    // 1) Ajoute/garantit le domaine dans le projet Vercel (409 traité comme OK)
-    await vercelEnsureDomain(fqdn);
+    // 3) ENV
+    const zone = envOrThrow("PRIMARY_ZONE"); // ex: qgchatting.com
+    const projectId = envOrThrow("VERCEL_PROJECT_ID");
+    const token = envOrThrow("VERCEL_TOKEN");
+    const ovhEndpoint = envOrThrow("OVH_API_ENDPOINT");
+    const ovhAppKey = envOrThrow("OVH_APP_KEY");
+    const ovhAppSecret = envOrThrow("OVH_APP_SECRET");
+    const ovhCK = envOrThrow("OVH_CONSUMER_KEY");
 
-    // 2) Crée/garantit le CNAME côté OVH
-    await ovhEnsureCNAME(subdomain);
+    const fqdn = `${sub}.${zone}`;
 
-    return NextResponse.json({ ok: true, domain: fqdn });
-  } catch (e: unknown) {
-    const message = e instanceof Error ? e.message : String(e);
-    // Améliore le message si attaché à un autre projet
-    if (message.startsWith("domain_in_other_project:")) {
-      const other = message.split(":")[1];
-      return NextResponse.json(
-        {
-          ok: false,
-          error:
-            `Le domaine est déjà attaché à un autre projet Vercel (${other}). ` +
-            `Va dans Vercel → Domaines → "Transfer" vers ce projet, puis relance.`,
-        },
-        { status: 409 }
+    // 4) Vercel: essaye d'ajouter le domain (si déjà présent, on ignore 409)
+    try {
+      await vercelAddDomain(projectId, token, fqdn);
+    } catch (e: any) {
+      // Si le domain est déjà dans le projet, Vercel renvoie 409 -> on ignore
+      const msg = String(e?.message || e);
+      if (!/409/.test(msg) && !/already in use/i.test(msg)) {
+        // Pour debug côté client
+        return json(400, { ok: false, stage: "vercel-add-domain", error: msg });
+      }
+    }
+
+    // 5) OVH: CNAME -> cname.vercel-dns.com
+    //   - check s'il existe déjà
+    const list = await ovhSigned(ovhEndpoint, ovhAppKey, ovhAppSecret, ovhCK, "GET",
+      `/domain/zone/${zone}/record?fieldType=CNAME&subDomain=${encodeURIComponent(sub)}`
+    );
+
+    if (!Array.isArray(list) || list.length === 0) {
+      // créer
+      await ovhSigned(ovhEndpoint, ovhAppKey, ovhAppSecret, ovhCK, "POST",
+        `/domain/zone/${zone}/record`,
+        { fieldType: "CNAME", subDomain: sub, target: "cname.vercel-dns.com", ttl: 60 }
+      );
+      // refresh
+      await ovhSigned(ovhEndpoint, ovhAppKey, ovhAppSecret, ovhCK, "POST",
+        `/domain/zone/${zone}/refresh`, {}
       );
     }
-    return NextResponse.json({ ok: false, error: message }, { status: 400 });
+
+    // 6) Vérifier coté Vercel (génère le SSL ensuite)
+    try {
+      await vercelVerifyDomain(projectId, token, fqdn);
+    } catch (e: any) {
+      // Non bloquant : la vérification peut prendre un court délai
+    }
+
+    return json(200, { ok: true, domain: fqdn });
+
+  } catch (e: any) {
+    return json(500, { ok: false, error: String(e?.message || e) });
   }
 }
