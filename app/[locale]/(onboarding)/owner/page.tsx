@@ -1,16 +1,16 @@
-// app/(onboarding)/owner/page.tsx  (ou adapte le chemin)
 'use client';
 
-import { useState } from 'react';
+import React, { useState, type FormEvent } from 'react';
+import Link from 'next/link';
 
-const re = /^[a-z0-9](?:[a-z0-9-]{1,61}[a-z0-9])$/; // validateur côté client
+const re: RegExp = /^[a-z0-9](?:[a-z0-9-]{1,61}[a-z0-9])$/; // validateur côté client
 
 export default function OwnerOnboardingPage() {
   const [sub, setSub] = useState('');
   const [msg, setMsg] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
-  async function onSubmit(e: React.FormEvent) {
+  async function onSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setMsg(null);
 
@@ -22,23 +22,30 @@ export default function OwnerOnboardingPage() {
 
     setBusy(true);
     try {
-      // IMPORTANT : on appelle le WRAPPER côté serveur (étape 2),
-      // pour ne JAMAIS exposer le secret dans le navigateur.
+      // On passe par le wrapper serveur pour ne jamais exposer le secret
       const res = await fetch('/api/tenants/provision', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({ subdomain: s }),
       });
-      const data = await res.json();
-      if (!res.ok) {
+
+      const data = (await res.json().catch(() => ({}))) as {
+        ok?: boolean;
+        error?: string;
+        domain?: string;
+      };
+
+      if (!res.ok || data.ok === false) {
         setMsg(`Erreur ${res.status} : ${data?.error ?? 'échec'}`);
         return;
       }
+
       setMsg(`✅ Provisionné : ${data.domain}`);
-      // Redirection si tu veux
+      // Ex: redirection une fois prêt
       // window.location.href = `https://${data.domain}/fr`;
-    } catch (err: any) {
-      setMsg(String(err?.message ?? err));
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err);
+      setMsg(message);
     } finally {
       setBusy(false);
     }
@@ -55,7 +62,9 @@ export default function OwnerOnboardingPage() {
         <ol className="list-decimal pl-5 space-y-1">
           <li>Créer le tenant en base</li>
           <li>Associer l’owner (user courant)</li>
-          <li>Appeler POST <code>/api/tenants/provision</code></li>
+          <li>
+            Appeler POST <code>/api/tenants/provision</code>
+          </li>
           <li>Rediriger vers le sous-domaine une fois prêt</li>
         </ol>
       </div>
@@ -66,15 +75,15 @@ export default function OwnerOnboardingPage() {
           <input
             className="mt-1 w-full rounded border p-2"
             placeholder="ex: monagence"
-            // surtout PAS de /…/v ici — juste une string (et on valide côté JS)
-            inputMode="text"          // or remove this line entirely
+            // ⚠️ pas de RegExp dans les attributs — on valide en JS
+            inputMode="text"
             autoCorrect="off"
             autoCapitalize="none"
             spellCheck={false}
             maxLength={63}
             value={sub}
             onChange={(e) => setSub(e.target.value)}
-            />
+          />
         </label>
 
         <button
@@ -88,7 +97,9 @@ export default function OwnerOnboardingPage() {
       </form>
 
       <p className="mt-6 text-sm">
-        <a className="underline" href="/api/health">/api/health</a>
+        <Link className="underline" href="/api/health">
+          /api/health
+        </Link>
       </p>
     </main>
   );
