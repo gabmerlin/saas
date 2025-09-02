@@ -1,8 +1,8 @@
-// app/api/tenants/domains/route.ts
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { vercelAddDomainToProject, vercelGetDomainVerification } from "@/lib/vercel";
 import { ovhCreateOrUpdateCNAME } from "@/lib/ovh";
+import { getErrorMessage, isPostgrestError, NO_ROWS_CODE, UNIQUE_VIOLATION } from "@/lib/errors";
 
 type Body = {
   tenantId?: string;
@@ -22,102 +22,95 @@ export async function POST(req: Request) {
     return bad("unauthorized", 401);
   }
 
-  const body = (await req.json()) as Body;
-  const zone = process.env.PRIMARY_ZONE!;
-  const makePrimary = body.makePrimary ?? true;
+  const zone = process.env.PRIMARY_ZONE;
+  const root = process.env.NEXT_PUBLIC_ROOT_DOMAIN;
+  if (!zone || !root) return bad("server env missing (PRIMARY_ZONE / NEXT_PUBLIC_ROOT_DOMAIN)", 500);
 
-  // 1) calcul du domain
-  const domain =
-    body.domain ??
-    (body.subdomain ? `${body.subdomain}.${process.env.NEXT_PUBLIC_ROOT_DOMAIN}` : undefined);
+  let body: Body;
+  try {
+    body = (await req.json()) as Body;
+  } catch {
+    return bad("invalid json body");
+  }
+
+  const makePrimary = body.makePrimary ?? true;
+  const domain = body.domain ?? (body.subdomain ? `${body.subdomain}.${root}` : undefined);
   if (!domain) return bad("Missing domain/subdomain");
 
-  // 2) vérifier/créer tenant si besoin
+  // 1) find-or-create tenant
   let tenantId = body.tenantId;
   try {
     if (!tenantId && body.subdomain) {
-      const { data: existing, error: e1 } = await supabaseAdmin
+      const { data: existing, error: eFind } = await supabaseAdmin
         .from("tenants")
         .select("id")
         .eq("subdomain", body.subdomain)
         .single();
 
-      if (e1 && e1.code !== "PGRST116") {
-        // PGRST116 = no rows found
-        throw e1;
+      if (eFind && (!isPostgrestError(eFind) || eFind.code !== NO_ROWS_CODE)) {
+        throw eFind;
       }
-
       if (existing?.id) {
         tenantId = existing.id;
       } else {
-        const { data: inserted, error: e2 } = await supabaseAdmin
+        const { data: inserted, error: eIns } = await supabaseAdmin
           .from("tenants")
-          .insert({
-            name: body.subdomain,
-            subdomain: body.subdomain,
-            locale: body.locale ?? "fr",
-          })
+          .insert({ name: body.subdomain, subdomain: body.subdomain, locale: body.locale ?? "fr" })
           .select("id")
           .single();
-
-        if (e2) throw e2;
+        if (eIns) throw eIns;
         tenantId = inserted!.id;
       }
     }
-  } catch (e: any) {
-    return bad(`create/find tenant failed: ${e.message}`, 500);
+  } catch (e: unknown) {
+    const msg = isPostgrestError(e) ? e.message : getErrorMessage(e);
+    return bad(`create/find tenant failed: ${msg}`, 500);
   }
-
   if (!tenantId) return bad("Missing tenantId");
 
-  // 3) Ajout domaine Vercel (idempotent)
+  // 2) Vercel project domain (idempotent)
   try {
     await vercelAddDomainToProject(domain);
-  } catch (e: any) {
-    return bad(`vercel add domain failed: ${e.message}`, 502);
+  } catch (e: unknown) {
+    return bad(`vercel add domain failed: ${getErrorMessage(e)}`, 502);
   }
 
-  // 4) Ajout/MAJ CNAME OVH
+  // 3) OVH CNAME to vercel-dns
   try {
     const sub = domain.replace(`.${zone}`, "");
     await ovhCreateOrUpdateCNAME(zone, sub, "cname.vercel-dns.com.");
-  } catch (e: any) {
-    return bad(`ovh CNAME failed: ${e.message}`, 502);
+  } catch (e: unknown) {
+    return bad(`ovh CNAME failed: ${getErrorMessage(e)}`, 502);
   }
 
-  // 5) Vérification Vercel (optionnelle)
+  // 4) Vercel verification (best-effort)
   try {
     await vercelGetDomainVerification(domain);
-  } catch (e: any) {
-    console.warn("vercel verification warning:", e.message);
+  } catch {
+    // ignore / log if needed
   }
 
-  // 6) Insert DB idempotent dans tenant_domains
+  // 5) DB insert tenant_domains (idempotent)
   try {
-    const { error: e3 } = await supabaseAdmin
+    const { error: eIns } = await supabaseAdmin
       .from("tenant_domains")
-      .insert({
-        tenant_id: tenantId,
-        domain,
-        is_primary: makePrimary,
-      })
+      .insert({ tenant_id: tenantId, domain, is_primary: makePrimary })
       .select("id")
       .single();
 
-    if (e3 && e3.code !== "23505") {
-      // 23505 = unique_violation (déjà présent)
-      throw e3;
+    if (eIns && (!isPostgrestError(eIns) || eIns.code !== UNIQUE_VIOLATION)) {
+      throw eIns;
     }
 
-    if (e3?.code === "23505" && makePrimary) {
-      // update si conflit et makePrimary
+    if (eIns && isPostgrestError(eIns) && eIns.code === UNIQUE_VIOLATION && makePrimary) {
       await supabaseAdmin
         .from("tenant_domains")
         .update({ is_primary: true })
         .eq("domain", domain);
     }
-  } catch (e: any) {
-    return bad(`db insert tenant_domains failed: ${e.message}`, 500);
+  } catch (e: unknown) {
+    const msg = isPostgrestError(e) ? e.message : getErrorMessage(e);
+    return bad(`db insert tenant_domains failed: ${msg}`, 500);
   }
 
   return NextResponse.json({ ok: true, tenantId, domain });

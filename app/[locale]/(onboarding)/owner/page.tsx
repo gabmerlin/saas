@@ -1,25 +1,27 @@
-// app/[locale]/onboarding/owner/page.tsx
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
-// @ts-ignore: adapt to your auth hook; sinon, mets un input userId manuel
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
+
+const SUBDOMAIN_RE = /^[a-z0-9]([-a-z0-9]*[a-z0-9])?$/;
 
 export default function OwnerOnboardingPage() {
   const [name, setName] = useState("");
   const [subdomain, setSubdomain] = useState("");
   const [loading, setLoading] = useState(false);
-  const router = useRouter();
   const supabase = createClientComponentClient();
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (!SUBDOMAIN_RE.test(subdomain)) {
+      alert("Sous-domaine invalide");
+      return;
+    }
     setLoading(true);
 
     const { data: { user } } = await supabase.auth.getUser();
     if (!user?.id) {
-      alert("Not authenticated");
+      alert("Non authentifié");
       setLoading(false);
       return;
     }
@@ -30,20 +32,20 @@ export default function OwnerOnboardingPage() {
       body: JSON.stringify({
         userId: user.id,
         name,
-        subdomain,
+        subdomain: subdomain.toLowerCase(),
         locale: "fr",
       }),
     });
 
-    const json = await res.json();
+    const json: { ok?: boolean; redirect?: string; error?: string } = await res.json();
     setLoading(false);
 
-    if (!res.ok) {
-      alert(json.error || "Error");
+    if (!res.ok || !json.ok) {
+      alert(json.error || "Erreur lors de la création");
       return;
     }
-    // redirige vers le nouveau sous-domaine
-    window.location.href = json.redirect;
+    // Redirection vers le nouveau sous-domaine
+    window.location.href = String(json.redirect);
   }
 
   return (
@@ -60,6 +62,7 @@ export default function OwnerOnboardingPage() {
             required
           />
         </div>
+
         <div>
           <label className="block text-sm mb-1">Sous-domaine</label>
           <div className="flex">
@@ -67,8 +70,8 @@ export default function OwnerOnboardingPage() {
               className="flex-1 border rounded-l-lg px-3 py-2"
               value={subdomain}
               onChange={(e) => setSubdomain(e.target.value.toLowerCase())}
-              pattern="^[a-z0-9]([-a-z0-9]*[a-z0-9])?$"
-              title="caractères minuscules, chiffres, tirets (pas de tiret début/fin)"
+              pattern={SUBDOMAIN_RE.source}
+              title="minuscules, chiffres, tirets; pas de tiret début/fin"
               placeholder="ex: dazz"
               required
             />
@@ -77,6 +80,7 @@ export default function OwnerOnboardingPage() {
             </span>
           </div>
         </div>
+
         <button
           type="submit"
           disabled={loading}

@@ -1,9 +1,9 @@
-// app/api/onboarding/owner/route.ts
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase/admin";
+import { getErrorMessage, isPostgrestError, NO_ROWS_CODE, UNIQUE_VIOLATION } from "@/lib/errors";
 
 type Body = {
-  userId: string;        // auth.users.id (UUID)
+  userId: string;
   name: string;
   subdomain: string;
   locale?: "fr" | "en";
@@ -32,7 +32,7 @@ export async function POST(req: Request) {
 
   const locale = body.locale ?? "fr";
 
-  // 1) Créer/Idempotent tenant (find by subdomain, else insert)
+  // 1) find-or-create tenant
   let tenantId: string | undefined;
   try {
     const { data: existing, error: eFind } = await supabaseAdmin
@@ -41,8 +41,7 @@ export async function POST(req: Request) {
       .eq("subdomain", body.subdomain)
       .single();
 
-    if (eFind && eFind.code !== "PGRST116") {
-      // PGRST116: no rows found (PostgREST)
+    if (eFind && (!isPostgrestError(eFind) || eFind.code !== NO_ROWS_CODE)) {
       throw eFind;
     }
     if (existing?.id) {
@@ -50,33 +49,32 @@ export async function POST(req: Request) {
     } else {
       const { data: inserted, error: eIns } = await supabaseAdmin
         .from("tenants")
-        .insert({
-          name: body.name,
-          subdomain: body.subdomain,
-          locale,
-        })
+        .insert({ name: body.name, subdomain: body.subdomain, locale })
         .select("id")
         .single();
       if (eIns) throw eIns;
       tenantId = inserted!.id;
     }
-  } catch (e: any) {
-    return bad(`create/find tenant failed: ${e.message}`, 500);
+  } catch (e: unknown) {
+    const msg = isPostgrestError(e) ? e.message : getErrorMessage(e);
+    return bad(`create/find tenant failed: ${msg}`, 500);
   }
 
-  // 2) user_tenants (Owner) — idempotent (PK (user_id, tenant_id))
+  // 2) user_tenants (idempotent)
   try {
     const { error: eUT } = await supabaseAdmin
       .from("user_tenants")
       .insert({ user_id: body.userId, tenant_id: tenantId!, is_owner: true });
 
-    // 23505 = unique_violation
-    if (eUT && eUT.code !== "23505") throw eUT;
-  } catch (e: any) {
-    return bad(`user_tenants insert failed: ${e.message}`, 500);
+    if (eUT && (!isPostgrestError(eUT) || eUT.code !== UNIQUE_VIOLATION)) {
+      throw eUT;
+    }
+  } catch (e: unknown) {
+    const msg = isPostgrestError(e) ? e.message : getErrorMessage(e);
+    return bad(`user_tenants insert failed: ${msg}`, 500);
   }
 
-  // 3) user_roles → role owner — idempotent (PK (user_id, tenant_id, role_id))
+  // 3) user_roles (owner, idempotent)
   try {
     const { data: ownerRole, error: eRole } = await supabaseAdmin
       .from("roles")
@@ -90,13 +88,16 @@ export async function POST(req: Request) {
         .from("user_roles")
         .insert({ user_id: body.userId, tenant_id: tenantId!, role_id: ownerRole.id });
 
-      if (eUR && eUR.code !== "23505") throw eUR; // ignore unique_violation
+      if (eUR && (!isPostgrestError(eUR) || eUR.code !== UNIQUE_VIOLATION)) {
+        throw eUR;
+      }
     }
-  } catch (e: any) {
-    return bad(`user_roles insert failed: ${e.message}`, 500);
+  } catch (e: unknown) {
+    const msg = isPostgrestError(e) ? e.message : getErrorMessage(e);
+    return bad(`user_roles insert failed: ${msg}`, 500);
   }
 
-  // 4) Appel interne au provisioning (domaine + CNAME + DB tenant_domains)
+  // 4) Call provisioning
   const appBase = process.env.APP_BASE_URL;
   const secret = process.env.DOMAIN_PROVISIONING_SECRET;
   const rootDomain = process.env.NEXT_PUBLIC_ROOT_DOMAIN;
@@ -119,18 +120,14 @@ export async function POST(req: Request) {
         locale,
       }),
     });
-
     if (!res.ok) {
-      const txt = await res.text();
-      return bad(`provisioning failed: ${txt}`, 502);
+      return bad(`provisioning failed: ${await res.text()}`, 502);
     }
-  } catch (e: any) {
-    return bad(`provisioning request failed: ${e.message}`, 502);
+  } catch (e: unknown) {
+    return bad(`provisioning request failed: ${getErrorMessage(e)}`, 502);
   }
 
-  // 5) URL finale
   const fqdn = `${body.subdomain}.${rootDomain}`;
   const redirect = `https://${fqdn}/${locale}`;
-
   return NextResponse.json({ ok: true, tenantId, fqdn, redirect });
 }
