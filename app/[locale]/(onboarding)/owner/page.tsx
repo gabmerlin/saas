@@ -80,12 +80,17 @@ export default async function OwnerOnboardingPage({
           <span className="text-sm font-medium">Sous-domaine souhaité</span>
           <div className="mt-1 flex items-stretch overflow-hidden rounded-lg border">
             <input
+              id="subdomain"
               name="subdomain"
               required
-              pattern="[a-z0-9-]{3,30}"
-              title="3–30 caractères (a-z, 0-9 et tiret)."
-              placeholder="ex. demo7"
-              className="flex-1 bg-transparent px-3 py-2 outline-none"
+              // 3–30 chars, lowercase letters, digits and hyphen
+              // hyphen escaped for maximum compatibility
+              pattern="^[a-z0-9\-]{3,30}$"
+              title="3–30 caractères en minuscules, chiffres et tirets ( - )"
+              autoComplete="off"
+              inputMode="url"
+              onChange={(e) => (e.currentTarget.value = e.currentTarget.value.toLowerCase())}
+              className="..."
             />
             <span className="border-l px-3 py-2 text-sm text-muted-foreground">
               .{process.env.NEXT_PUBLIC_ROOT_DOMAIN || "qgchatting.com"}
