@@ -1,0 +1,14 @@
+{
+  "onboarding.title": "Owner Onboarding",
+  "onboarding.agencyName": "Agency name",
+  "onboarding.ownerEmail": "Owner email",
+  "onboarding.language": "Language",
+  "onboarding.subdomain": "Subdomain",
+  "onboarding.preview": "Preview",
+  "onboarding.available": "Available",
+  "onboarding.taken": "Taken",
+  "onboarding.invalid": "Invalid",
+  "onboarding.submit": "Create & Provision",
+  "onboarding.provisioning": "Provisioning…",
+  "errors.domain_exists": "This subdomain is already in use."
+}

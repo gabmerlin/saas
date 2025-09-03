@@ -1,25 +1,50 @@
-import { NextResponse } from 'next/server';
-import type { NextRequest } from 'next/server';
+// app/api/tenants/domains/route.ts
+
+import { NextResponse, type NextRequest } from 'next/server';
 import { createHash } from 'crypto';
+import { createClient as createSupabaseClient, type SupabaseClient } from '@supabase/supabase-js';
 
 // Runtime Node pour pouvoir appeler des APIs externes proprement
 export const runtime = 'nodejs';
 
-type ProvisionBody = { subdomain: string };
+/* --------------------------- types --------------------------- */
 
 type Jsonish = Record<string, unknown>;
+type ProvisionBody = {
+  subdomain: string;
+  tenantId?: string;     // optionnel si tu lies ici
+  isPrimary?: boolean;   // défaut true
+};
 
 type AvailabilityOk =
   | { ok: true; available: true; fqdn: string }
-  | { ok: true; available: false; fqdn: string; reason: string };
+  | { ok: true; available: false; fqdn: string; reason: string; source?: 'tenants' | 'tenant_domains' | 'vercel' };
 
-type AvailabilityErr = { ok: false; error: string };
+type AvailabilityErr = { ok: false; error: string; code?: string };
+
+/* --------------------------- consts --------------------------- */
 
 const VERCEL_API = 'https://api.vercel.com';
 const VERCEL_VERSION_ADD = 'v10';
 const VERCEL_VERSION_GET = 'v9'; // liste/lookup
 const OVH_ENDPOINT = process.env.OVH_API_ENDPOINT ?? 'https://eu.api.ovh.com/1.0';
-const ROOT_ZONE = process.env.PRIMARY_ZONE ?? process.env.NEXT_PUBLIC_ROOT_DOMAIN ?? '';
+const ROOT_ZONE = (process.env.PRIMARY_ZONE ?? process.env.NEXT_PUBLIC_ROOT_DOMAIN ?? '').trim().toLowerCase();
+
+const SUB_RE = /^[a-z0-9](?:[-a-z0-9]*[a-z0-9])?$/; // aligné sur ton CHECK SQL
+const BAD = (m: string, code?: string) => NextResponse.json({ ok: false, error: m, code }, { status: 400 });
+
+/* --------------------------- Supabase helpers --------------------------- */
+
+function supabaseAnon(): SupabaseClient {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+  return createSupabaseClient(url, key, { auth: { persistSession: false, autoRefreshToken: false } });
+}
+function supabaseService(): SupabaseClient {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY!;
+  return createSupabaseClient(url, key, { auth: { persistSession: false, autoRefreshToken: false } });
+}
 
 /* --------------------------- routes --------------------------- */
 
@@ -32,66 +57,95 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ ok: true, hint: 'Use POST, or pass ?subdomain=xxx for availability' });
   }
 
-  if (!isValidSubdomain(sub)) {
+  if (!SUB_RE.test(sub) || sub === 'www') {
     const fqdn = ROOT_ZONE ? `${sub}.${ROOT_ZONE}` : sub;
     const res: AvailabilityOk = { ok: true, available: false, fqdn, reason: 'invalid_subdomain' };
     return NextResponse.json(res);
   }
 
   if (!ROOT_ZONE) {
-    const res: AvailabilityErr = { ok: false, error: 'PRIMARY_ZONE / ROOT_DOMAIN not set' };
+    const res: AvailabilityErr = { ok: false, error: 'PRIMARY_ZONE / NEXT_PUBLIC_ROOT_DOMAIN not set', code: 'root_zone_missing' };
     return NextResponse.json(res, { status: 500 });
   }
 
   const fqdn = `${sub}.${ROOT_ZONE}`;
 
-  // par défaut on vérifie côté Vercel (source de vérité des domaines déployés)
+  // 0) Vérif DB (si les RPC existent, sinon on ignore proprement)
+  try {
+    const sb = supabaseAnon();
+    const subExists = await sb.rpc('subdomain_exists', { p_subdomain: sub });
+    if (!subExists.error && subExists.data === true) {
+      const res: AvailabilityOk = { ok: true, available: false, fqdn, reason: 'already_in_db', source: 'tenants' };
+      return NextResponse.json(res);
+    }
+    const domExists = await sb.rpc('domain_exists', { p_domain: fqdn });
+    if (!domExists.error && domExists.data === true) {
+      const res: AvailabilityOk = { ok: true, available: false, fqdn, reason: 'already_in_db', source: 'tenant_domains' };
+      return NextResponse.json(res);
+    }
+    // si RPC absentes => subExists.error/domExists.error, on laisse continuer (pas bloquant)
+  } catch {
+    // ignore : fallback Vercel
+  }
+
+  // 1) Vérif côté Vercel (source de vérité du routing)
   try {
     const exists = await vercelDomainExists(fqdn);
     if (exists) {
-      const res: AvailabilityOk = { ok: true, available: false, fqdn, reason: 'vercel_domain_exists' };
+      const res: AvailabilityOk = { ok: true, available: false, fqdn, reason: 'vercel_domain_exists', source: 'vercel' };
       return NextResponse.json(res);
     }
   } catch (e) {
-    // Si l’API Vercel est KO, on renvoie une erreur explicite
     const msg = e instanceof Error ? e.message : String(e);
-    const res: AvailabilityErr = { ok: false, error: `Vercel check failed: ${msg}` };
+    const res: AvailabilityErr = { ok: false, error: `Vercel check failed: ${msg}`, code: 'vercel_check_failed' };
     return NextResponse.json(res, { status: 500 });
   }
 
-  // Optionnel : on pourrait aussi vérifier en base (tenant_domains / tenants),
-  // mais le provisioning passe toujours par Vercel → suffisant pour lever les doublons.
   const res: AvailabilityOk = { ok: true, available: true, fqdn };
   return NextResponse.json(res);
 }
 
 export async function POST(req: NextRequest) {
   try {
+    // Auth interne
     const secret = req.headers.get('x-provisioning-secret') ?? '';
     if (!secret || secret !== (process.env.DOMAIN_PROVISIONING_SECRET ?? '')) {
-      return jsonError(401, 'Unauthorized: missing/invalid x-provisioning-secret');
+      return NextResponse.json({ ok: false, error: 'Unauthorized: missing/invalid x-provisioning-secret', code: 'unauthorized' }, { status: 401 });
     }
 
-    if (!ROOT_ZONE) return jsonError(500, 'PRIMARY_ZONE / ROOT_DOMAIN not set');
+    if (!ROOT_ZONE) return NextResponse.json({ ok: false, error: 'PRIMARY_ZONE / NEXT_PUBLIC_ROOT_DOMAIN not set', code: 'root_zone_missing' }, { status: 500 });
 
     const body = (await req.json().catch(() => ({}))) as ProvisionBody;
     const sub = (body.subdomain || '').trim().toLowerCase();
+    if (!SUB_RE.test(sub) || sub === 'www') return BAD('Invalid subdomain', 'invalid_subdomain');
 
-    if (!isValidSubdomain(sub)) {
-      return jsonError(400, 'Invalid subdomain');
-    }
     const fqdn = `${sub}.${ROOT_ZONE}`;
 
-    // 0) Vérif explicite côté Vercel : si déjà présent → 409
-    const already = await vercelDomainExists(fqdn).catch(() => false);
-    if (already) {
-      return jsonError(409, `Domain already exists on project: ${fqdn}`);
+    // 0) Double-check DB avant Vercel
+    try {
+      const sb = supabaseAnon();
+      const s1 = await sb.rpc('subdomain_exists', { p_subdomain: sub });
+      if (!s1.error && s1.data === true) {
+        return NextResponse.json({ ok: false, error: `Subdomain taken: ${sub}`, code: 'subdomain_exists' }, { status: 409 });
+      }
+      const s2 = await sb.rpc('domain_exists', { p_domain: fqdn });
+      if (!s2.error && s2.data === true) {
+        return NextResponse.json({ ok: false, error: `Domain taken: ${fqdn}`, code: 'domain_exists' }, { status: 409 });
+      }
+    } catch {
+      // si RPC absentes, on continue
     }
 
     // 1) Ajout du domaine sur le projet Vercel
     const { VERCEL_PROJECT_ID, VERCEL_TOKEN } = process.env;
     if (!VERCEL_PROJECT_ID || !VERCEL_TOKEN) {
-      return jsonError(500, 'VERCEL_PROJECT_ID / VERCEL_TOKEN not set');
+      return NextResponse.json({ ok: false, error: 'VERCEL_PROJECT_ID / VERCEL_TOKEN not set', code: 'vercel_env_missing' }, { status: 500 });
+    }
+
+    // Check si déjà présent (plus rapide que POST direct)
+    const already = await vercelDomainExists(fqdn).catch(() => false);
+    if (already) {
+      return NextResponse.json({ ok: false, error: `Domain already exists on project: ${fqdn}`, code: 'domain_exists' }, { status: 409 });
     }
 
     const vAdd = await fetch(
@@ -107,23 +161,20 @@ export async function POST(req: NextRequest) {
     );
 
     if (!vAdd.ok) {
-      // 409: déjà présent
       if (vAdd.status === 409) {
         const e = (await vAdd.json().catch(() => ({}))) as Jsonish;
         const code = (e?.error as Jsonish)?.code;
         const pid = (e?.error as Jsonish)?.projectId;
         if (code === 'domain_already_in_use' && pid === process.env.VERCEL_PROJECT_ID) {
-          // → On renvoie 409 pour que l’UI affiche “déjà pris”
-          return jsonError(409, `Domain already exists on project: ${fqdn}`);
+          return NextResponse.json({ ok: false, error: `Domain already exists on project: ${fqdn}`, code: 'domain_exists' }, { status: 409 });
         }
-        return jsonError(400, `Vercel add domain failed: ${vAdd.status} ${JSON.stringify(e)}`);
+        return NextResponse.json({ ok: false, error: `Vercel add domain failed: ${vAdd.status} ${JSON.stringify(e)}`, code: 'vercel_add_failed' }, { status: 400 });
       }
       const e = await vAdd.text();
-      return jsonError(400, `Vercel add domain failed: ${vAdd.status} ${e}`);
+      return NextResponse.json({ ok: false, error: `Vercel add domain failed: ${vAdd.status} ${e}`, code: 'vercel_add_failed' }, { status: 400 });
     }
 
-    // 2) CNAME côté OVH (si tu n’utilises PAS exclusivement le wildcard)
-    //    On aligne systématiquement le record sur cname.vercel-dns.com. (avec point final)
+    // 2) Créer/MàJ CNAME côté OVH (si pas full wildcard)
     try {
       const existingIds = await ovhListRecordsBySub('CNAME', sub);
 
@@ -152,33 +203,39 @@ export async function POST(req: NextRequest) {
 
       await ovhRefreshZone();
     } catch {
-      // Si tu es full-wildcard côté Vercel, l’absence/échec OVH n’empêche pas la mise en ligne.
-      // On ignore volontairement ici (mais on pourrait logger côté observabilité).
+      // Si wildcard Vercel actif, l'échec OVH n'est pas bloquant : on ignore.
     }
+
+    // 3) (Optionnel) Insérer en DB le tenant_domains primaire ici si tu le souhaites :
+    // if (body.tenantId) {
+    //   const svc = supabaseService();
+    //   const { error } = await svc.from('tenant_domains').insert({
+    //     tenant_id: body.tenantId,
+    //     domain: fqdn,
+    //     is_primary: body.isPrimary ?? true,
+    //   });
+    //   if (error) {
+    //     // 23505 → déjà en base
+    //     const pg = (error as any)?.code ?? '';
+    //     if (pg === '23505' || String(error.message).toLowerCase().includes('duplicate key')) {
+    //       return NextResponse.json({ ok: false, error: 'Domain already in DB', code: 'domain_exists' }, { status: 409 });
+    //     }
+    //     return NextResponse.json({ ok: false, error: `DB insert failed: ${error.message}`, code: 'db_insert_failed' }, { status: 500 });
+    //   }
+    // }
 
     return NextResponse.json({ ok: true, domain: fqdn });
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
-    return jsonError(500, `Server error: ${msg}`);
+    return NextResponse.json({ ok: false, error: `Server error: ${msg}`, code: 'server_error' }, { status: 500 });
   }
 }
 
 /* --------------------------- helpers --------------------------- */
 
-function isValidSubdomain(s: string): boolean {
-  // 2..63, lettres/chiffres, tirets non en début/fin, 'www' interdit
-  if (!/^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])$/.test(s)) return false;
-  if (s === 'www') return false;
-  return true;
-}
-
 function isGoodTarget(target: string): boolean {
   const t = target.trim().toLowerCase();
   return t === 'cname.vercel-dns.com' || t === 'cname.vercel-dns.com.';
-}
-
-function jsonError(code: number, message: string) {
-  return NextResponse.json({ ok: false, error: message }, { status: code });
 }
 
 /* --------------------------- Vercel helpers --------------------------- */

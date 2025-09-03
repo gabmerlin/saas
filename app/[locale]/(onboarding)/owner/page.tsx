@@ -1,165 +1,136 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState } from 'react';
-import Link from 'next/link';
+import * as React from 'react';
+import { useMemo, useEffect, useState } from 'react';
+import { onboardingSchema } from '@/lib/validation/onboarding';
 
-type Availability =
-  | { ok: true; available: true; fqdn: string }
-  | { ok: true; available: false; fqdn: string; reason: string }
-  | { ok: false; error: string };
+const rootDomain = process.env.NEXT_PUBLIC_ROOT_DOMAIN!;
 
-const reSub = /^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])$/; // 2..63, tirets au milieu, 'www' interdit
-const ROOT =
-  process.env.NEXT_PUBLIC_ROOT_DOMAIN ??
-  (typeof window !== 'undefined' ? window.location.hostname.split('.').slice(-2).join('.') : 'qgchatting.com');
+type CheckState = { status: 'idle' | 'checking' | 'available' | 'taken' | 'invalid' | 'error'; domain?: string; };
 
 export default function OwnerOnboardingPage() {
+  const [agencyName, setAgencyName] = useState('');
+  const [ownerEmail, setOwnerEmail] = useState('');
+  const [language, setLanguage] = useState<'fr' | 'en'>('fr');
   const [sub, setSub] = useState('');
-  const [busy, setBusy] = useState(false);
-  const [msg, setMsg] = useState<string | null>(null);
-  const [check, setCheck] = useState<Availability | null>(null);
-  const ctrl = useRef<AbortController | null>(null);
+  const [check, setCheck] = useState<CheckState>({ status: 'idle' });
+  const [message, setMessage] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
 
-  const normalized = useMemo(() => sub.trim().toLowerCase(), [sub]);
-  const valid = useMemo(() => reSub.test(normalized) && normalized !== 'www', [normalized]);
-  const fqdn = useMemo(() => `${normalized}.${ROOT}`, [normalized]);
+  const preview = useMemo(() => {
+    const s = sub.trim().toLowerCase();
+    return s ? `${s}.${rootDomain}` : `—.${rootDomain}`;
+  }, [sub]);
 
-  // Vérif de disponibilité (debounce 300ms) quand "valid"
   useEffect(() => {
-    setCheck(null);
-    if (!valid) return;
+    setMessage(null);
+    const s = sub.trim().toLowerCase();
+    if (!s) return setCheck({ status: 'idle' });
 
-    const ab = new AbortController();
-    ctrl.current?.abort();
-    ctrl.current = ab;
+    const re = /^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$/;
+    if (!re.test(s) || s === 'www') {
+      setCheck({ status: 'invalid', domain: `${s}.${rootDomain}` });
+      return;
+    }
 
+    let active = true;
+    setCheck({ status: 'checking', domain: `${s}.${rootDomain}` });
     const t = setTimeout(async () => {
       try {
-        const r = await fetch(`/api/tenants/domains?subdomain=${encodeURIComponent(normalized)}`, {
-          method: 'GET',
-          signal: ab.signal,
-          cache: 'no-store',
-        });
-        const data: Availability = await r.json();
-        setCheck(data);
-      } catch (e) {
-        setCheck({ ok: false, error: 'Vérification indisponible' });
+        const res = await fetch(`/api/tenants/domains/check?sub=${encodeURIComponent(s)}`);
+        const json = await res.json();
+        if (!active) return;
+        if (!res.ok || !json?.ok) return setCheck({ status: 'error', domain: `${s}.${rootDomain}` });
+        setCheck({ status: json.available ? 'available' : 'taken', domain: json.domain });
+      } catch {
+        if (active) setCheck({ status: 'error', domain: `${s}.${rootDomain}` });
       }
-    }, 300);
+    }, 350);
+    return () => { active = false; clearTimeout(t); };
+  }, [sub]);
 
-    return () => {
-      clearTimeout(t);
-      ab.abort();
-    };
-  }, [valid, normalized]);
-
-  async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
+  async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
-    setMsg(null);
-
-    if (!valid) {
-      setMsg('Sous-domaine invalide (lettres/chiffres, tirets au milieu, 2–63, "www" interdit).');
+    setMessage(null);
+    const parsed = onboardingSchema.safeParse({
+      agencyName, ownerEmail, language, subdomain: sub.trim().toLowerCase()
+    });
+    if (!parsed.success) {
+      setMessage('Données invalides. Corrige le formulaire.');
       return;
     }
-    if (check?.ok && check.available === false) {
-      setMsg(`Ce sous-domaine est déjà utilisé (${check.fqdn}).`);
+    if (check.status === 'taken') {
+      setMessage('Ce sous-domaine est déjà utilisé.');
+      return;
+    }
+    if (check.status === 'invalid') {
+      setMessage('Sous-domaine invalide.');
       return;
     }
 
-    setBusy(true);
+    setSubmitting(true);
     try {
-      // Passe par le WRAPPER serveur (ne divulgue pas le secret)
       const res = await fetch('/api/tenants/provision', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ subdomain: normalized }),
+        body: JSON.stringify({
+          subdomain: parsed.data.subdomain,
+          tenantName: parsed.data.agencyName,
+          ownerEmail: parsed.data.ownerEmail,
+          locale: parsed.data.language
+        })
       });
-      const data = (await res.json()) as { ok?: boolean; domain?: string; error?: string };
-      if (!res.ok || data?.ok === false) {
-        setMsg(data?.error ?? `Erreur ${res.status}`);
+      const json = await res.json();
+      if (!res.ok || !json?.ok) {
+        const msg = json?.code === 'domain_exists' ? 'Ce sous-domaine est déjà utilisé.' : 'Échec du provisioning.';
+        setMessage(`${msg} (code: ${json?.code ?? 'unknown'})`);
         return;
       }
-      setMsg(`✅ Provisionné : ${data.domain}`);
-      // Redirige si souhaité :
-      // window.location.href = `https://${data.domain}/fr`;
-    } catch (err) {
-      const m = err instanceof Error ? err.message : String(err);
-      setMsg(m);
+      window.location.href = `https://${parsed.data.subdomain}.${rootDomain}/${language}`;
+    } catch {
+      setMessage('Erreur réseau pendant le provisioning.');
     } finally {
-      setBusy(false);
+      setSubmitting(false);
     }
   }
 
-  const availabilityText = (() => {
-    if (!valid) return 'Sous-domaine invalide.';
-    if (!check) return 'Vérification…';
-    if (!check.ok) return 'Vérification indisponible.';
-    if (check.available) return 'Disponible ✅';
-    return `Déjà pris ❌ (${check.fqdn})`;
-  })();
-
-  const canSubmit =
-    valid &&
-    (check?.ok ? check.available === true : true) &&
-    !busy;
-
   return (
-    <main className="mx-auto max-w-xl p-6">
-      <h1 className="text-2xl font-semibold mb-2">Onboarding Owner</h1>
-      <p className="text-muted-foreground mb-6">
-        Crée un tenant, associe l’owner et provisionne un sous-domaine.
-      </p>
-
-      <div className="rounded-lg border p-4 mb-6">
-        <ol className="list-decimal pl-5 space-y-1 text-sm">
-          <li>Créer le tenant en base</li>
-          <li>Associer l’owner (user courant)</li>
-          <li>Vérifier la disponibilité du sous-domaine</li>
-          <li>Appeler POST <code>/api/tenants/provision</code></li>
-          <li>Rediriger vers le sous-domaine</li>
-        </ol>
-      </div>
-
-      <form onSubmit={onSubmit} className="space-y-3">
-        <label className="block">
-          <span className="text-sm">Sous-domaine</span>
-          <input
-            className="mt-1 w-full rounded border p-2"
-            placeholder="ex: monagence"
-            inputMode="text"
-            autoCorrect="off"
-            autoCapitalize="none"
-            spellCheck={false}
-            maxLength={63}
-            value={sub}
-            onChange={(e) => setSub(e.target.value)}
-          />
-        </label>
-
-        {/* Aperçu immédiat */}
-        <div className="text-sm">
-          <div className="text-muted-foreground">Aperçu domaine :</div>
-          <div className={valid ? 'text-green-600' : 'text-red-600'}>
-            https://{normalized || 'xxxxx'}.{ROOT}
-          </div>
-          <div className="mt-1 text-xs">{availabilityText}</div>
+    <div className="mx-auto max-w-2xl p-6">
+      <h1 className="text-2xl font-semibold mb-4">Onboarding Owner</h1>
+      <form className="space-y-4" onSubmit={onSubmit}>
+        <div>
+          <label className="block text-sm font-medium mb-1">Nom de l’agence</label>
+          <input className="w-full rounded-md border px-3 py-2" value={agencyName} onChange={(e)=>setAgencyName(e.target.value)} required />
         </div>
-
-        <button
-          type="submit"
-          className="rounded bg-black px-4 py-2 text-white disabled:opacity-50"
-          disabled={!canSubmit}
-        >
-          {busy ? 'Provisionnement…' : 'Provisionner'}
+        <div>
+          <label className="block text-sm font-medium mb-1">Email du propriétaire</label>
+          <input type="email" className="w-full rounded-md border px-3 py-2" value={ownerEmail} onChange={(e)=>setOwnerEmail(e.target.value)} required />
+        </div>
+        <div>
+          <label className="block text-sm font-medium mb-1">Langue</label>
+          <select className="w-full rounded-md border px-3 py-2" value={language} onChange={(e)=>setLanguage(e.target.value as 'fr'|'en')}>
+            <option value="fr">Français</option>
+            <option value="en">English</option>
+          </select>
+        </div>
+        <div>
+          <label className="block text-sm font-medium mb-1">Sous-domaine</label>
+          <input className="w-full rounded-md border px-3 py-2" value={sub} onChange={(e)=>setSub(e.target.value)} placeholder="monagence" required />
+          <div className="mt-2 text-sm"><span className="opacity-70">Aperçu :</span> <span className="font-mono">{preview}</span></div>
+          <div className="mt-2">
+            {check.status === 'idle' && <span className="text-gray-500 text-sm">Saisis un sous-domaine…</span>}
+            {check.status === 'checking' && <span className="text-blue-600 text-sm">Vérification…</span>}
+            {check.status === 'available' && <span className="text-green-700 text-sm">✅ Disponible</span>}
+            {check.status === 'taken' && <span className="text-red-700 text-sm">⛔ Déjà pris</span>}
+            {check.status === 'invalid' && <span className="text-orange-700 text-sm">⚠️ Invalide (www interdit, a–z 0–9 -)</span>}
+            {check.status === 'error' && <span className="text-red-700 text-sm">Erreur de vérification</span>}
+          </div>
+        </div>
+        {message && <div className="rounded-md border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-800">{message}</div>}
+        <button type="submit" className="rounded-md bg-black px-4 py-2 text-white disabled:opacity-50" disabled={submitting || check.status === 'checking'}>
+          {submitting ? 'Provisioning…' : 'Créer & Provisionner'}
         </button>
-
-        {msg && <p className="mt-3 text-sm">{msg}</p>}
       </form>
-
-      {/* Exemple de lien interne correct (Link), éviter <a> vers pages Next */}
-      <p className="mt-6 text-sm">
-        <Link className="underline" href="/fr">Accueil</Link>
-      </p>
-    </main>
+    </div>
   );
 }
