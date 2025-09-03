@@ -35,17 +35,22 @@ export default function OwnerOnboardingPage() {
 
     let active = true;
     setCheck({ status: 'checking', domain: `${s}.${rootDomain}` });
-    const t = setTimeout(async () => {
-      try {
-        const res = await fetch(`/api/tenants/domains/check?sub=${encodeURIComponent(s)}`);
-        const json = await res.json();
-        if (!active) return;
-        if (!res.ok || !json?.ok) return setCheck({ status: 'error', domain: `${s}.${rootDomain}` });
-        setCheck({ status: json.available ? 'available' : 'taken', domain: json.domain });
-      } catch {
-        if (active) setCheck({ status: 'error', domain: `${s}.${rootDomain}` });
-      }
-    }, 350);
+      const t = setTimeout(async () => {
+        try {
+          // AVANT (bug) : /api/tenants/domains/check?sub=${s}
+          // APRÈS (unifié) :
+          const res = await fetch(`/api/tenants/domains/check?subdomain=${encodeURIComponent(s)}`);
+          const json = await res.json();
+          if (!active) return;
+          if (!res.ok || !json?.ok) {
+            setCheck({ status: 'error', domain: `${s}.${rootDomain}` });
+            return;
+          }
+          setCheck({ status: json.available ? 'available' : 'taken', domain: json.domain });
+        } catch {
+          if (active) setCheck({ status: 'error', domain: `${s}.${rootDomain}` });
+        }
+      }, 350);
     return () => { active = false; clearTimeout(t); };
   }, [sub]);
 
