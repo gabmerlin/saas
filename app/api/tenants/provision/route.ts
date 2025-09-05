@@ -21,7 +21,7 @@ function svc(): SupabaseClient {
   return createSupabaseClient(url, key, { auth: { persistSession: false, autoRefreshToken: false } });
 }
 
-/* ===== OVH (email redirection) minimal client ===== */
+/* ===== OVH Email redirection helpers (inchangés) ===== */
 const OVH_ENDPOINT = process.env.OVH_API_ENDPOINT ?? 'https://eu.api.ovh.com/1.0';
 function ovhClientFromEnv() {
   const AK = process.env.OVH_APP_KEY ?? '';
@@ -136,7 +136,7 @@ export async function POST(req: NextRequest) {
     const fqdn = `${sub}.${ROOT_ZONE}`;
     const sb = svc();
 
-    // anti-doublon DB (RPC si présentes)
+    // Anti-doublon DB (RPC si présentes)
     try {
       const { data } = await sb.rpc('subdomain_exists', { p_subdomain: sub });
       if (data === true) {
@@ -187,7 +187,7 @@ export async function POST(req: NextRequest) {
     const insUR = await sb.from('user_roles').insert({ user_id: ownerId, tenant_id: tenantId, role_id: roleOwner.data.id });
     if (insUR.error) return NextResponse.json({ ok: false, code: 'user_roles_insert_failed', error: insUR.error.message }, { status: 500 });
 
-    // Domaine primaire
+    // Domaine primaire (DB)
     const insDomain = await sb.from('tenant_domains').insert({ tenant_id: tenantId, domain: fqdn, is_primary: makePrimary }).select('id, domain').single();
     if (insDomain.error) {
       const pg = (insDomain.error as PostgrestError).code ?? '';
@@ -197,13 +197,14 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: false, code: 'domain_insert_failed', error: insDomain.error.message }, { status: 500 });
     }
 
-    // DNS (Vercel/OVH)
+    // DNS (Vercel/OVH) — accepte 200 OK ou 409 Conflict (déjà existant)
     const dnsRes = await fetch(new URL('/api/tenants/domains', req.nextUrl).toString(), {
       method: 'POST',
       headers: { 'content-type': 'application/json', 'x-provisioning-secret': secret },
       body: JSON.stringify({ subdomain: sub }),
     });
-    if (!dnsRes.ok) {
+
+    if (!(dnsRes.ok || dnsRes.status === 409)) {
       const err = await dnsRes.text().catch(() => '');
       return NextResponse.json({ ok: false, code: 'dns_provision_failed', error: err || 'DNS provision failed', tenantId, fqdn }, { status: dnsRes.status });
     }
