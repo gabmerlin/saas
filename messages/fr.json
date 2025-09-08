@@ -1,14 +1,14 @@
 {
   "onboarding.title": "Onboarding Owner",
-  "onboarding.agencyName": "Nom de l’agence",
-  "onboarding.ownerEmail": "Email du propriétaire",
-  "onboarding.language": "Langue",
-  "onboarding.subdomain": "Sous-domaine",
-  "onboarding.preview": "Aperçu",
+  "onboarding.loggedAs": "Connecté en tant que",
+  "onboarding.agency": "Agence",
+  "onboarding.domain": "Sous-domaine",
+  "onboarding.branding": "Branding",
+  "onboarding.prefs": "Préférences",
+  "onboarding.create": "Créer l'agence",
   "onboarding.available": "Disponible",
   "onboarding.taken": "Déjà pris",
-  "onboarding.invalid": "Invalide",
-  "onboarding.submit": "Créer & Provisionner",
-  "onboarding.provisioning": "Provisioning…",
-  "errors.domain_exists": "Ce sous-domaine est déjà utilisé."
+  "onboarding.invalid": "Entrée invalide",
+  "onboarding.rateLimited": "Trop de requêtes, réessaie plus tard.",
+  "onboarding.created": "Agence créée"
 }
