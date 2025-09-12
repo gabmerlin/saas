@@ -25,7 +25,6 @@ export async function POST(req: Request) {
     const input = parsed.data;
 
     // Par défaut : contexte utilisateur (RLS). L'utilisateur doit être Owner/Admin du tenant.
-    const ck = await cookies();
     const supabase = createRouteHandlerClient({ cookies });
 
     // // Alternative service-role (décommente si besoin) :
@@ -96,7 +95,7 @@ export async function POST(req: Request) {
       if (input.capacities?.length) {
         console.log("Capacities received:", input.capacities);
         const byOrder = new Map<number, string>();
-        inserted?.forEach((r: any, i: number) => {
+        inserted?.forEach((r: { id: string; sort_order: number }, i: number) => {
           byOrder.set(typeof r.sort_order === "number" ? r.sort_order : i, r.id);
         });
         console.log("Shift template IDs by order:", byOrder);
@@ -220,12 +219,12 @@ export async function POST(req: Request) {
       tenant_id: tenantId,
       actor_user_id: me.user.id,
       action: "onboarding_agency_configured",
-      detail: input as any,
+      detail: input,
     });
 
     return NextResponse.json({ ok: true });
-  } catch (e: any) {
+  } catch (e: unknown) {
     console.error(e);
-    return NextResponse.json({ ok: false, error: e?.message ?? "INTERNAL_ERROR" }, { status: 500 });
+    return NextResponse.json({ ok: false, error: e instanceof Error ? e.message : "INTERNAL_ERROR" }, { status: 500 });
   }
 }

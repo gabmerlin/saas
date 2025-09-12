@@ -27,7 +27,7 @@ export default function SignInForm({ next }: Props) {
 
     const MAX_TRIES = 3;
     let attempt = 0;
-    let lastErr: any = null;
+    let lastErr: Error | null = null;
 
     while (attempt < MAX_TRIES) {
       attempt++;
@@ -39,8 +39,8 @@ export default function SignInForm({ next }: Props) {
         return;
       }
 
-      lastErr = error as any;
-      const status = (lastErr?.status ?? lastErr?.statusCode ?? 0) as number;
+      lastErr = error;
+      const status = (lastErr as any)?.status ?? (lastErr as any)?.statusCode ?? 0;
 
       if (status === 429) {
         const waitMs = attempt * 1500;      // 1.5s, 3s…
@@ -53,7 +53,7 @@ export default function SignInForm({ next }: Props) {
     }
 
     const human =
-      lastErr?.status === 429
+      (lastErr as any)?.status === 429
         ? "Trop de tentatives, réessaie dans 30–60 secondes."
         : (lastErr?.message || "Échec de connexion.");
     setMsg(human);
