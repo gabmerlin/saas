@@ -15,6 +15,14 @@ function need(name: string) {
 }
 
 export async function POST(req: Request) {
+  // Debug des variables d'environnement
+  console.log("[ENV DEBUG] SUPABASE_URL:", !!process.env.NEXT_PUBLIC_SUPABASE_URL);
+  console.log("[ENV DEBUG] SUPABASE_ANON_KEY:", !!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
+  console.log("[ENV DEBUG] SUPABASE_SERVICE_ROLE_KEY:", !!process.env.SUPABASE_SERVICE_ROLE_KEY);
+  console.log("[ENV DEBUG] ROOT_DOMAIN:", !!process.env.ROOT_DOMAIN);
+  console.log("[ENV DEBUG] VERCEL_TOKEN:", !!process.env.VERCEL_TOKEN);
+  console.log("[ENV DEBUG] OVH_APP_KEY:", !!process.env.OVH_APP_KEY);
+  
   // 0) Rate-limit
   const { ok } = await rateLimit("onboarding-owner", 5, 60);
   if (!ok) {
@@ -106,9 +114,9 @@ export async function POST(req: Request) {
   // 4) ENV + FQDN
   let rootDomain: string;
   try {
-    rootDomain = need("ROOT_DOMAIN");
+    rootDomain = need("NEXT_PUBLIC_ROOT_DOMAIN");
   } catch (e: unknown) {
-    const msg = e instanceof Error ? e.message : "ENV_MISSING:ROOT_DOMAIN";
+    const msg = e instanceof Error ? e.message : "ENV_MISSING:NEXT_PUBLIC_ROOT_DOMAIN";
     return NextResponse.json({ ok: false, error: msg }, { status: 500 });
   }
   const fullDomain = `${input.subdomain}.${rootDomain}`;
@@ -149,6 +157,7 @@ export async function POST(req: Request) {
   // 6) Création tenant + owner
   let tenantId: string | null = null;
   try {
+    console.log("[CREATE DEBUG] Starting tenant creation for user:", user.id);
     const res = await createTenantWithOwner({
       agencyName: input.agencyName,
       agencySlug: input.agencySlug,
@@ -160,8 +169,11 @@ export async function POST(req: Request) {
       userId: user.id,
     });
     tenantId = res.tenantId;
+    console.log("[CREATE DEBUG] Tenant created successfully:", tenantId);
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : String(e);
+    console.error("[CREATE ERROR] Tenant creation failed:", msg);
+    console.error("[CREATE ERROR] Full error:", e);
     return NextResponse.json({ ok: false, error: "CREATE_FAILED", detail: msg }, { status: 500 });
   }
 
