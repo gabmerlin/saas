@@ -19,6 +19,7 @@ export async function POST(req: Request) {
   console.log("[ENV DEBUG] SUPABASE_URL:", !!process.env.NEXT_PUBLIC_SUPABASE_URL);
   console.log("[ENV DEBUG] SUPABASE_ANON_KEY:", !!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
   console.log("[ENV DEBUG] SUPABASE_SERVICE_ROLE_KEY:", !!process.env.SUPABASE_SERVICE_ROLE_KEY);
+  console.log("[ENV DEBUG] ROOT_DOMAIN:", !!process.env.ROOT_DOMAIN);
   console.log("[ENV DEBUG] NEXT_PUBLIC_ROOT_DOMAIN:", !!process.env.NEXT_PUBLIC_ROOT_DOMAIN);
   console.log("[ENV DEBUG] VERCEL_TOKEN:", !!process.env.VERCEL_TOKEN);
   console.log("[ENV DEBUG] OVH_APP_KEY:", !!process.env.OVH_APP_KEY);
@@ -114,12 +115,18 @@ export async function POST(req: Request) {
   // 4) ENV + FQDN
   let rootDomain: string;
   try {
-    rootDomain = need("NEXT_PUBLIC_ROOT_DOMAIN");
+    // Essayer d'abord la variable serveur, puis la variable publique
+    rootDomain = process.env.ROOT_DOMAIN || process.env.NEXT_PUBLIC_ROOT_DOMAIN || "";
+    if (!rootDomain) {
+      throw new Error("ENV_MISSING:ROOT_DOMAIN or NEXT_PUBLIC_ROOT_DOMAIN");
+    }
   } catch (e: unknown) {
-    const msg = e instanceof Error ? e.message : "ENV_MISSING:NEXT_PUBLIC_ROOT_DOMAIN";
+    const msg = e instanceof Error ? e.message : "ENV_MISSING:ROOT_DOMAIN";
     return NextResponse.json({ ok: false, error: msg }, { status: 500 });
   }
   const fullDomain = `${input.subdomain}.${rootDomain}`;
+  console.log("[DOMAIN DEBUG] Root domain:", rootDomain);
+  console.log("[DOMAIN DEBUG] Full domain:", fullDomain);
 
   // 5) Unicité DB - Utilisation du service client pour les opérations DB
   const srv = getServiceClient();
