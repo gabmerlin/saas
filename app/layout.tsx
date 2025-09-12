@@ -14,13 +14,6 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
-// Import de la police Glycerin
-const glycerin = {
-  variable: "--font-glycerin",
-  style: "normal",
-  weight: "400",
-  src: "url('https://fonts.googleapis.com/css2?family=Glycerin:wght@400&display=swap')",
-};
 
 export const metadata: Metadata = {
   title: "Create Next App",
@@ -34,13 +27,6 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <head>
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@200;300;400;500;600;700;800&family=Inter:wght@100;200;300;400;500;600;700;800;900&family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
-        <link rel="stylesheet" href="/fonts/wdxl-lubricant.css" />
-        <link rel="stylesheet" href="/fonts/zain.css" />
-      </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
         style={{ fontFamily: 'Manrope, Inter, sans-serif' }}

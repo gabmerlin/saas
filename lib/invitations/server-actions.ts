@@ -1,10 +1,6 @@
-// lib/invitations/actions.ts
-'use client';
-
-import { supabaseBrowser } from '@/lib/supabase/client';
+// lib/invitations/server-actions.ts
+import { createClient } from '@/lib/supabase/server';
 import { AUTH_CONFIG } from '@/lib/auth/config';
-
-const supabase = supabaseBrowser;
 
 export interface InvitationData {
   email: string;
@@ -12,14 +8,16 @@ export interface InvitationData {
   tenantId: string;
 }
 
-export async function createInvitation(data: InvitationData) {
+export async function createInvitationServer(data: InvitationData, userId: string) {
+  const supabase = createClient();
+  
   const { data: result, error } = await supabase
     .from('invitations')
     .insert({
       tenant_id: data.tenantId,
       email: data.email,
       role_key: data.role,
-      invited_by: (await supabase.auth.getUser()).data.user?.id,
+      invited_by: userId,
       token: crypto.randomUUID(),
       expires_at: new Date(Date.now() + AUTH_CONFIG.INVITATION_EXPIRY_HOURS * 60 * 60 * 1000).toISOString(),
     })
@@ -33,7 +31,9 @@ export async function createInvitation(data: InvitationData) {
   return result;
 }
 
-export async function getInvitations(tenantId: string) {
+export async function getInvitationsServer(tenantId: string) {
+  const supabase = createClient();
+  
   const { data, error } = await supabase
     .from('invitations')
     .select(`
@@ -51,7 +51,9 @@ export async function getInvitations(tenantId: string) {
   return data;
 }
 
-export async function acceptInvitation(token: string) {
+export async function acceptInvitationServer(token: string, userId: string) {
+  const supabase = createClient();
+  
   const { data, error } = await supabase
     .from('invitations')
     .select(`
@@ -71,7 +73,7 @@ export async function acceptInvitation(token: string) {
   const { error: userTenantError } = await supabase
     .from('user_tenants')
     .insert({
-      user_id: (await supabase.auth.getUser()).data.user?.id,
+      user_id: userId,
       tenant_id: data.tenant_id,
       is_owner: false,
     });
@@ -91,7 +93,7 @@ export async function acceptInvitation(token: string) {
     const { error: roleError } = await supabase
       .from('user_roles')
       .insert({
-        user_id: (await supabase.auth.getUser()).data.user?.id,
+        user_id: userId,
         tenant_id: data.tenant_id,
         role_id: roleData.id,
       });
@@ -114,7 +116,9 @@ export async function acceptInvitation(token: string) {
   return data;
 }
 
-export async function revokeInvitation(invitationId: string) {
+export async function revokeInvitationServer(invitationId: string) {
+  const supabase = createClient();
+  
   const { error } = await supabase
     .from('invitations')
     .delete()
@@ -125,7 +129,9 @@ export async function revokeInvitation(invitationId: string) {
   }
 }
 
-export async function resendInvitation(invitationId: string) {
+export async function resendInvitationServer(invitationId: string) {
+  const supabase = createClient();
+  
   const { data, error } = await supabase
     .from('invitations')
     .update({

@@ -1,6 +1,4 @@
 import { NextRequest, NextResponse } from "next/server";
-import { cookies } from "next/headers";
-import { createRouteHandlerClient } from "@supabase/auth-helpers-nextjs";
 
 function sanitizeNext(next: string | null): string {
   if (!next || !next.startsWith("/")) return "/";
@@ -9,17 +7,23 @@ function sanitizeNext(next: string | null): string {
 
 export async function GET(req: NextRequest) {
   const url = new URL(req.url);
-  const code = url.searchParams.get("code");
   const next = sanitizeNext(url.searchParams.get("next"));
 
-  if (code) {
-    const cookieStore = await cookies();
-    const supabase = createRouteHandlerClient({
-      cookies: (() => cookieStore) as unknown as () => ReturnType<typeof cookies>,
-    });
-    await supabase.auth.exchangeCodeForSession(code);
+  // Toujours rediriger vers la page client qui gérera l'authentification
+  const redirectUrl = new URL('/auth/callback', url.origin);
+  redirectUrl.searchParams.set('next', next);
+  
+  // Préserver tous les paramètres de l'URL originale
+  for (const [key, value] of url.searchParams) {
+    if (key !== 'next') {
+      redirectUrl.searchParams.set(key, value);
+    }
+  }
+  
+  // Préserver le hash s'il existe
+  if (url.hash) {
+    redirectUrl.hash = url.hash;
   }
 
-
-  return NextResponse.redirect(new URL(next, url.origin));
+  return NextResponse.redirect(redirectUrl);
 }

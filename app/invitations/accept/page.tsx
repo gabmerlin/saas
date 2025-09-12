@@ -1,16 +1,15 @@
 // app/invitations/accept/page.tsx
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { CheckCircle, XCircle, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
-import { acceptInvitation } from '@/lib/invitations/actions';
 
-export default function AcceptInvitationPage() {
+function AcceptInvitationPageContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const token = searchParams.get('token');
@@ -18,19 +17,12 @@ export default function AcceptInvitationPage() {
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [invitationData, setInvitationData] = useState<any>(null);
+  const [invitationData, setInvitationData] = useState<{
+    tenant: { name: string; subdomain: string };
+    role_key: string;
+  } | null>(null);
 
-  useEffect(() => {
-    if (!token) {
-      setError('Token d\'invitation manquant');
-      return;
-    }
-
-    // Vérifier l'invitation côté client
-    checkInvitation();
-  }, [token]);
-
-  const checkInvitation = async () => {
+  const checkInvitation = useCallback(async () => {
     try {
       const response = await fetch(`/api/invitations/check?token=${token}`);
       const data = await response.json();
@@ -43,7 +35,17 @@ export default function AcceptInvitationPage() {
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erreur lors de la vérification de l\'invitation');
     }
-  };
+  }, [token]);
+
+  useEffect(() => {
+    if (!token) {
+      setError('Token d\'invitation manquant');
+      return;
+    }
+
+    // Vérifier l'invitation côté client
+    checkInvitation();
+  }, [token, checkInvitation]);
 
   const handleAcceptInvitation = async () => {
     if (!token) return;
@@ -151,16 +153,16 @@ export default function AcceptInvitationPage() {
         <CardHeader className="text-center">
           <CardTitle className="text-2xl">Invitation à rejoindre</CardTitle>
           <CardDescription>
-            {invitationData.tenants?.name || 'Une agence'}
+            {invitationData.tenant?.name || 'Une agence'}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="text-center space-y-2">
             <p className="text-sm text-gray-600">
-              Vous êtes invité(e) à rejoindre <strong>{invitationData.tenants?.name}</strong> en tant que <strong>{invitationData.roles?.description}</strong>.
+              Vous êtes invité(e) à rejoindre <strong>{invitationData.tenant?.name}</strong> en tant que <strong>{invitationData.role_key}</strong>.
             </p>
             <p className="text-xs text-gray-500">
-              Invité par {invitationData.profiles?.full_name || 'un administrateur'}
+              Invité par un administrateur
             </p>
           </div>
 
@@ -197,5 +199,13 @@ export default function AcceptInvitationPage() {
         </CardContent>
       </Card>
     </div>
+  );
+}
+
+export default function AcceptInvitationPage() {
+  return (
+    <Suspense fallback={<div>Chargement...</div>}>
+      <AcceptInvitationPageContent />
+    </Suspense>
   );
 }

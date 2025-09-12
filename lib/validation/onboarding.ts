@@ -54,6 +54,7 @@ export const InvitationSchema = z.object({
 export const OwnerOnboardingAgencySchema = z.object({
   agencyName: z.string().min(2),
   subdomain: z.string().regex(/^[a-z0-9]([a-z0-9-]{1,30}[a-z0-9])$/),
+  tenantId: z.string().uuid().optional(), // ID du tenant créé par l'API owner
   localeDefault: z.enum(["fr", "en"]).default("fr"),
   currencyDisplay: z.enum(["USD"]).default("USD"),
   themePreset: z.string().default("ocean"),

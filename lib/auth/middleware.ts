@@ -10,7 +10,7 @@ export async function requireAuth(request: NextRequest) {
     const { data: { user }, error } = await supabase.auth.getUser();
     
     if (error || !user) {
-      return NextResponse.redirect(new URL('/auth/sign-in', request.url));
+      return NextResponse.redirect(new URL('/sign-in', request.url));
     }
 
     // Vérifier si l'email est vérifié
@@ -34,13 +34,13 @@ export async function requireRole(request: NextRequest, role: string) {
   try {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
-      return NextResponse.redirect(new URL('/auth/sign-in', request.url));
+      return NextResponse.redirect(new URL('/sign-in', request.url));
     }
 
     // Récupérer le tenant depuis le header
     const tenantSubdomain = request.headers.get('x-tenant-subdomain');
     if (!tenantSubdomain) {
-      return NextResponse.redirect(new URL('/auth/sign-in', request.url));
+      return NextResponse.redirect(new URL('/sign-in', request.url));
     }
 
     // Récupérer les rôles de l'utilisateur
@@ -52,7 +52,7 @@ export async function requireRole(request: NextRequest, role: string) {
       .eq('user_id', user.id)
       .eq('tenant_id', (await supabase.rpc('tenant_id_by_subdomain', { p_subdomain: tenantSubdomain })).data?.[0]?.id);
 
-    const roles = userRoles?.map(ur => ur.roles.key) || [];
+    const roles = userRoles?.map(ur => ur.roles[0]?.key).filter(Boolean) || [];
     
     if (!roles.includes(role)) {
       return NextResponse.json(
@@ -80,13 +80,13 @@ export async function requirePermission(request: NextRequest, permission: string
   try {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
-      return NextResponse.redirect(new URL('/auth/sign-in', request.url));
+      return NextResponse.redirect(new URL('/sign-in', request.url));
     }
 
     // Récupérer le tenant depuis le header
     const tenantSubdomain = request.headers.get('x-tenant-subdomain');
     if (!tenantSubdomain) {
-      return NextResponse.redirect(new URL('/auth/sign-in', request.url));
+      return NextResponse.redirect(new URL('/sign-in', request.url));
     }
 
     // Récupérer les permissions de l'utilisateur
@@ -101,7 +101,7 @@ export async function requirePermission(request: NextRequest, permission: string
       .eq('tenant_id', (await supabase.rpc('tenant_id_by_subdomain', { p_subdomain: tenantSubdomain })).data?.[0]?.id);
 
     const permissions = userRoles?.flatMap(ur => 
-      ur.role_permissions?.map((rp: any) => rp.permissions.code) || []
+      ur.role_permissions?.map((rp: { permissions: { code: string }[] }) => rp.permissions.map(p => p.code)).flat() || []
     ) || [];
     
     if (!permissions.includes(permission)) {

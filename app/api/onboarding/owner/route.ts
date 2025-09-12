@@ -1,28 +1,15 @@
 // api/onboarding/owner/route.ts
 import { NextResponse } from "next/server";
-import { cookies } from "next/headers";
-import { createClient } from "@supabase/supabase-js";
+import { createClient, createClientWithSession } from "@/lib/supabase/server";
 import { OwnerOnboardingSchema } from "@/lib/validation/onboarding";
 import { createTenantWithOwner, getServiceClient } from "@/lib/tenants";
 import { addDomainToVercelProject } from "@/lib/vercel";
 import { provisionSubdomainDNS } from "@/lib/ovh";
 import { rateLimit } from "@/lib/utils/ratelimit";
 
-function need(name: string) {
-  const v = process.env[name];
-  if (!v || !v.trim()) throw new Error(`ENV_MISSING:${name}`);
-  return v.trim();
-}
+export const runtime = 'nodejs';
 
 export async function POST(req: Request) {
-  // Debug des variables d'environnement
-  console.log("[ENV DEBUG] SUPABASE_URL:", !!process.env.NEXT_PUBLIC_SUPABASE_URL);
-  console.log("[ENV DEBUG] SUPABASE_ANON_KEY:", !!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
-  console.log("[ENV DEBUG] SUPABASE_SERVICE_ROLE_KEY:", !!process.env.SUPABASE_SERVICE_ROLE_KEY);
-  console.log("[ENV DEBUG] ROOT_DOMAIN:", !!process.env.ROOT_DOMAIN);
-  console.log("[ENV DEBUG] NEXT_PUBLIC_ROOT_DOMAIN:", !!process.env.NEXT_PUBLIC_ROOT_DOMAIN);
-  console.log("[ENV DEBUG] VERCEL_TOKEN:", !!process.env.VERCEL_TOKEN);
-  console.log("[ENV DEBUG] OVH_APP_KEY:", !!process.env.OVH_APP_KEY);
   
   // 0) Rate-limit
   const { ok } = await rateLimit("onboarding-owner", 5, 60);
@@ -30,69 +17,45 @@ export async function POST(req: Request) {
     return NextResponse.json({ ok: false, error: "RATE_LIMITED" }, { status: 429 });
   }
 
-  // 1) Auth requise - Création d'un client avec la clé anonyme
-  const cookieStore = await cookies();
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+  // 1) Auth requise - Vérification via les headers de la requête
+  const authHeader = req.headers.get('authorization');
+  const sessionToken = req.headers.get('x-session-token');
   
-  const supabase = createClient(supabaseUrl, supabaseAnonKey, {
-    auth: {
-      persistSession: false,
-      autoRefreshToken: false,
-      detectSessionInUrl: false
+  let user: { id: string; email?: string } | null = null;
+  
+  if (authHeader && authHeader.startsWith('Bearer ')) {
+    // Utilisation du token Bearer
+    const token = authHeader.substring(7);
+    const supabase = createClient();
+    const { data: { user: tokenUser }, error: userErr } = await supabase.auth.getUser(token);
+    
+    if (!userErr && tokenUser) {
+      user = tokenUser;
     }
-  });
-
-  // Récupération du token d'auth depuis les cookies
-  const rawToken = cookieStore.get('sb-ndlmzwwfwugtwpmebdog-auth-token')?.value;
-  
-  console.log("[AUTH DEBUG] Raw token:", rawToken?.substring(0, 50) + '...');
-  
-  let authToken: string | null = null;
-  
-  if (rawToken) {
-    try {
-      // Le token est stocké comme un tableau JSON, on doit le parser
-      const tokenArray = JSON.parse(rawToken);
-      if (Array.isArray(tokenArray) && tokenArray.length > 0) {
-        authToken = tokenArray[0];
-        console.log("[AUTH DEBUG] Parsed token from array:", authToken?.substring(0, 50) + '...');
-      } else {
-        authToken = rawToken;
-        console.log("[AUTH DEBUG] Using raw token as string");
-      }
-    } catch (e) {
-      // Si ce n'est pas du JSON, utiliser directement
-      authToken = rawToken;
-      console.log("[AUTH DEBUG] Token is not JSON, using as string");
+  } else if (sessionToken) {
+    // Utilisation du token de session
+    const supabase = createClient();
+    const { data: { user: sessionUser }, error: userErr } = await supabase.auth.getUser(sessionToken);
+    
+    if (!userErr && sessionUser) {
+      user = sessionUser;
+    }
+  } else {
+    // Fallback: essayer avec les cookies
+    const supabase = await createClientWithSession();
+    const { data: { user: cookieUser }, error: userErr } = await supabase.auth.getUser();
+    
+    if (!userErr && cookieUser) {
+      user = cookieUser;
     }
   }
   
-  console.log("[AUTH DEBUG] Final auth token found:", !!authToken);
-  console.log("[AUTH DEBUG] Token length:", authToken?.length || 0);
-  console.log("[AUTH DEBUG] Token starts with:", authToken?.substring(0, 20) || 'none');
-  
-  if (!authToken) {
-    console.log("[AUTH DEBUG] No auth token found in cookies");
+  if (!user) {
     return NextResponse.json(
-      { ok: false, error: "UNAUTHENTICATED", detail: "No auth token found" },
+      { ok: false, error: "UNAUTHENTICATED", detail: "No valid authentication found" },
       { status: 401 }
     );
   }
-
-  // Vérification de l'utilisateur avec le token
-  const { data: { user }, error: userErr } = await supabase.auth.getUser(authToken);
-  console.log("[AUTH DEBUG] User verification result:", { user: !!user, error: userErr?.message });
-  
-  if (userErr || !user) {
-    console.log("[AUTH DEBUG] Auth failed:", userErr?.message || "No user");
-    return NextResponse.json(
-      { ok: false, error: userErr ? "AUTH_ERROR" : "UNAUTHENTICATED", detail: userErr?.message },
-      { status: 401 }
-    );
-  }
-  
-  console.log("[AUTH DEBUG] User authenticated successfully:", user.id);
 
   // 2) Corps JSON
   let body: unknown;
@@ -125,8 +88,6 @@ export async function POST(req: Request) {
     return NextResponse.json({ ok: false, error: msg }, { status: 500 });
   }
   const fullDomain = `${input.subdomain}.${rootDomain}`;
-  console.log("[DOMAIN DEBUG] Root domain:", rootDomain);
-  console.log("[DOMAIN DEBUG] Full domain:", fullDomain);
 
   // 5) Unicité DB - Utilisation du service client pour les opérations DB
   const srv = getServiceClient();
@@ -164,7 +125,6 @@ export async function POST(req: Request) {
   // 6) Création tenant + owner
   let tenantId: string | null = null;
   try {
-    console.log("[CREATE DEBUG] Starting tenant creation for user:", user.id);
     const res = await createTenantWithOwner({
       agencyName: input.agencyName,
       agencySlug: input.agencySlug,
@@ -176,11 +136,8 @@ export async function POST(req: Request) {
       userId: user.id,
     });
     tenantId = res.tenantId;
-    console.log("[CREATE DEBUG] Tenant created successfully:", tenantId);
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : String(e);
-    console.error("[CREATE ERROR] Tenant creation failed:", msg);
-    console.error("[CREATE ERROR] Full error:", e);
     return NextResponse.json({ ok: false, error: "CREATE_FAILED", detail: msg }, { status: 500 });
   }
 
@@ -212,14 +169,16 @@ export async function POST(req: Request) {
   }
 
   // 9) Réponse
-  return NextResponse.json(
-    {
+    return NextResponse.json(
+    { 
       ok: true,
       tenantId,
       domain: fullDomain,
       agencyUrl: `https://${fullDomain}`,
+      subdomain: input.subdomain,
       steps: { vercel, ovh },
     },
     { status: 201 }
   );
 }
+

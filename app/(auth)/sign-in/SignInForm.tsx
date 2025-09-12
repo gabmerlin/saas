@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 import { signInWithEmail, signInWithGoogle, resetPassword } from "@/lib/auth/actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,15 +12,9 @@ import { toast } from "sonner";
 
 type Props = { next: string };
 
-interface SupabaseError {
-  message?: string;
-  status?: number;
-  statusCode?: number;
-}
 
 // ⚠️ IMPORTANT : on utilise le client "auth-helpers" côté client
 // pour que le login crée/maj les cookies lisibles par le middleware.
-const supabase = createClientComponentClient();
 
 export default function SignInForm({ next }: Props) {
   const [email, setEmail] = useState("");
@@ -32,9 +25,6 @@ export default function SignInForm({ next }: Props) {
   const [rememberMe, setRememberMe] = useState(false);
   const [isResetting, setIsResetting] = useState(false);
 
-  async function sleep(ms: number) {
-    return new Promise((r) => setTimeout(r, ms));
-  }
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();

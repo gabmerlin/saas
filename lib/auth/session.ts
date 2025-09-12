@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server';
 import { AUTH_CONFIG } from './config';
 import { cookies } from 'next/headers';
 
+
 export interface SessionData {
   user: {
     id: string;
@@ -38,7 +39,7 @@ export async function getServerSession(): Promise<SessionData | null> {
     }
 
     // Récupérer les données du tenant depuis le header
-    const cookieStore = cookies();
+    const cookieStore = await cookies();
     const tenantSubdomain = cookieStore.get('x-tenant-subdomain')?.value;
     
     let tenant = null;
@@ -63,9 +64,9 @@ export async function getServerSession(): Promise<SessionData | null> {
       .eq('user_id', user.id)
       .eq('tenant_id', tenant?.id);
 
-    const roles = userRoles?.map(ur => ur.roles.key) || [];
+    const roles = userRoles?.map(ur => ur.roles[0]?.key).filter(Boolean) || [];
     const permissions = userRoles?.flatMap(ur => 
-      ur.role_permissions?.map((rp: any) => rp.permissions.code) || []
+      ur.role_permissions?.map((rp: { permissions: { code: string }[] }) => rp.permissions.map(p => p.code)).flat() || []
     ) || [];
 
     return {

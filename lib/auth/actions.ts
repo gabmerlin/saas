@@ -1,11 +1,11 @@
 // lib/auth/actions.ts
 'use client';
 
-import { createClient } from '@/lib/supabase/client';
+import { supabaseBrowser } from '@/lib/supabase/client';
 import { AUTH_CONFIG, GOOGLE_OAUTH_CONFIG } from './config';
 import { redirect } from 'next/navigation';
 
-const supabase = createClient();
+const supabase = supabaseBrowser;
 
 export async function signInWithEmail(email: string, password: string, rememberMe = false) {
   const { data, error } = await supabase.auth.signInWithPassword({

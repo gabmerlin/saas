@@ -1,5 +1,7 @@
 // app/api/invitations/check/route.ts
 import { NextRequest, NextResponse } from 'next/server';
+
+export const runtime = 'nodejs';
 import { createClient } from '@/lib/supabase/server';
 
 // GET /api/invitations/check - Vérifier une invitation

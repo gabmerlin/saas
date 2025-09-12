@@ -1,7 +1,7 @@
 // components/invitations/invitation-manager.tsx
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -45,21 +45,21 @@ export default function InvitationManager({ tenantId, canManage }: InvitationMan
     { key: 'marketing', description: 'Marketing' },
   ];
 
-  useEffect(() => {
-    loadInvitations();
-  }, [tenantId]);
-
-  const loadInvitations = async () => {
+  const loadInvitations = useCallback(async () => {
     try {
       setLoading(true);
       const data = await getInvitations(tenantId);
       setInvitations(data);
-    } catch (error) {
+    } catch {
       toast.error('Erreur lors du chargement des invitations');
     } finally {
       setLoading(false);
     }
-  };
+  }, [tenantId]);
+
+  useEffect(() => {
+    loadInvitations();
+  }, [tenantId, loadInvitations]);
 
   const handleCreateInvitation = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -90,7 +90,7 @@ export default function InvitationManager({ tenantId, canManage }: InvitationMan
       await revokeInvitation(invitationId);
       toast.success('Invitation révoquée');
       loadInvitations();
-    } catch (error) {
+    } catch {
       toast.error('Erreur lors de la révocation de l\'invitation');
     }
   };
@@ -102,7 +102,7 @@ export default function InvitationManager({ tenantId, canManage }: InvitationMan
       await resendInvitation(invitationId);
       toast.success('Invitation renvoyée');
       loadInvitations();
-    } catch (error) {
+    } catch {
       toast.error('Erreur lors du renvoi de l\'invitation');
     }
   };
@@ -165,6 +165,7 @@ export default function InvitationManager({ tenantId, canManage }: InvitationMan
                     onValueChange={(value) => setNewInvitation(prev => ({ ...prev, role: value }))}
                     required
                   >
+                    
                     <SelectTrigger>
                       <SelectValue placeholder="Sélectionner un rôle" />
                     </SelectTrigger>
@@ -187,7 +188,7 @@ export default function InvitationManager({ tenantId, canManage }: InvitationMan
                 ) : (
                   <>
                     <Mail className="w-4 h-4 mr-2" />
-                    Envoyer l'invitation
+                    Envoyer l&apos;invitation
                   </>
                 )}
               </Button>

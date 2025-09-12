@@ -1,5 +1,4 @@
 // lib/invitations/email-templates.ts
-import { AUTH_CONFIG } from '@/lib/auth/config';
 
 export interface InvitationEmailData {
   tenantName: string;
@@ -15,7 +14,7 @@ export interface InvitationEmailData {
 }
 
 export function generateInvitationEmail(data: InvitationEmailData): string {
-  const { tenantName, tenantSubdomain, inviterName, roleName, invitationUrl, expiresAt, tenantColors } = data;
+  const { tenantName, inviterName, roleName, invitationUrl, expiresAt, tenantColors } = data;
   
   const primaryColor = tenantColors?.primary || '#000000';
   const secondaryColor = tenantColors?.secondary || '#666666';

@@ -1,7 +1,9 @@
 // app/api/invitations/accept/route.ts
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/client';
-import { acceptInvitation } from '@/lib/invitations/actions';
+
+export const runtime = 'nodejs';
+import { createClient } from '@/lib/supabase/server';
+import { acceptInvitationServer } from '@/lib/invitations/server-actions';
 
 // POST /api/invitations/accept - Accepter une invitation
 export async function POST(request: NextRequest) {
@@ -16,7 +18,19 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const invitation = await acceptInvitation(token);
+    // Pour l'instant, on ne peut pas récupérer l'userId facilement ici
+    // Il faudrait modifier la logique d'authentification
+    const supabase = createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    
+    if (!user) {
+      return NextResponse.json(
+        { error: 'Utilisateur non authentifié' },
+        { status: 401 }
+      );
+    }
+    
+    const invitation = await acceptInvitationServer(token, user.id);
 
     return NextResponse.json({ 
       success: true, 

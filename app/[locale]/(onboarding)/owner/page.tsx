@@ -16,8 +16,9 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { z } from "zod";
-import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
-import { motion, AnimatePresence } from "framer-motion";
+import { supabaseBrowser } from "@/lib/supabase/client";
+import AuthGuard from "@/components/auth/auth-guard";
+import { motion } from "framer-motion";
 import {
   HelpCircle,
   XCircle,
@@ -25,7 +26,6 @@ import {
   Loader2,
   AlertTriangle,
   Info,
-  Plus,
   Trash2,
   Building2,
   Globe,
@@ -62,13 +62,6 @@ import {
 } from "@/components/ui/tooltip";
 
 
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 
 /* ----------------- Types ----------------- */
 
@@ -522,18 +515,18 @@ const advDefaults: AdvFormExt = {
   themePreset: initialPreset.key,
   themeTokens: {
     primary: initialPreset.tokens.primary,
-    secondary: initialPreset.tokens.secondary,
-    accent: initialPreset.tokens.accent,
+    secondary: initialPreset.tokens.secondary || initialPreset.tokens.primary,
+    accent: initialPreset.tokens.accent || initialPreset.tokens.primary,
     radius: ROUNDNESS[initialPreset.defaultRoundness],
-    background: initialPreset.tokens.background,
-    card: initialPreset.tokens.card,
-    muted: initialPreset.tokens.muted,
-    border: initialPreset.tokens.border,
-    ring: initialPreset.tokens.ring,
+    background: initialPreset.tokens.background || "#ffffff",
+    card: initialPreset.tokens.card || "#ffffff",
+    muted: initialPreset.tokens.muted || "#f8f9fa",
+    border: initialPreset.tokens.border || "#e5e7eb",
+    ring: initialPreset.tokens.ring || initialPreset.tokens.primary,
   },
   planKey: "starter",
   instagramAddon: false,
-  billingEmails: [],
+  billingEmails: ["admin@example.com"], // Email temporaire valide
   enforceVerifiedEmail: true,
   suggest2FA: true,
   shifts: [
@@ -552,10 +545,10 @@ const advDefaults: AdvFormExt = {
   deadlineSundayUTC: "16:00",
   payroll: { hourlyEnabled: false, hourlyUSD: null, revenueSharePercent: 0 },
   strike: { graceMinutes: 0, lateFeeUSD: 5, absenceFeeUSD: 10, poolTopCount: 5 },
-  telegram: { channelId: "", dailyDigest: true },
+  telegram: { channelId: undefined, dailyDigest: true },
   instagramEnabled: false,
-  competition: { optIn: false, alias: "" },
-  invitations: [],
+  competition: { optIn: false, alias: undefined },
+  invites: [],
 };
 
 /* ----------------- UI helpers ----------------- */
@@ -614,7 +607,7 @@ function SourcePill({
 }
 
 export default function OwnerOnboardingPage() {
-  const supabase = useMemo(() => createClientComponentClient(), []);
+  const supabase = supabaseBrowser;
   const router = useRouter();
 
   const [basic, setBasic] = useState<BasicForm>(basicDefaults);
@@ -670,7 +663,6 @@ export default function OwnerOnboardingPage() {
 
   const anchors = useRef<Record<string, HTMLDivElement | null>>({});
   const setAnchor = (id: string) => (el: HTMLDivElement | null) => { anchors.current[id] = el; };
-  const jump = (id: string) => anchors.current[id]?.scrollIntoView({ behavior: "smooth" });
 
   // Scroll vers le haut quand on change d'étape
   useEffect(() => {
@@ -704,28 +696,75 @@ export default function OwnerOnboardingPage() {
     setErrors(sectionErrors);
     if (sectionErrors.length > 0) { setSubmitting(false); return; }
 
-    type OwnerResp = { agencyUrl?: string };
+    // Récupération du token d'authentification
+    const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+    
+    if (sessionError) {
+      setErrors((arr) => [...arr, "Erreur d'authentification : problème de session"]);
+      setSubmitting(false);
+      return;
+    }
+    
+    const authToken = session?.access_token;
+    
+    if (!authToken) {
+      setErrors((arr) => [...arr, "Erreur d'authentification : veuillez vous reconnecter"]);
+      setSubmitting(false);
+      // Rediriger vers la page de connexion
+      window.location.href = '/sign-in';
+      return;
+    }
+
+    type OwnerResp = { agencyUrl?: string; tenantId?: string };
     const r1 = await fetch("/api/onboarding/owner", {
       method: "POST",
-      headers: { "content-type": "application/json" },
+      headers: { 
+        "content-type": "application/json",
+        "authorization": `Bearer ${authToken}`,
+        "x-session-token": authToken
+      },
       body: JSON.stringify(b.data),
     });
 
     let agencyUrl: string | null = null;
+    let tenantId: string | null = null;
     if (!r1.ok) {
-      setErrors((arr) => [...arr, `S1 – Création agence : ${r1.status} ${r1.statusText}`]);
+      if (r1.status === 409) {
+        setErrors((arr) => [...arr, `S1 – Création agence : Le sous-domaine "${basic.subdomain}" est déjà utilisé. Veuillez en choisir un autre.`]);
+      } else {
+        setErrors((arr) => [...arr, `S1 – Création agence : ${r1.status} ${r1.statusText}`]);
+      }
       setSubmitting(false);
       return;
     } else {
-      const j: OwnerResp = await r1.json().catch(() => ({ agencyUrl: undefined }));
+      const j: OwnerResp = await r1.json().catch(() => ({ agencyUrl: undefined, tenantId: undefined }));
       agencyUrl = j?.agencyUrl ?? null;
+      tenantId = j?.tenantId ?? null;
     }
 
+    // Configuration avancée de l'agence
     type AgencyResp = { ok: boolean; error?: string };
+    
+    const agencyPayload = { 
+      ...a.data, 
+      deadlineDay,
+      tenantId: tenantId // Passer l'ID du tenant directement
+    };
+    
+    console.log('Sending to agency API:', { 
+      tenantId: tenantId,
+      hasTenantId: !!tenantId,
+      payload: agencyPayload 
+    });
+    
     const r2 = await fetch("/api/onboarding/agency", {
       method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ ...a.data, deadlineDay }),
+      headers: { 
+        "content-type": "application/json",
+        "authorization": `Bearer ${authToken}`,
+        "x-session-token": authToken
+      },
+      body: JSON.stringify(agencyPayload),
     });
     const j2: AgencyResp = await r2.json().catch(() => ({ ok: false, error: "NETWORK" }));
     if (!j2.ok) {
@@ -738,30 +777,38 @@ export default function OwnerOnboardingPage() {
     window.location.href = target;
   }
 
-  /* --------- Auth + billing email par défaut ---------- */
+  /* --------- Billing email par défaut ---------- */
   useEffect(() => {
     (async () => {
       const { data: auth } = await supabase.auth.getUser();
       const user = auth?.user;
-      if (!user) {
-        const urlNext = encodeURIComponent(window.location.pathname);
-        router.replace(`/sign-in?next=${urlNext}`);
-        return;
-      }
-      if (user.email) {
+      if (user?.email) {
         setAdv((a) => {
-          const exists = (a.billingEmails || []).some((em) => em.toLowerCase() === user.email!.toLowerCase());
-          return exists ? a : { ...a, billingEmails: [...(a.billingEmails || []), user.email!] };
+          // Remplacer l'email temporaire par l'email de l'utilisateur
+          const userEmail = user.email!;
+          const hasUserEmail = (a.billingEmails || []).some((em) => em.toLowerCase() === userEmail.toLowerCase());
+          
+          if (hasUserEmail) {
+            return a; // L'email est déjà présent
+          }
+          
+          // Remplacer l'email temporaire par l'email de l'utilisateur
+          const updatedEmails = (a.billingEmails || []).map(em => 
+            em === "admin@example.com" ? userEmail : em
+          );
+          
+          // Si aucun email temporaire trouvé, ajouter l'email de l'utilisateur
+          if (!updatedEmails.includes(userEmail)) {
+            updatedEmails.push(userEmail);
+          }
+          
+          return { ...a, billingEmails: updatedEmails };
         });
       }
-      // Une agence max -> si déjà liée, redirige dashboard
-      type UserTenantRow = { tenants?: { subdomain?: string } };
-      const { data } = await supabase.from("user_tenants").select("tenant_id, tenants!inner(subdomain)").limit(1);
-      const sub = (data?.[0] as UserTenantRow | undefined)?.tenants?.subdomain;
-      if (sub) window.location.href = `https://${sub}.${ROOT_DOMAIN}/dashboard`;
+      // Note: Suppression de la logique restrictive qui empêchait l'accès à l'onboarding
+      // Maintenant, tout utilisateur connecté peut créer une agence
     })();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [supabase]);
 
   /* --------- Sync de base ---------- */
   useEffect(() => {
@@ -924,17 +971,6 @@ export default function OwnerOnboardingPage() {
     });
   }
 
-  function addBillingEmail(email: string): void {
-    const v = email.trim();
-    if (!v) return;
-    setAdv((a) => {
-      const exists = (a.billingEmails || []).some((em) => em.toLowerCase() === v.toLowerCase());
-      return exists ? a : { ...a, billingEmails: [...a.billingEmails, v] };
-    });
-  }
-  function removeBillingEmail(i: number): void {
-    setAdv((a) => ({ ...a, billingEmails: a.billingEmails.filter((_, idx) => idx !== i) }));
-  }
 
   /* --------- LIVE THEME injection ---------- */
   const themeVars: React.CSSProperties = useMemo(() => {
@@ -1072,47 +1108,19 @@ export default function OwnerOnboardingPage() {
   }
 
   /* --------- Calcul pricing (USD) --------- */
-  const prices = {
-    // Tiers: employees cap and models cap, USD monthly
-    starter: { monthlyUSD: 59, employeesCap: 17, modelsCap: 3 },
-    advanced: { monthlyUSD: 119, employeesCap: 35, modelsCap: 7 },
-    professional: { monthlyUSD: 199, employeesCap: 75, modelsCap: Infinity },
-    on_demand_per_employee_usd: 4, // base simple; ajuster si besoin
-    instagram_addon_usd: 15,
-  } as const;
 
-  const monthlyCost =
-    (adv.planKey === "on_demand"
-      ? ondemandEmployees * prices.on_demand_per_employee_usd
-      : prices[adv.planKey as "starter" | "advanced" | "professional"].monthlyUSD) +
-    (adv.instagramAddon ? prices.instagram_addon_usd : 0);
 
   /* --------- UI render ---------- */
-  const navItems = [
-    { id: "s1",  label: "Votre Agence",                 help: "Nom officiel. Sert à l’affichage et à la facturation." },
-    { id: "s2",  label: "Votre Sous-domaine",           help: "Nom court de l’agence. Ce nom sera utilisé pour pérsonnaliser le nom de domaine de l’agence." },
-    { id: "s3",  label: "Votre Branding",               help: "Choisissez personalisé pour modifier tous les options, ou sélectionnez un thème déjà prédéfini." },
-    { id: "s4",  label: "Vos Préférences",            help: "Langue par défaut, devise et fuseau (UTC)." },
-    { id: "s5",  label: "Votre Plan & Billing",         help: "Sélection du plan et emails recevant les factures (email connecté ajouté par défaut)." },
-    { id: "s6",  label: "Vos choix en matière de Sécurité",               help: "Email vérifié requis ? Suggestion 2FA." },
-    { id: "s7",  label: "Vos Shifts personnalisés",                 help: "Créneaux horaires (minuit supporté)." },
-    { id: "s8",  label: "Vos Validation & Deadline",  help: "Validation automatique (si règles OK) + deadline hebdo (jour/heure UTC)." },
-    { id: "s9",  label: "Votre gestion des Paies",                   help: "Taux horaire optionnel + % de partage du CA." },
-    { id: "s10", label: "Votre politique de Strikes",               help: "Grâce (min), pénalités retard/absence, top pool." },
-    { id: "s11", label: "Votre groupe Telegram",              help: "Canal & digest quotidien (08:00 UTC)." },
-    { id: "s12", label: "Votre Compétition Inter-Agences", help: "Alias public pour le classement (opt‑in)." },
-    { id: "s13", label: "Vos Invitations d'employées",           help: "Optionnel — tu pourras inviter plus tard." },
-    { id: "s14", label: "Publier votre agence",               help: "Création de l’agence + thème stocké." },
-  ] as const;
 
   return (
-    <TooltipProvider delayDuration={150}>
-      <div
-        data-theme="preview"
-        data-neon={neon ? "on" : "off"}
-        className="min-h-screen w-full"
-        style={wrapperStyle}
-      >
+    <AuthGuard>
+      <TooltipProvider delayDuration={150}>
+        <div
+          data-theme="preview"
+          data-neon={neon ? "on" : "off"}
+          className="min-h-screen w-full"
+          style={wrapperStyle}
+        >
         {/* Progress Stepper Premium */}
         <ProgressStepper currentStep={currentStep} totalSteps={totalSteps} />
         <style jsx>{`
@@ -3135,5 +3143,6 @@ export default function OwnerOnboardingPage() {
         </div>
       </div>
     </TooltipProvider>
+    </AuthGuard>
   );
 }

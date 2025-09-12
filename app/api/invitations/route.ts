@@ -1,8 +1,9 @@
 // app/api/invitations/route.ts
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
+
+export const runtime = 'nodejs';
 import { requireAuth } from '@/lib/auth/session';
-import { createInvitation, getInvitations } from '@/lib/invitations/actions';
+import { createInvitationServer, getInvitationsServer } from '@/lib/invitations/server-actions';
 import { generateInvitationEmail } from '@/lib/invitations/email-templates';
 import nodemailer from 'nodemailer';
 
@@ -22,7 +23,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Accès non autorisé' }, { status: 403 });
     }
 
-    const invitations = await getInvitations(tenantId);
+    const invitations = await getInvitationsServer(tenantId);
     return NextResponse.json({ invitations });
   } catch (error) {
     console.error('Error fetching invitations:', error);
@@ -60,11 +61,11 @@ export async function POST(request: NextRequest) {
     }
 
     // Créer l'invitation
-    const invitation = await createInvitation({
+    const invitation = await createInvitationServer({
       email,
       role,
       tenantId: tenant_id,
-    });
+    }, session.user.id);
 
     // Envoyer l'email d'invitation
     try {
@@ -76,10 +77,10 @@ export async function POST(request: NextRequest) {
         roleName: role,
         invitationUrl: `${process.env.APP_BASE_URL}/invitations/accept?token=${invitation.token}`,
         expiresAt: new Date(invitation.expires_at),
-        tenantColors: session.tenant?.theme ? {
-          primary: session.tenant.theme.primary || '#000000',
-          secondary: session.tenant.theme.secondary || '#666666',
-        } : undefined,
+        tenantColors: {
+          primary: '#000000',
+          secondary: '#666666',
+        },
       });
     } catch (emailError) {
       console.error('Error sending invitation email:', emailError);
@@ -110,7 +111,7 @@ async function sendInvitationEmail(data: {
     secondary: string;
   };
 }) {
-  const transporter = nodemailer.createTransporter({
+  const transporter = nodemailer.createTransport({
     host: process.env.SMTP_HOST,
     port: parseInt(process.env.SMTP_PORT || '587'),
     secure: process.env.SMTP_SECURE === 'true',

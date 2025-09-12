@@ -29,5 +29,5 @@ export const AUTH_CONFIG = {
 
 export const GOOGLE_OAUTH_CONFIG = {
   SCOPES: ['email', 'profile'],
-  REDIRECT_URL: '/auth/callback',
+  REDIRECT_URL: '/callback',
 } as const;
