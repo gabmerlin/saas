@@ -5,12 +5,6 @@ import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 
 type Props = { next: string };
 
-interface SupabaseError {
-  message?: string;
-  status?: number;
-  statusCode?: number;
-}
-
 // ⚠️ IMPORTANT : on utilise le client "auth-helpers" côté client
 // pour que le login crée/maj les cookies lisibles par le middleware.
 const supabase = createClientComponentClient();
@@ -33,7 +27,7 @@ export default function SignInForm({ next }: Props) {
 
     const MAX_TRIES = 3;
     let attempt = 0;
-    let lastErr: SupabaseError | null = null;
+    let lastErr: any = null;
 
     while (attempt < MAX_TRIES) {
       attempt++;
@@ -45,8 +39,8 @@ export default function SignInForm({ next }: Props) {
         return;
       }
 
-      lastErr = error as SupabaseError;
-      const status = lastErr?.status ?? lastErr?.statusCode ?? 0;
+      lastErr = error as any;
+      const status = (lastErr?.status ?? lastErr?.statusCode ?? 0) as number;
 
       if (status === 429) {
         const waitMs = attempt * 1500;      // 1.5s, 3s…
