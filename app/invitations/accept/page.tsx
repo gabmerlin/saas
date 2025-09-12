@@ -138,7 +138,7 @@ export default function AcceptInvitationPage() {
             <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-gray-100">
               <Loader2 className="h-6 w-6 animate-spin text-gray-600" />
             </div>
-            <CardTitle>Vérification de l'invitation...</CardTitle>
+            <CardTitle>Vérification de l&apos;invitation...</CardTitle>
           </CardHeader>
         </Card>
       </div>
@@ -166,7 +166,7 @@ export default function AcceptInvitationPage() {
 
           <Alert>
             <AlertDescription>
-              En acceptant cette invitation, vous rejoindrez l'équipe et aurez accès aux fonctionnalités selon votre rôle.
+              En acceptant cette invitation, vous rejoindrez l&apos;équipe et aurez accès aux fonctionnalités selon votre rôle.
             </AlertDescription>
           </Alert>
 

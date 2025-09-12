@@ -65,10 +65,10 @@ export default function VerifyEmailPage() {
 
           <div className="text-center space-y-2">
             <p className="text-sm text-gray-600">
-              Cliquez sur le lien dans l'email pour activer votre compte.
+              Cliquez sur le lien dans l&apos;email pour activer votre compte.
             </p>
             <p className="text-xs text-gray-500">
-              Vérifiez aussi votre dossier spam si vous ne recevez pas l'email.
+              Vérifiez aussi votre dossier spam si vous ne recevez pas l&apos;email.
             </p>
           </div>
 
@@ -86,7 +86,7 @@ export default function VerifyEmailPage() {
               ) : (
                 <>
                   <Mail className="mr-2 h-4 w-4" />
-                  Renvoyer l'email
+                  Renvoyer l&apos;email
                 </>
               )}
             </Button>
