@@ -2565,7 +2565,7 @@ export default function OwnerOnboardingPage() {
                               name="plan"
                               value={plan.key}
                               checked={adv.planKey === plan.key}
-                              onChange={(e) => setAdv((a) => ({ ...a, planKey: e.target.value as any }))}
+                              onChange={(e) => setAdv((a) => ({ ...a, planKey: e.target.value as "starter" | "advanced" | "professional" | "on_demand" }))}
                               className="sr-only"
                             />
                             <div className={`p-4 rounded-lg border-2 transition-all duration-300 ${
@@ -2673,7 +2673,7 @@ export default function OwnerOnboardingPage() {
                               Tarification dégressif employé par employé
                             </div>
                             <div style={{ color: `finalColors.mutedForeground` }}>
-                              • Dégressivité progressive jusuqu'à $1.75 par employé<br/>
+                              • Dégressivité progressive jusuqu&apos;à $1.75 par employé<br/>
                             </div>
                           </div>
                         </div>
