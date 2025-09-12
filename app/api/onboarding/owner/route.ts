@@ -1,7 +1,7 @@
 // api/onboarding/owner/route.ts
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
-import { createRouteHandlerClient } from "@supabase/auth-helpers-nextjs";
+import { createClient } from "@supabase/supabase-js";
 import { OwnerOnboardingSchema } from "@/lib/validation/onboarding";
 import { createTenantWithOwner, getServiceClient } from "@/lib/tenants";
 import { addDomainToVercelProject } from "@/lib/vercel";
@@ -21,16 +21,69 @@ export async function POST(req: Request) {
     return NextResponse.json({ ok: false, error: "RATE_LIMITED" }, { status: 429 });
   }
 
-  // 1) Auth requise
-  const cookieStore = cookies();
-  const supabase = createRouteHandlerClient({ cookies: () => cookieStore });
-  const { data: { user }, error: userErr } = await supabase.auth.getUser();
+  // 1) Auth requise - Création d'un client avec la clé anonyme
+  const cookieStore = await cookies();
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+  
+  const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+    auth: {
+      persistSession: false,
+      autoRefreshToken: false,
+      detectSessionInUrl: false
+    }
+  });
+
+  // Récupération du token d'auth depuis les cookies
+  const rawToken = cookieStore.get('sb-ndlmzwwfwugtwpmebdog-auth-token')?.value;
+  
+  console.log("[AUTH DEBUG] Raw token:", rawToken?.substring(0, 50) + '...');
+  
+  let authToken: string | null = null;
+  
+  if (rawToken) {
+    try {
+      // Le token est stocké comme un tableau JSON, on doit le parser
+      const tokenArray = JSON.parse(rawToken);
+      if (Array.isArray(tokenArray) && tokenArray.length > 0) {
+        authToken = tokenArray[0];
+        console.log("[AUTH DEBUG] Parsed token from array:", authToken?.substring(0, 50) + '...');
+      } else {
+        authToken = rawToken;
+        console.log("[AUTH DEBUG] Using raw token as string");
+      }
+    } catch (e) {
+      // Si ce n'est pas du JSON, utiliser directement
+      authToken = rawToken;
+      console.log("[AUTH DEBUG] Token is not JSON, using as string");
+    }
+  }
+  
+  console.log("[AUTH DEBUG] Final auth token found:", !!authToken);
+  console.log("[AUTH DEBUG] Token length:", authToken?.length || 0);
+  console.log("[AUTH DEBUG] Token starts with:", authToken?.substring(0, 20) || 'none');
+  
+  if (!authToken) {
+    console.log("[AUTH DEBUG] No auth token found in cookies");
+    return NextResponse.json(
+      { ok: false, error: "UNAUTHENTICATED", detail: "No auth token found" },
+      { status: 401 }
+    );
+  }
+
+  // Vérification de l'utilisateur avec le token
+  const { data: { user }, error: userErr } = await supabase.auth.getUser(authToken);
+  console.log("[AUTH DEBUG] User verification result:", { user: !!user, error: userErr?.message });
+  
   if (userErr || !user) {
+    console.log("[AUTH DEBUG] Auth failed:", userErr?.message || "No user");
     return NextResponse.json(
       { ok: false, error: userErr ? "AUTH_ERROR" : "UNAUTHENTICATED", detail: userErr?.message },
       { status: 401 }
     );
   }
+  
+  console.log("[AUTH DEBUG] User authenticated successfully:", user.id);
 
   // 2) Corps JSON
   let body: unknown;
@@ -60,7 +113,7 @@ export async function POST(req: Request) {
   }
   const fullDomain = `${input.subdomain}.${rootDomain}`;
 
-  // 5) Unicité DB
+  // 5) Unicité DB - Utilisation du service client pour les opérations DB
   const srv = getServiceClient();
 
   const { data: tExists, error: tErr } = await srv

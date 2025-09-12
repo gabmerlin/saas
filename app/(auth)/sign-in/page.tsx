@@ -28,7 +28,7 @@ function SignInContent() {
 
 export default function SignInPage() {
   return (
-    <Suspense fallback={<div className="min-h-[60vh] flex items-center justify-center">Chargement...</div>}>
+    <Suspense fallback={<div>Chargement...</div>}>
       <SignInContent />
     </Suspense>
   );

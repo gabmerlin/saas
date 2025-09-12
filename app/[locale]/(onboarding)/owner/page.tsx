@@ -17,7 +17,7 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { z } from "zod";
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   HelpCircle,
   XCircle,
@@ -25,6 +25,7 @@ import {
   Loader2,
   AlertTriangle,
   Info,
+  Plus,
   Trash2,
   Building2,
   Globe,
@@ -51,6 +52,7 @@ import {
   OwnerOnboardingAgencySchema,
 } from "@/lib/validation/onboarding";
 
+import { CardTitle } from "@/components/ui/card";
 
 import {
   Tooltip,
@@ -60,6 +62,13 @@ import {
 } from "@/components/ui/tooltip";
 
 
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 /* ----------------- Types ----------------- */
 
@@ -551,6 +560,58 @@ const advDefaults: AdvFormExt = {
 
 /* ----------------- UI helpers ----------------- */
 
+function HeaderWithHelp({
+  title,
+  help,
+}: {
+  title: string;
+  help: React.ReactNode;
+}) {
+  return (
+    <div className="flex items-start justify-between">
+      <CardTitle>{title}</CardTitle>
+      <Tooltip delayDuration={150}>
+        <TooltipTrigger className="shrink-0 -mt-1" aria-label="Aide">
+          <HelpCircle className="w-4 h-4 text-muted-foreground" />
+        </TooltipTrigger>
+        <TooltipContent side="right" align="start" collisionPadding={12} className="max-w-sm text-sm">
+          {help}
+        </TooltipContent>
+      </Tooltip>
+    </div>
+  );
+}
+
+function Hint({ children }: { children: React.ReactNode }) {
+  return <p className="text-sm text-muted-foreground">{children}</p>;
+}
+
+function SourcePill({
+  label,
+  status,
+}: {
+  label: string;
+  status: DomainSourceStatus;
+}) {
+  const map: Record<
+    DomainSourceStatus,
+    { icon: React.ReactNode; cls: string; txt: string }
+  > = {
+    idle: { icon: <Info className="w-3.5 h-3.5" />, cls: "text-muted-foreground", txt: "—" },
+    checking: { icon: <Loader2 className="w-3.5 h-3.5 animate-spin" />, cls: "text-muted-foreground", txt: "Vérif…" },
+    ok: { icon: <CheckCircle className="w-3.5 h-3.5" />, cls: "text-green-600", txt: "Libre" },
+    taken: { icon: <XCircle className="w-3.5 h-3.5" />, cls: "text-red-600", txt: "Pris" },
+    invalid: { icon: <XCircle className="w-3.5 h-3.5" />, cls: "text-red-600", txt: "Invalide" },
+    error: { icon: <XCircle className="w-3.5 h-3.5" />, cls: "text-red-600", txt: "Erreur" },
+  };
+  const m = map[status];
+  return (
+    <span className={`inline-flex items-center gap-1 text-xs ${m.cls}`}>
+      {m.icon}
+      <span>{label} : {m.txt}</span>
+    </span>
+  );
+}
 
 export default function OwnerOnboardingPage() {
   const supabase = useMemo(() => createClientComponentClient(), []);
@@ -609,6 +670,7 @@ export default function OwnerOnboardingPage() {
 
   const anchors = useRef<Record<string, HTMLDivElement | null>>({});
   const setAnchor = (id: string) => (el: HTMLDivElement | null) => { anchors.current[id] = el; };
+  const jump = (id: string) => anchors.current[id]?.scrollIntoView({ behavior: "smooth" });
 
   // Scroll vers le haut quand on change d'étape
   useEffect(() => {
@@ -768,6 +830,7 @@ export default function OwnerOnboardingPage() {
         },
       }));
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [presetKey]);
 
   /* --------- Arrondi ---------- */
@@ -861,6 +924,17 @@ export default function OwnerOnboardingPage() {
     });
   }
 
+  function addBillingEmail(email: string): void {
+    const v = email.trim();
+    if (!v) return;
+    setAdv((a) => {
+      const exists = (a.billingEmails || []).some((em) => em.toLowerCase() === v.toLowerCase());
+      return exists ? a : { ...a, billingEmails: [...a.billingEmails, v] };
+    });
+  }
+  function removeBillingEmail(i: number): void {
+    setAdv((a) => ({ ...a, billingEmails: a.billingEmails.filter((_, idx) => idx !== i) }));
+  }
 
   /* --------- LIVE THEME injection ---------- */
   const themeVars: React.CSSProperties = useMemo(() => {
@@ -998,9 +1072,38 @@ export default function OwnerOnboardingPage() {
   }
 
   /* --------- Calcul pricing (USD) --------- */
+  const prices = {
+    // Tiers: employees cap and models cap, USD monthly
+    starter: { monthlyUSD: 59, employeesCap: 17, modelsCap: 3 },
+    advanced: { monthlyUSD: 119, employeesCap: 35, modelsCap: 7 },
+    professional: { monthlyUSD: 199, employeesCap: 75, modelsCap: Infinity },
+    on_demand_per_employee_usd: 4, // base simple; ajuster si besoin
+    instagram_addon_usd: 15,
+  } as const;
 
+  const monthlyCost =
+    (adv.planKey === "on_demand"
+      ? ondemandEmployees * prices.on_demand_per_employee_usd
+      : prices[adv.planKey as "starter" | "advanced" | "professional"].monthlyUSD) +
+    (adv.instagramAddon ? prices.instagram_addon_usd : 0);
 
   /* --------- UI render ---------- */
+  const navItems = [
+    { id: "s1",  label: "Votre Agence",                 help: "Nom officiel. Sert à l’affichage et à la facturation." },
+    { id: "s2",  label: "Votre Sous-domaine",           help: "Nom court de l’agence. Ce nom sera utilisé pour pérsonnaliser le nom de domaine de l’agence." },
+    { id: "s3",  label: "Votre Branding",               help: "Choisissez personalisé pour modifier tous les options, ou sélectionnez un thème déjà prédéfini." },
+    { id: "s4",  label: "Vos Préférences",            help: "Langue par défaut, devise et fuseau (UTC)." },
+    { id: "s5",  label: "Votre Plan & Billing",         help: "Sélection du plan et emails recevant les factures (email connecté ajouté par défaut)." },
+    { id: "s6",  label: "Vos choix en matière de Sécurité",               help: "Email vérifié requis ? Suggestion 2FA." },
+    { id: "s7",  label: "Vos Shifts personnalisés",                 help: "Créneaux horaires (minuit supporté)." },
+    { id: "s8",  label: "Vos Validation & Deadline",  help: "Validation automatique (si règles OK) + deadline hebdo (jour/heure UTC)." },
+    { id: "s9",  label: "Votre gestion des Paies",                   help: "Taux horaire optionnel + % de partage du CA." },
+    { id: "s10", label: "Votre politique de Strikes",               help: "Grâce (min), pénalités retard/absence, top pool." },
+    { id: "s11", label: "Votre groupe Telegram",              help: "Canal & digest quotidien (08:00 UTC)." },
+    { id: "s12", label: "Votre Compétition Inter-Agences", help: "Alias public pour le classement (opt‑in)." },
+    { id: "s13", label: "Vos Invitations d'employées",           help: "Optionnel — tu pourras inviter plus tard." },
+    { id: "s14", label: "Publier votre agence",               help: "Création de l’agence + thème stocké." },
+  ] as const;
 
   return (
     <TooltipProvider delayDuration={150}>
@@ -1314,6 +1417,7 @@ export default function OwnerOnboardingPage() {
                         <div className="flex items-center gap-4 p-4 border-2"
                              style={{ 
                                backgroundColor: `finalColors.muted`,
+                               borderColor: `finalColors.border`,
                                borderRadius: `var(--radius)`
                              }}>
                           <input 
@@ -1538,6 +1642,7 @@ export default function OwnerOnboardingPage() {
                              style={{
                                borderRadius: `var(--radius)`,
                                backgroundColor: `finalColors.muted`,
+                               borderColor: `finalColors.border`,
                                color: `finalColors.foreground`
                              }}>
                           <Globe className="w-4 h-4" />
@@ -1553,6 +1658,7 @@ export default function OwnerOnboardingPage() {
                              style={{
                                borderRadius: `var(--radius)`,
                                backgroundColor: `finalColors.muted`,
+                               borderColor: `finalColors.border`,
                                color: `finalColors.foreground`
                              }}>
                           <DollarSign className="w-4 h-4" />
@@ -1657,6 +1763,9 @@ export default function OwnerOnboardingPage() {
                           placeholder="Libellé (ex: Matin)"
                           className="px-4 py-3 rounded-lg border-2 text-left font-medium transition-all duration-300 focus:scale-105 w-full"
                           style={{
+                            backgroundColor: `finalColors.card`,
+                            borderColor: `finalColors.border`,
+                            color: `finalColors.foreground`,
                             boxShadow: `0 4px 15px oklch(var(--primary) / 0.1)`
                           }}
                         />
@@ -1666,6 +1775,9 @@ export default function OwnerOnboardingPage() {
                           onChange={(e) => updateShiftStart(i, e.target.value)} 
                           className="px-4 py-3 rounded-lg border-2 text-center font-medium transition-all duration-300 focus:scale-105 w-full"
                           style={{
+                            backgroundColor: `finalColors.card`,
+                            borderColor: `finalColors.border`,
+                            color: `finalColors.foreground`,
                             boxShadow: `0 4px 15px oklch(var(--primary) / 0.1)`
                           }}
                         />
@@ -1675,6 +1787,9 @@ export default function OwnerOnboardingPage() {
                           onChange={(e) => updateShiftEnd(i, e.target.value)} 
                           className="px-4 py-3 rounded-lg border-2 text-center font-medium transition-all duration-300 focus:scale-105 w-full"
                           style={{
+                            backgroundColor: `finalColors.card`,
+                            borderColor: `finalColors.border`,
+                            color: `finalColors.foreground`,
                             boxShadow: `0 4px 15px oklch(var(--primary) / 0.1)`
                           }}
                         />
@@ -1686,6 +1801,9 @@ export default function OwnerOnboardingPage() {
                           placeholder="Max"
                           className="px-4 py-3 rounded-lg border-2 text-center font-medium transition-all duration-300 focus:scale-105 w-full"
                           style={{
+                            backgroundColor: `finalColors.card`,
+                            borderColor: `finalColors.border`,
+                            color: `finalColors.foreground`,
                             boxShadow: `0 4px 15px oklch(var(--primary) / 0.1)`
                           }}
                         />
@@ -1733,12 +1851,12 @@ export default function OwnerOnboardingPage() {
 
                 {/* S8 – Validation & Deadline */}
                 <div ref={setAnchor("s8")} className="bg-transparent p-8 shadow-lg border-2 relative overflow-hidden"
-                     style={{ 
-                       backgroundColor: finalColors.card,
-                       borderColor: finalColors.border,
-                       boxShadow: `0 20px 40px oklch(var(--secondary) / 0.1), 0 0 0 1px ${finalColors.border}`,
-                       borderRadius: `var(--radius)`
-                     }}>
+                      style={{ 
+                        backgroundColor: finalColors.card,
+                        borderColor: finalColors.border,
+                        boxShadow: `0 20px 40px oklch(var(--secondary) / 0.1), 0 0 0 1px finalColors.border`,
+                        borderRadius: `var(--radius)`
+                      }}>
                   {/* Effet de fond décoratif */}
                   <div className="absolute top-0 right-0 w-32 h-32 opacity-10"
                        style={{ 
@@ -1858,6 +1976,9 @@ export default function OwnerOnboardingPage() {
                             onChange={(e) => setDeadlineTime(e.target.value)}
                             className="w-full px-4 py-3 rounded-lg border-2 font-medium transition-all duration-300 focus:scale-105"
                             style={{
+                              backgroundColor: `finalColors.card`,
+                              borderColor: `finalColors.border`,
+                              color: `finalColors.foreground`,
                               boxShadow: `0 4px 15px oklch(var(--primary) / 0.1)`
                             }}
                           />
@@ -1884,12 +2005,12 @@ export default function OwnerOnboardingPage() {
 
                 {/* S9 – Paie */}
                 <div ref={setAnchor("s9")} className="bg-transparent p-8 shadow-lg border-2 relative overflow-hidden"
-                     style={{ 
-                       backgroundColor: finalColors.card,
-                       borderColor: finalColors.border,
-                       boxShadow: `0 20px 40px ${finalColors.accent}20, 0 0 0 1px ${finalColors.border}`,
-                       borderRadius: finalColors.radius
-                     }}>
+                      style={{ 
+                        backgroundColor: finalColors.card,
+                        borderColor: finalColors.border,
+                        boxShadow: `0 20px 40px ${finalColors.accent}20, 0 0 0 1px ${finalColors.border}`,
+                        borderRadius: finalColors.radius
+                      }}>
                   {/* Effet de fond décoratif */}
                   <div className="absolute top-0 right-0 w-32 h-32 opacity-10"
                        style={{ 
@@ -1986,6 +2107,9 @@ export default function OwnerOnboardingPage() {
                             }))}
                             className="w-full px-4 py-3 rounded-lg border-2 font-medium transition-all duration-300 focus:scale-105"
                             style={{
+                              backgroundColor: `finalColors.card`,
+                              borderColor: `finalColors.border`,
+                              color: `finalColors.foreground`,
                               boxShadow: `0 4px 15px oklch(var(--primary) / 0.1)`
                             }}
                           />
@@ -2011,6 +2135,9 @@ export default function OwnerOnboardingPage() {
                           }))}
                           className="w-full px-4 py-3 rounded-lg border-2 font-medium transition-all duration-300 focus:scale-105"
                           style={{
+                            backgroundColor: `finalColors.card`,
+                            borderColor: `finalColors.border`,
+                            color: `finalColors.foreground`,
                             boxShadow: `0 4px 15px oklch(var(--primary) / 0.1)`
                           }}
                         />
@@ -2084,6 +2211,9 @@ export default function OwnerOnboardingPage() {
                           onChange={(e) => setAdv((a) => ({ ...a, strike: { ...a.strike, graceMinutes: Math.max(0, parseInt(e.target.value || "0", 10)) } }))}
                           className="w-full px-4 py-3 rounded-lg border-2 font-medium transition-all duration-300 focus:scale-105"
                           style={{
+                            backgroundColor: `finalColors.card`,
+                            borderColor: `finalColors.border`,
+                            color: `finalColors.foreground`,
                             boxShadow: `0 4px 15px oklch(var(--primary) / 0.1)`
                           }}
                         />
@@ -2104,6 +2234,9 @@ export default function OwnerOnboardingPage() {
                           onChange={(e) => setAdv((a) => ({ ...a, strike: { ...a.strike, lateFeeUSD: Math.max(0, parseFloat(e.target.value || "0")) } }))}
                           className="w-full px-4 py-3 rounded-lg border-2 font-medium transition-all duration-300 focus:scale-105"
                           style={{
+                            backgroundColor: `finalColors.card`,
+                            borderColor: `finalColors.border`,
+                            color: `finalColors.foreground`,
                             boxShadow: `0 4px 15px oklch(var(--primary) / 0.1)`
                           }}
                         />
@@ -2124,6 +2257,9 @@ export default function OwnerOnboardingPage() {
                           onChange={(e) => setAdv((a) => ({ ...a, strike: { ...a.strike, absenceFeeUSD: Math.max(0, parseFloat(e.target.value || "0")) } }))}
                           className="w-full px-4 py-3 rounded-lg border-2 font-medium transition-all duration-300 focus:scale-105"
                           style={{
+                            backgroundColor: `finalColors.card`,
+                            borderColor: `finalColors.border`,
+                            color: `finalColors.foreground`,
                             boxShadow: `0 4px 15px oklch(var(--primary) / 0.1)`
                           }}
                         />
@@ -2257,6 +2393,7 @@ export default function OwnerOnboardingPage() {
                                 style={{
                                   borderRadius: `var(--radius)`,
                                   backgroundColor: `finalColors.muted`,
+                                  borderColor: `finalColors.border`,
                                   color: `finalColors.foreground`
                                 }}
                               />
@@ -2320,6 +2457,7 @@ export default function OwnerOnboardingPage() {
                         className="w-full px-4 py-3 rounded-lg border-2 text-base"
                         style={{
                           backgroundColor: `finalColors.muted`,
+                          borderColor: `finalColors.border`,
                           color: `finalColors.foreground`
                         }}
                         value={adv.telegram.channelId || ""}
@@ -2478,7 +2616,7 @@ export default function OwnerOnboardingPage() {
                 <div ref={setAnchor("s5")} className="bg-transparent rounded-2xl p-8 shadow-lg border-2"
                      style={{ 
                        backgroundColor: finalColors.card,
-                       borderColor: finalColors.border,
+                       borderColor: finalColors.border
                      }}>
                   <div className="flex items-center gap-4 mb-6">
                     <div className="w-12 h-12 flex items-center justify-center text-2xl"
@@ -2634,6 +2772,7 @@ export default function OwnerOnboardingPage() {
                                 className="w-full px-4 py-3 rounded-lg border-2 text-lg font-medium"
                                 style={{
                                   backgroundColor: `finalColors.muted`,
+                                  borderColor: `finalColors.border`,
                                   color: `finalColors.foreground`
                                 }}
                               />
@@ -2718,6 +2857,7 @@ export default function OwnerOnboardingPage() {
                                 className="flex-1 px-3 py-2 rounded-lg border-2 text-sm"
                                 style={{
                                   backgroundColor: `finalColors.muted`,
+                                  borderColor: `finalColors.border`,
                                   color: `finalColors.foreground`
                                 }}
                                 placeholder="email@exemple.com"
@@ -2760,7 +2900,7 @@ export default function OwnerOnboardingPage() {
                 <div ref={setAnchor("s13")} className="bg-transparent rounded-2xl p-8 shadow-lg border-2"
                      style={{ 
                        backgroundColor: finalColors.card,
-                       borderColor: finalColors.border,
+                       borderColor: finalColors.border
                      }}>
                   <div className="flex items-center gap-4 mb-6">
                     <div className="w-12 h-12 flex items-center justify-center text-2xl"
@@ -2813,9 +2953,12 @@ export default function OwnerOnboardingPage() {
                                 newInvitations[index] = { ...newInvitations[index], email: e.target.value };
                                 setAdv({ ...adv, invitations: newInvitations });
                               }}
-                              placeholder="Email de l&apos;employé"
+                              placeholder="Email de l'employé"
                               className="w-full px-4 py-3 rounded-lg border-2 font-medium transition-all duration-300 focus:scale-105"
                               style={{
+                                backgroundColor: `finalColors.card`,
+                                borderColor: `finalColors.border`,
+                                color: `finalColors.foreground`,
                                 boxShadow: `0 4px 15px oklch(var(--primary) / 0.1)`
                               }}
                             />
@@ -2900,7 +3043,7 @@ export default function OwnerOnboardingPage() {
                 <div ref={setAnchor("s14")} className="bg-transparent rounded-2xl p-8 shadow-lg border-2"
                      style={{ 
                        backgroundColor: finalColors.card,
-                       borderColor: finalColors.border,
+                       borderColor: finalColors.border
                      }}>
                   <div className="flex items-center gap-4 mb-6">
                     <div className="w-12 h-12 flex items-center justify-center text-2xl"
@@ -2950,7 +3093,7 @@ export default function OwnerOnboardingPage() {
                       onClick={onPublish} 
                       disabled={submitting}
                     >
-                      {submitting ? "Publication en cours…" : "Terminer & Publier l&apos;agence"}
+                      {submitting ? "Publication en cours…" : "Terminer & Publier l'agence"}
                     </ModernButton>
                     <p className="text-sm text-center" style={{ color: `finalColors.mutedForeground` }}>
                       En cas d&apos;échec : un résumé par section s&apos;affiche ci-dessus.

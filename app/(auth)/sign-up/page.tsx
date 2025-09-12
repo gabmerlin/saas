@@ -293,7 +293,7 @@ function SignUpContent() {
 
 export default function SignUpPage() {
   return (
-    <Suspense fallback={<div className="min-h-[60vh] flex items-center justify-center">Chargement...</div>}>
+    <Suspense fallback={<div>Chargement...</div>}>
       <SignUpContent />
     </Suspense>
   );

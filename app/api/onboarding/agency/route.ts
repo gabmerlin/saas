@@ -2,15 +2,16 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { OwnerOnboardingAgencySchema } from "@/lib/validation/onboarding";
-import { createRouteHandlerClient } from "@supabase/auth-helpers-nextjs";
+import { createClient } from "@supabase/supabase-js";
 
-// Si tu veux un mode service-role (bypass RLS) pendant l'onboarding, décommente :
-// import { createClient } from "@supabase/supabase-js";
-// function getServiceClient<T = any>() {
-//   const url = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-//   const key = process.env.SUPABASE_SERVICE_ROLE_KEY!;
-//   return createClient<T>(url, key, { auth: { persistSession: false } });
-// }
+// Service client pour éviter les problèmes RLS
+function getServiceClient<T = unknown>() {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY!;
+  return createClient<T>(url, key, { auth: { persistSession: false } });
+}
+
+// Utilisation du service client pour éviter les problèmes RLS et cookies
 
 export async function POST(req: Request) {
   try {
@@ -24,20 +25,53 @@ export async function POST(req: Request) {
     }
     const input = parsed.data;
 
-    // Par défaut : contexte utilisateur (RLS). L'utilisateur doit être Owner/Admin du tenant.
-    const supabase = createRouteHandlerClient({ cookies });
+    // Auth - Création d'un client avec la clé anonyme
+    const cookieStore = await cookies();
+    const dbClientUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+    const dbClientAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+    
+    const supabase = createClient(dbClientUrl, dbClientAnonKey, {
+      auth: {
+        persistSession: false,
+        autoRefreshToken: false,
+        detectSessionInUrl: false
+      }
+    });
 
-    // // Alternative service-role (décommente si besoin) :
-    // const supabase = getServiceClient();
+    // Récupération du token d'auth depuis les cookies
+    const rawToken = cookieStore.get('sb-ndlmzwwfwugtwpmebdog-auth-token')?.value;
+    
+    let authToken: string | null = null;
+    
+    if (rawToken) {
+      try {
+        // Le token est stocké comme un tableau JSON, on doit le parser
+        const tokenArray = JSON.parse(rawToken);
+        if (Array.isArray(tokenArray) && tokenArray.length > 0) {
+          authToken = tokenArray[0];
+        } else {
+          authToken = rawToken;
+        }
+      } catch (e) {
+        // Si ce n'est pas du JSON, utiliser directement
+        authToken = rawToken;
+      }
+    }
+    
+    if (!authToken) {
+      return NextResponse.json({ ok: false, error: "UNAUTHENTICATED", detail: "No auth token found" }, { status: 401 });
+    }
 
-    // Auth
-    const { data: me, error: meErr } = await supabase.auth.getUser();
+    // Vérification de l'utilisateur avec le token
+    const { data: me, error: meErr } = await supabase.auth.getUser(authToken);
     if (meErr || !me?.user) {
       return NextResponse.json({ ok: false, error: "UNAUTHENTICATED" }, { status: 401 });
     }
 
-    // Résoudre le tenant via le sous-domaine fourni
-    const { data: tenantRow, error: tErr } = await supabase
+    // Résoudre le tenant via le sous-domaine fourni - Utilisation du service client
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const dbClient = getServiceClient() as any;
+    const { data: tenantRow, error: tErr } = await dbClient
       .from("tenants")
       .select("id")
       .ilike("subdomain", input.subdomain)
@@ -46,12 +80,12 @@ export async function POST(req: Request) {
     if (tErr || !tenantRow) {
       return NextResponse.json({ ok: false, error: "TENANT_NOT_FOUND" }, { status: 404 });
     }
-    const tenantId = tenantRow.id;
+    const tenantId = (tenantRow as { id: string }).id;
     const now = new Date().toISOString();
 
     // 1) agency_settings
     {
-      const { error } = await supabase.from("agency_settings").upsert(
+      const { error } = await dbClient.from("agency_settings").upsert(
         {
           tenant_id: tenantId,
           name: input.agencyName,
@@ -70,13 +104,13 @@ export async function POST(req: Request) {
     // 2) thème dans tenants.theme (jsonb)
     {
       const theme = { preset: input.themePreset, tokens: input.themeTokens, updated_at: now };
-      const { error } = await supabase.from("tenants").update({ theme }).eq("id", tenantId);
+      const { error } = await dbClient.from("tenants").update({ theme }).eq("id", tenantId);
       if (error) throw error;
     }
 
     // 3) shifts : reset + insert
     {
-      const { error: delErr } = await supabase.from("shift_template").delete().eq("tenant_id", tenantId);
+      const { error: delErr } = await dbClient.from("shift_template").delete().eq("tenant_id", tenantId);
       if (delErr) throw delErr;
 
       const rows = input.shifts.map((s) => ({
@@ -86,7 +120,7 @@ export async function POST(req: Request) {
         end_minutes: s.endMinutes,
         sort_order: s.sortOrder,
       }));
-      const { data: inserted, error: insErr } = await supabase
+      const { data: inserted, error: insErr } = await dbClient
         .from("shift_template")
         .insert(rows)
         .select("id, sort_order");
@@ -109,7 +143,7 @@ export async function POST(req: Request) {
           .filter((x) => x.shift_template_id);
         console.log("Processed capacities:", caps);
         if (caps.length) {
-          const { error: capErr } = await supabase.from("shift_capacity").insert(caps);
+          const { error: capErr } = await dbClient.from("shift_capacity").insert(caps);
           if (capErr) throw capErr;
         }
       }
@@ -117,7 +151,7 @@ export async function POST(req: Request) {
 
     // 4) payroll_policy
     {
-      const { error } = await supabase.from("payroll_policy").upsert(
+      const { error } = await dbClient.from("payroll_policy").upsert(
         {
           tenant_id: tenantId,
           hourly_enabled: input.payroll.hourlyEnabled,
@@ -131,7 +165,7 @@ export async function POST(req: Request) {
 
     // 5) strike_policy
     {
-      const { error } = await supabase.from("strike_policy").upsert(
+      const { error } = await dbClient.from("strike_policy").upsert(
         {
           tenant_id: tenantId,
           grace_minutes: input.strike.graceMinutes,
@@ -146,7 +180,7 @@ export async function POST(req: Request) {
 
     // 6) billing_contact (replace)
     {
-      const { error: del } = await supabase.from("billing_contact").delete().eq("tenant_id", tenantId);
+      const { error: del } = await dbClient.from("billing_contact").delete().eq("tenant_id", tenantId);
       if (del) throw del;
       const contacts = input.billingEmails.map((email, i) => ({
         tenant_id: tenantId,
@@ -154,14 +188,14 @@ export async function POST(req: Request) {
         is_primary: i === 0,
       }));
       if (contacts.length) {
-        const { error } = await supabase.from("billing_contact").insert(contacts);
+        const { error } = await dbClient.from("billing_contact").insert(contacts);
         if (error) throw error;
       }
     }
 
     // 7) telegram_settings
     {
-      const { error } = await supabase.from("telegram_settings").upsert(
+      const { error } = await dbClient.from("telegram_settings").upsert(
         {
           tenant_id: tenantId,
           channel_id: input.telegram.channelId || null,
@@ -174,7 +208,7 @@ export async function POST(req: Request) {
 
     // 8) competition_settings
     {
-      const { error } = await supabase.from("competition_settings").upsert(
+      const { error } = await dbClient.from("competition_settings").upsert(
         {
           tenant_id: tenantId,
           opt_in: input.competition.optIn,
@@ -187,7 +221,7 @@ export async function POST(req: Request) {
 
     // 9) instagram_settings (switch)
     {
-      const { error } = await supabase.from("instagram_settings").upsert(
+      const { error } = await dbClient.from("instagram_settings").upsert(
         {
           tenant_id: tenantId,
           enabled: input.instagramEnabled || input.instagramAddon,
@@ -210,12 +244,12 @@ export async function POST(req: Request) {
         expires_at: expiresAt,
         created_by: me.user.id,
       }));
-      const { error } = await supabase.from("invitation").insert(rows);
+      const { error } = await dbClient.from("invitation").insert(rows);
       if (error) throw error;
     }
 
     // 11) audit_log
-    await supabase.from("audit_log").insert({
+    await dbClient.from("audit_log").insert({
       tenant_id: tenantId,
       actor_user_id: me.user.id,
       action: "onboarding_agency_configured",
