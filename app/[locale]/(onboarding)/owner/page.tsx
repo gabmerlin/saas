@@ -51,7 +51,6 @@ import {
   OwnerOnboardingAgencySchema,
 } from "@/lib/validation/onboarding";
 
-import { CardTitle } from "@/components/ui/card";
 
 import {
   Tooltip,
@@ -769,7 +768,6 @@ export default function OwnerOnboardingPage() {
         },
       }));
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [presetKey]);
 
   /* --------- Arrondi ---------- */
@@ -1000,14 +998,6 @@ export default function OwnerOnboardingPage() {
   }
 
   /* --------- Calcul pricing (USD) --------- */
-  const prices = {
-    // Tiers: employees cap and models cap, USD monthly
-    starter: { monthlyUSD: 59, employeesCap: 17, modelsCap: 3 },
-    advanced: { monthlyUSD: 119, employeesCap: 35, modelsCap: 7 },
-    professional: { monthlyUSD: 199, employeesCap: 75, modelsCap: Infinity },
-    on_demand_per_employee_usd: 4, // base simple; ajuster si besoin
-    instagram_addon_usd: 15,
-  } as const;
 
 
   /* --------- UI render ---------- */
@@ -1188,7 +1178,7 @@ export default function OwnerOnboardingPage() {
                   <div className="space-y-4">
                     <div>
                       <label className="block text-sm font-semibold mb-2" style={{ color: `finalColors.foreground` }}>
-                        Sous-domaine d'agence *
+                        Sous-domaine d&apos;agence *
                       </label>
                       <ModernInput
                         placeholder="monagence"
@@ -1254,7 +1244,7 @@ export default function OwnerOnboardingPage() {
                           <TooltipContent side="right" align="start" collisionPadding={12} className="max-w-sm text-sm">
                             <div className="space-y-1">
                               <p><b>Preset de thème</b> : Choisissez un thème prédéfini ou personnalisez entièrement.</p>
-                              <p><b>Arrondi</b> : Contrôle le niveau d'arrondi des éléments (sharp, soft, pill).</p>
+                              <p><b>Arrondi</b> : Contrôle le niveau d&apos;arrondi des éléments (sharp, soft, pill).</p>
                               <p><b>Effet néon</b> : Active des effets lumineux pour un look moderne.</p>
                               <p><b>Personnalisé</b> : Modifiez toutes les couleurs et paramètres manuellement.</p>
                             </div>
@@ -1506,7 +1496,7 @@ export default function OwnerOnboardingPage() {
                             <div className="space-y-1">
                               <p><b>Langue par défaut</b> : Langue de l&apos;interface pour tous les utilisateurs de l&apos;agence.</p>
                               <p><b>Fuseau horaire</b> : Actuellement fixé à UTC pour la cohérence des données.</p>
-                              <p><b>Devise d'affichage</b> : USD ($) - Dollar américain pour tous les montants.</p>
+                              <p><b>Devise d&apos;affichage</b> : USD ($) - Dollar américain pour tous les montants.</p>
                             </div>
                           </TooltipContent>
                         </Tooltip>
@@ -1557,7 +1547,7 @@ export default function OwnerOnboardingPage() {
                       
                       <div>
                         <label className="block text-sm font-semibold mb-2" style={{ color: `finalColors.foreground` }}>
-                          Devise d'affichage
+                          Devise d&apos;affichage
                         </label>
                         <div className="px-4 py-3 border-2 text-base flex items-center justify-center gap-2"
                              style={{
@@ -1622,7 +1612,7 @@ export default function OwnerOnboardingPage() {
                             <div className="space-y-1">
                               <p><b>Libellé</b> : Nom du créneau (ex: Matin, Soir, Nuit).</p>
                               <p><b>Début/Fin</b> : Heures de début et fin du créneau (format 24h).</p>
-                              <p><b>Employés max</b> : Nombre maximum d'employés pouvant travailler sur ce créneau.</p>
+                              <p><b>Employés max</b> : Nombre maximum d&apos;employés pouvant travailler sur ce créneau.</p>
                               <p><b>Minuit</b> : Les créneaux traversant minuit sont supportés (ex: 23:00 → 07:00).</p>
                             </div>
                           </TooltipContent>
@@ -1928,7 +1918,7 @@ export default function OwnerOnboardingPage() {
                           <TooltipContent side="right" align="start" collisionPadding={12} className="max-w-sm text-sm">
                             <div className="space-y-1">
                               <p><b>Taux horaire</b> : Rémunération fixe par heure travaillée (optionnel).</p>
-                              <p><b>% de partage du CA</b> : Pourcentage du chiffre d'affaires partagé entre les employés.</p>
+                              <p><b>% de partage du CA</b> : Pourcentage du chiffre d&apos;affaires partagé entre les employés.</p>
                               <p><b>Combinaison</b> : Vous pouvez activer les deux modes de rémunération simultanément.</p>
                             </div>
                           </TooltipContent>
@@ -2385,9 +2375,9 @@ export default function OwnerOnboardingPage() {
                           </TooltipTrigger>
                           <TooltipContent side="right" align="start" collisionPadding={12} className="max-w-sm text-sm">
                             <div className="space-y-1">
-                              <p><b>Email vérifié</b> : Exige une vérification d'email pour les nouveaux employés.</p>
-                              <p><b>2FA</b> : Recommande l'authentification à deux facteurs.</p>
-                              <p><b>Protection</b> : Sécurise l'accès à votre agence et aux données sensibles.</p>
+                              <p><b>Email vérifié</b> : Exige une vérification d&apos;email pour les nouveaux employés.</p>
+                              <p><b>2FA</b> : Recommande l&apos;authentification à deux facteurs.</p>
+                              <p><b>Protection</b> : Sécurise l&apos;accès à votre agence et aux données sensibles.</p>
                             </div>
                           </TooltipContent>
                         </Tooltip>
@@ -2620,7 +2610,7 @@ export default function OwnerOnboardingPage() {
                           <div className="grid md:grid-cols-2 gap-6">
                             <div>
                               <label className="block text-sm font-semibold mb-2" style={{ color: `finalColors.foreground` }}>
-                                Nombre d'employés
+                                Nombre d&apos;employés
                               </label>
                               <input
                                 type="number"
@@ -2900,7 +2890,7 @@ export default function OwnerOnboardingPage() {
                       </div>
                       <div className="text-sm">
                         Vous pouvez inviter vos employés maintenant ou plus tard depuis le tableau de bord. 
-                        Les invitations seront envoyées par email avec un lien d'activation.
+                        Les invitations seront envoyées par email avec un lien d&apos;activation.
                       </div>
                     </div>
                   </div>
@@ -2963,7 +2953,7 @@ export default function OwnerOnboardingPage() {
                       {submitting ? "Publication en cours…" : "Terminer & Publier l&apos;agence"}
                     </ModernButton>
                     <p className="text-sm text-center" style={{ color: `finalColors.mutedForeground` }}>
-                      En cas d'échec : un résumé par section s'affiche ci-dessus.
+                      En cas d&apos;échec : un résumé par section s&apos;affiche ci-dessus.
                     </p>
                   </div>
                 </div>
