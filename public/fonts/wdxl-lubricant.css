@@ -1,0 +1,21 @@
+/* WD-XL Lubricant TC Font Integration */
+@font-face {
+  font-family: 'WD-XL Lubricant TC';
+  src: url('./WD-XL-Lubricant-TC-Regular.otf') format('opentype'),
+       url('./WD-XL-Lubricant-TC-Regular.woff2') format('woff2'),
+       url('./WD-XL-Lubricant-TC-Regular.woff') format('woff');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* Application de WD-XL Lubricant TC */
+.wdxl-font {
+  font-family: 'WD-XL Lubricant TC', 'Orbitron', sans-serif !important;
+}
+
+/* Force WD-XL Lubricant TC sur tous les éléments */
+* {
+  font-family: 'WD-XL Lubricant TC', 'Orbitron', sans-serif !important;
+}
+

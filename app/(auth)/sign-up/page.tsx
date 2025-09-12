@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { z } from "zod";
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 import { Input } from "@/components/ui/input";
@@ -26,6 +27,8 @@ type FieldErrors = {
 
 export default function SignUpPage() {
   const supabase = createClientComponentClient();
+  const searchParams = useSearchParams();
+  const next = searchParams?.get("next") ?? "/dashboard";
   const [form, setForm] = useState({ email: "", password: "", username: "" });
   const [confirm, setConfirm] = useState("");
   const [loading, setLoading] = useState(false);
@@ -138,7 +141,9 @@ export default function SignUpPage() {
         return;
         }
 
-        setGlobalSuccess("Vérifie tes emails pour confirmer ton compte.");
+        // Redirection directe vers la page de connexion
+        window.location.replace(`/sign-in?next=${encodeURIComponent(next)}`);
+        return;
     } catch {
         setGlobalError("Problème réseau. Vérifie ta connexion et réessaie.");
     } finally {

@@ -1,0 +1,51 @@
+/* Zain Font Integration by Boutros Fonts */
+@font-face {
+  font-family: 'Zain';
+  src: url('./Zain-Regular.ttf') format('truetype'),
+       url('./Zain-Regular.woff2') format('woff2'),
+       url('./Zain-Regular.woff') format('woff');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Zain';
+  src: url('./Zain-Bold.ttf') format('truetype'),
+       url('./Zain-Bold.woff2') format('woff2'),
+       url('./Zain-Bold.woff') format('woff');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Zain';
+  src: url('./Zain-Light.ttf') format('truetype'),
+       url('./Zain-Light.woff2') format('woff2'),
+       url('./Zain-Light.woff') format('woff');
+  font-weight: 300;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Zain';
+  src: url('./Zain-Medium.ttf') format('truetype'),
+       url('./Zain-Medium.woff2') format('woff2'),
+       url('./Zain-Medium.woff') format('woff');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* Application de Zain avec fallback */
+.zain-font {
+  font-family: 'Zain', 'Space Grotesk', 'Inter', sans-serif !important;
+}
+
+/* Force Zain sur tous les éléments */
+* {
+  font-family: 'Zain', 'Space Grotesk', 'Inter', sans-serif !important;
+}
+

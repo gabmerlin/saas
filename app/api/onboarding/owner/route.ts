@@ -1,10 +1,11 @@
+// api/onboarding/owner/route.ts
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { createRouteHandlerClient } from "@supabase/auth-helpers-nextjs";
 import { OwnerOnboardingSchema } from "@/lib/validation/onboarding";
 import { createTenantWithOwner, getServiceClient } from "@/lib/tenants";
-import { provisionSubdomainDNS } from "@/lib/ovh";
 import { addDomainToVercelProject } from "@/lib/vercel";
+import { provisionSubdomainDNS } from "@/lib/ovh";
 import { rateLimit } from "@/lib/utils/ratelimit";
 
 function need(name: string) {
@@ -14,36 +15,32 @@ function need(name: string) {
 }
 
 export async function POST(req: Request) {
-  // 0) Rate limit
+  // 0) Rate-limit
   const { ok } = await rateLimit("onboarding-owner", 5, 60);
   if (!ok) {
+    return NextResponse.json({ ok: false, error: "RATE_LIMITED" }, { status: 429 });
+  }
+
+  // 1) Auth requise
+  const cookieStore = cookies();
+  const supabase = createRouteHandlerClient({ cookies: () => cookieStore });
+  const { data: { user }, error: userErr } = await supabase.auth.getUser();
+  if (userErr || !user) {
     return NextResponse.json(
-      { ok: false, error: "RATE_LIMITED" },
-      { status: 429 }
+      { ok: false, error: userErr ? "AUTH_ERROR" : "UNAUTHENTICATED", detail: userErr?.message },
+      { status: 401 }
     );
   }
 
-
-  // 1) Auth
-  const ck = await cookies();
-  const supabase = createRouteHandlerClient({
-  cookies: (() => ck) as unknown as () => ReturnType<typeof cookies>,
-  });
-
-
-
-  // 2) Lecture body sécurisée
+  // 2) Corps JSON
   let body: unknown;
   try {
     body = await req.json();
   } catch {
-    return NextResponse.json(
-      { ok: false, error: "EMPTY_OR_INVALID_JSON" },
-      { status: 400 }
-    );
+    return NextResponse.json({ ok: false, error: "EMPTY_OR_INVALID_JSON" }, { status: 400 });
   }
 
-  // 3) Validation input (zod)
+  // 3) Validation (zod)
   const parsed = OwnerOnboardingSchema.safeParse(body);
   if (!parsed.success) {
     return NextResponse.json(
@@ -53,7 +50,7 @@ export async function POST(req: Request) {
   }
   const input = parsed.data;
 
-  // 4) ENV requis
+  // 4) ENV + FQDN
   let rootDomain: string;
   try {
     rootDomain = need("ROOT_DOMAIN");
@@ -63,14 +60,14 @@ export async function POST(req: Request) {
   }
   const fullDomain = `${input.subdomain}.${rootDomain}`;
 
-  // 5) Unicité côté DB
+  // 5) Unicité DB
   const srv = getServiceClient();
+
   const { data: tExists, error: tErr } = await srv
     .from("tenants")
     .select("id")
     .eq("subdomain", input.subdomain)
     .maybeSingle();
-
   if (tErr) {
     return NextResponse.json(
       { ok: false, error: "DB_ERROR_TENANT_CHECK", detail: tErr.message },
@@ -78,10 +75,7 @@ export async function POST(req: Request) {
     );
   }
   if (tExists) {
-    return NextResponse.json(
-      { ok: false, error: "SUBDOMAIN_TAKEN" },
-      { status: 409 }
-    );
+    return NextResponse.json({ ok: false, error: "SUBDOMAIN_TAKEN" }, { status: 409 });
   }
 
   const { data: dExists, error: dErr } = await srv
@@ -89,7 +83,6 @@ export async function POST(req: Request) {
     .select("id")
     .eq("domain", fullDomain)
     .maybeSingle();
-
   if (dErr) {
     return NextResponse.json(
       { ok: false, error: "DB_ERROR_DOMAIN_CHECK", detail: dErr.message },
@@ -97,13 +90,10 @@ export async function POST(req: Request) {
     );
   }
   if (dExists) {
-    return NextResponse.json(
-      { ok: false, error: "DOMAIN_TAKEN" },
-      { status: 409 }
-    );
+    return NextResponse.json({ ok: false, error: "DOMAIN_TAKEN" }, { status: 409 });
   }
 
-  // 6) DB: création tenant + owner
+  // 6) Création tenant + owner
   let tenantId: string | null = null;
   try {
     const res = await createTenantWithOwner({
@@ -114,57 +104,49 @@ export async function POST(req: Request) {
       logoUrl: input.logoUrl || undefined,
       locale: input.locale,
       timezone: "UTC",
-      userId: (await supabase.auth.getUser()).data.user!.id,
+      userId: user.id,
     });
     tenantId = res.tenantId;
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : String(e);
-    return NextResponse.json(
-      { ok: false, error: "CREATE_FAILED", detail: msg },
-      { status: 500 }
-    );
+    return NextResponse.json({ ok: false, error: "CREATE_FAILED", detail: msg }, { status: 500 });
   }
 
-  // 7) Vercel: ajout domaine (best-effort)
-  let vercel: Record<string, unknown> = { skipped: true };
+  // 7) Vercel (best-effort) → pas de spread sur 'ok'
+  let vercel: { ok: boolean; details?: unknown; error?: string } = { ok: false };
   try {
-    vercel = await addDomainToVercelProject(fullDomain);
+    const details = await addDomainToVercelProject(fullDomain);
+    vercel = { ok: true, details };
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : String(e);
     console.error("[VERCEL] add domain failed:", msg);
-    vercel = { error: msg };
+    vercel = { ok: false, error: msg };
   }
 
-  // 8) OVH: enregistrement DNS (best-effort)
-  let ovh: Record<string, unknown> = { skipped: true };
-  if (
-    process.env.OVH_APP_KEY &&
-    process.env.OVH_APP_SECRET &&
-    process.env.OVH_CONSUMER_KEY
-  ) {
+  // 8) OVH (best-effort) → pas de spread sur 'ok'
+  let ovh: { ok: boolean; details?: unknown; error?: string } = { ok: false };
+  if (process.env.OVH_APP_KEY && process.env.OVH_APP_SECRET && process.env.OVH_CONSUMER_KEY) {
     try {
-      ovh = await provisionSubdomainDNS(input.subdomain); // un seul argument
+      // Ta fonction 1-argument (subdomain). Si tu as une signature différente, adapte ici.
+      const details = await provisionSubdomainDNS(input.subdomain);
+      ovh = { ok: true, details };
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : String(e);
-      console.error("[OVH] dns failed:", msg);
-      ovh = { error: msg };
+      console.error("[OVH] DNS create failed:", msg);
+      ovh = { ok: false, error: msg };
     }
   } else {
-    ovh = { skipped: true, reason: "OVH env missing" };
+    ovh = { ok: false, error: "OVH_ENV_MISSING" };
   }
 
-  // 9) Réponse FINALE JSON (toujours!)
-  // 👉 Ajout de `agencyUrl` pour la redirection côté client
+  // 9) Réponse
   return NextResponse.json(
     {
       ok: true,
       tenantId,
       domain: fullDomain,
       agencyUrl: `https://${fullDomain}`,
-      steps: {
-        vercel,
-        ovh,
-      },
+      steps: { vercel, ovh },
     },
     { status: 201 }
   );
