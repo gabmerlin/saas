@@ -2,9 +2,10 @@
 
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
+import { Suspense } from "react";
 import SignInForm from "./SignInForm";
 
-export default function SignInPage() {
+function SignInContent() {
   // En Client Component, on lit les query params via le hook
   const searchParams = useSearchParams();
   const next = searchParams?.get("next") ?? "/dashboard";
@@ -22,5 +23,13 @@ export default function SignInPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function SignInPage() {
+  return (
+    <Suspense fallback={<div className="min-h-[60vh] flex items-center justify-center">Chargement...</div>}>
+      <SignInContent />
+    </Suspense>
   );
 }

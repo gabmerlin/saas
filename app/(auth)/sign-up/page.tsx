@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { z } from "zod";
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
@@ -25,7 +25,7 @@ type FieldErrors = {
   confirm?: string;
 };
 
-export default function SignUpPage() {
+function SignUpContent() {
   const supabase = createClientComponentClient();
   const searchParams = useSearchParams();
   const next = searchParams?.get("next") ?? "/dashboard";
@@ -288,5 +288,13 @@ export default function SignUpPage() {
         </form>
       </Card>
     </div>
+  );
+}
+
+export default function SignUpPage() {
+  return (
+    <Suspense fallback={<div className="min-h-[60vh] flex items-center justify-center">Chargement...</div>}>
+      <SignUpContent />
+    </Suspense>
   );
 }
