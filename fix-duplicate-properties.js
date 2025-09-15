@@ -22,3 +22,4 @@ content = content.replace(
 fs.writeFileSync(filePath, content, 'utf8');
 
 console.log('✅ Propriétés dupliquées corrigées');
+

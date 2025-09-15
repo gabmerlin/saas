@@ -61,6 +61,8 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 
+import BTCPayPopup from "@/components/payment/btcpay-popup";
+
 
 
 /* ----------------- Types ----------------- */
@@ -505,7 +507,7 @@ const basicDefaults: BasicForm = {
   timezone: "UTC",
 };
 
-const initialPreset = PRESETS[2]; // Midnight Neon par défaut pour un contraste clair
+const initialPreset = PRESETS[0]; // Ocean Breeze par défaut
 
 const advDefaults: AdvFormExt = {
   agencyName: "",
@@ -630,6 +632,25 @@ export default function OwnerOnboardingPage() {
   const [errors, setErrors] = useState<string[]>([]);
   const [submitting, setSubmitting] = useState(false);
 
+  // États pour le popup de paiement BTCPay
+  const [showPaymentPopup, setShowPaymentPopup] = useState(false);
+  const [currentTenantId, setCurrentTenantId] = useState<string | null>(null);
+  const [selectedPlan, setSelectedPlan] = useState<{
+    id: string;
+    name: string;
+    price: number;
+    description: string;
+    features: Record<string, boolean>;
+  } | null>(null);
+  const [availablePlans, setAvailablePlans] = useState<Array<{
+    id: string;
+    name: string;
+    price_usd: number;
+    description: string;
+    features: Record<string, boolean>;
+    max_employees: number | null;
+  }>>([]);
+
   // Système d'étapes réorganisé selon la demande
   const steps = [
     {
@@ -740,6 +761,11 @@ export default function OwnerOnboardingPage() {
       const j: OwnerResp = await r1.json().catch(() => ({ agencyUrl: undefined, tenantId: undefined }));
       agencyUrl = j?.agencyUrl ?? null;
       tenantId = j?.tenantId ?? null;
+      
+      // Stocker le tenantId pour le popup de paiement
+      if (tenantId) {
+        setCurrentTenantId(tenantId);
+      }
     }
 
     // Configuration avancée de l'agence
@@ -773,9 +799,43 @@ export default function OwnerOnboardingPage() {
       return;
     }
 
-    const target = agencyUrl?.replace(/\/$/, "") + "/dashboard" || `https://${basic.subdomain}.${ROOT_DOMAIN}/dashboard`;
-    window.location.href = target;
+    // Afficher le popup de paiement
+    setShowPaymentPopup(true);
+    setSubmitting(false);
   }
+
+  /* --------- Chargement des plans d'abonnement ---------- */
+  useEffect(() => {
+    const loadPlans = async () => {
+      try {
+        const { data, error } = await supabase
+          .from("subscription_plan")
+          .select("id, name, price_usd, description, features, max_employees")
+          .order("price_usd", { ascending: true });
+        
+        if (error) throw error;
+        
+        setAvailablePlans(data || []);
+        
+        // Sélectionner le plan Starter par défaut
+        const starterPlan = data?.find(plan => plan.name === "Starter");
+        if (starterPlan) {
+          setSelectedPlan({
+            id: starterPlan.id,
+            name: starterPlan.name,
+            price: starterPlan.price_usd,
+            description: starterPlan.description || "",
+            features: starterPlan.features || {}
+          });
+        }
+      } catch (err) {
+        console.error("Erreur lors du chargement des plans:", err);
+      }
+    };
+    
+    loadPlans();
+  }, []);
+
 
   /* --------- Billing email par défaut ---------- */
   useEffect(() => {
@@ -1087,6 +1147,17 @@ export default function OwnerOnboardingPage() {
   const [ondemandEmployees, setOndemandEmployees] = useState(75);
 
   useEffect(() => { setAdv((a) => ({ ...a, deadlineSundayUTC: deadlineTime })); }, [deadlineTime]);
+
+  /* --------- Mise à jour du prix On-Demand ---------- */
+  useEffect(() => {
+    if (selectedPlan?.name === "On-Demand" && ondemandEmployees >= 75) {
+      const calculatedPrice = calculateOnDemandPrice(ondemandEmployees);
+      setSelectedPlan(prev => prev ? {
+        ...prev,
+        price: calculatedPrice
+      } : null);
+    }
+  }, [ondemandEmployees, selectedPlan]);
 
   // Calcul du prix On-Demand avec dégressivité employé par employé
   function calculateOnDemandPrice(employees: number): number {
@@ -2679,64 +2750,55 @@ export default function OwnerOnboardingPage() {
                 </div>
 
                       <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
-                        {[
-                          { 
-                            key: "starter", 
-                            name: "Starter", 
-                            price: "59,99$/mois", 
-                            features: ["17 employés", "4 modèles", "Toutes les fonctionnalités"] 
-                          },
-                          { 
-                            key: "advanced", 
-                            name: "Advanced", 
-                            price: "119,99$/mois", 
-                            features: ["35 employés", "7 modèles", "Toutes les fonctionnalités"] 
-                          },
-                          { 
-                            key: "professional", 
-                            name: "Professional", 
-                            price: "199,99$/mois", 
-                            features: ["75 employés", "Modèles illimités", "Toutes les fonctionnalités"] 
-                          },
-                          { 
-                            key: "on_demand", 
-                            name: "On-Demand", 
-                            price: "199,99$/mois", 
-                            features: ["≥75 employés", "Modèles illimités", "Toutes les fonctionnalités", "Tarification dégressif"] 
-                          }
-                        ].map((plan) => (
-                          <label key={plan.key} className="cursor-pointer">
-                            <input
-                              type="radio"
-                              name="plan"
-                              value={plan.key}
-                              checked={adv.planKey === plan.key}
-                              onChange={(e) => setAdv((a) => ({ ...a, planKey: e.target.value as "starter" | "advanced" | "professional" | "on_demand" }))}
-                              className="sr-only"
-                            />
-                            <div className={`p-4 rounded-lg border-2 transition-all duration-300 ${
-                              adv.planKey === plan.key ? 'ring-2 ring-primary' : ''
-                            }`}
-                                 style={{
-                                   backgroundColor: adv.planKey === plan.key ? `oklch(var(--primary) / 0.1)` : `oklch(var(--muted) / 0.3)`,
-                                   borderColor: adv.planKey === plan.key ? `finalColors.primary` : `finalColors.border`
-                                 }}>
-                              <div className="text-center">
-                                <h5 className="text-lg font-bold mb-2" style={{ color: `finalColors.foreground` }}>
-                                  {plan.name}
-                                </h5>
-                                <p className="text-2xl font-bold mb-3" style={{ color: `finalColors.primary` }}>
-                                  {plan.price}
-                                </p>
-                                <ul className="text-sm space-y-1" style={{ color: `finalColors.mutedForeground` }}>
-                                  {plan.features.map((feature, i) => (
-                                    <li key={i}>• {feature}</li>
-                                  ))}
-                                </ul>
+                        {availablePlans.map((plan) => {
+                          const isSelected = selectedPlan?.id === plan.id;
+                          const planKey = plan.name.toLowerCase().replace(' ', '_').replace('-', '_');
+                          
+                          return (
+                            <label key={plan.id} className="cursor-pointer">
+                              <input
+                                type="radio"
+                                name="plan"
+                                value={plan.id}
+                                checked={isSelected}
+                                onChange={() => {
+                                  setSelectedPlan({
+                                    id: plan.id,
+                                    name: plan.name,
+                                    price: plan.price_usd,
+                                    description: plan.description || "",
+                                    features: plan.features || {}
+                                  });
+                                  setAdv((a) => ({ ...a, planKey: planKey as "starter" | "advanced" | "professional" | "on_demand" }));
+                                }}
+                                className="sr-only"
+                              />
+                              <div className={`p-4 rounded-lg border-2 transition-all duration-300 ${
+                                isSelected ? 'ring-2 ring-primary' : ''
+                              }`}
+                                   style={{
+                                     backgroundColor: isSelected ? `oklch(var(--primary) / 0.1)` : `oklch(var(--muted) / 0.3)`,
+                                     borderColor: isSelected ? `finalColors.primary` : `finalColors.border`
+                                   }}>
+                                <div className="text-center">
+                                  <h5 className="text-lg font-bold mb-2" style={{ color: `finalColors.foreground` }}>
+                                    {plan.name}
+                                  </h5>
+                                  <p className="text-2xl font-bold mb-3" style={{ color: `finalColors.primary` }}>
+                                    {plan.name === "On-Demand" ? "Sur devis" : `${plan.price_usd}€/mois`}
+                                  </p>
+                                  <ul className="text-sm space-y-1" style={{ color: `finalColors.mutedForeground` }}>
+                                    <li>• {plan.max_employees ? `${plan.max_employees} employés max` : "Employés illimités"}</li>
+                                    <li>• {plan.description}</li>
+                                    {plan.features && Object.keys(plan.features).length > 0 && (
+                                      <li>• {Object.keys(plan.features).join(", ")}</li>
+                                    )}
+                                  </ul>
+                                </div>
                               </div>
-                            </div>
-                          </label>
-                        ))}
+                            </label>
+                          );
+                        })}
                       </div>
                       
                       {/* Simulateur On-Demand */}
@@ -3143,6 +3205,29 @@ export default function OwnerOnboardingPage() {
         </div>
       </div>
     </TooltipProvider>
+
+    {/* Popup de paiement BTCPay */}
+    {currentTenantId && selectedPlan && (
+      <BTCPayPopup
+        isOpen={showPaymentPopup}
+        onClose={() => {
+          setShowPaymentPopup(false);
+        }}
+        tenantId={currentTenantId}
+        selectedPlan={selectedPlan}
+        onPaymentSuccess={(transactionId) => {
+          console.log("Paiement réussi:", transactionId);
+          setShowPaymentPopup(false);
+          // Rediriger vers le dashboard après paiement réussi
+          const target = `https://${basic.subdomain}.${ROOT_DOMAIN}/dashboard`;
+          window.location.href = target;
+        }}
+        onPaymentError={(error) => {
+          console.error("Erreur de paiement:", error);
+          setErrors((arr) => [...arr, `Erreur de paiement : ${error}`]);
+        }}
+      />
+    )}
     </AuthGuard>
   );
 }
