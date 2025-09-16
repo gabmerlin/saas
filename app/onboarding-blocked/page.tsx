@@ -30,8 +30,8 @@ export default function OnboardingBlockedPage() {
               <span className="text-sm text-gray-600">Une seule agence par compte</span>
             </div>
             <p className="text-sm text-gray-700">
-              Chaque compte Google ne peut créer qu'une seule agence. 
-              Si vous avez besoin d'aide, contactez le support.
+              Chaque compte Google ne peut créer qu&apos;une seule agence. 
+              Si vous avez besoin d&apos;aide, contactez le support.
             </p>
           </div>
 
