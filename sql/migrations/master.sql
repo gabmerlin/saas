@@ -468,6 +468,7 @@ create index if not exists idx_subscription_plan on public.subscription(plan_id)
 create table if not exists public.transaction (
   id uuid primary key default gen_random_uuid(),
   tenant_id uuid not null references public.tenants(id) on delete cascade,
+  plan_id uuid references public.subscription_plan(id),
   btcpay_invoice_id text unique,
   amount_usd numeric(10,2) not null,
   amount_btc numeric(20,8),

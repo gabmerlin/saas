@@ -126,6 +126,7 @@ export async function POST(request: NextRequest) {
       currency: currency,
       status: "pending",
       payment_method: currency,
+      plan_id: planId, // Ajouter le plan_id pour le webhook
     };
 
     const { data: transaction, error: transactionError } = await supabase

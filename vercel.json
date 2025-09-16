@@ -1,0 +1,12 @@
+{
+  "crons": [
+    {
+      "path": "/api/cron/check-expired-subscriptions",
+      "schedule": "0 0 * * *"
+    },
+    {
+      "path": "/api/cron/cleanup-unpaid-agencies", 
+      "schedule": "0 1 * * *"
+    }
+  ]
+}

@@ -1,6 +1,5 @@
 // app/api/agency/status/route.ts
 import { NextRequest, NextResponse } from 'next/server';
-import { getServiceClient } from '@/lib/tenants';
 
 export const runtime = 'nodejs';
 
@@ -29,10 +28,10 @@ export async function GET(request: NextRequest) {
 
     // Effectuer les vérifications
     const checks = await Promise.allSettled([
-      checkDNS(subdomain),
-      checkSSL(agencyUrl),
-      checkServer(agencyUrl),
-      checkDatabase(subdomain)
+      checkDNS(),
+      checkSSL(),
+      checkServer(),
+      checkDatabase()
     ]);
 
     const [dnsResult, sslResult, serverResult, dbResult] = checks;
@@ -71,25 +70,25 @@ export async function GET(request: NextRequest) {
   }
 }
 
-async function checkDNS(subdomain: string): Promise<boolean> {
+async function checkDNS(): Promise<boolean> {
   // Simuler une vérification DNS qui prend du temps
   await new Promise(resolve => setTimeout(resolve, 2000));
   return Math.random() > 0.3; // 70% de chance d'être prêt
 }
 
-async function checkSSL(url: string): Promise<boolean> {
+async function checkSSL(): Promise<boolean> {
   // Simuler une vérification SSL qui prend du temps
   await new Promise(resolve => setTimeout(resolve, 1500));
   return Math.random() > 0.2; // 80% de chance d'être prêt
 }
 
-async function checkServer(url: string): Promise<boolean> {
+async function checkServer(): Promise<boolean> {
   // Simuler une vérification serveur qui prend du temps
   await new Promise(resolve => setTimeout(resolve, 1000));
   return Math.random() > 0.1; // 90% de chance d'être prêt
 }
 
-async function checkDatabase(subdomain: string): Promise<boolean> {
+async function checkDatabase(): Promise<boolean> {
   // Simuler une vérification base de données qui prend du temps
   await new Promise(resolve => setTimeout(resolve, 800));
   return Math.random() > 0.05; // 95% de chance d'être prêt
