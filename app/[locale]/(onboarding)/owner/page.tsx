@@ -18,6 +18,8 @@ import { useRouter } from "next/navigation";
 import { z } from "zod";
 import { supabaseBrowser } from "@/lib/supabase/client";
 import AuthGuard from "@/components/auth/auth-guard";
+import OwnerGuard from "@/components/auth/owner-guard";
+import { usePageTitle } from "@/lib/hooks/use-page-title";
 import { motion } from "framer-motion";
 import {
   HelpCircle,
@@ -611,6 +613,9 @@ function SourcePill({
 export default function OwnerOnboardingPage() {
   const supabase = supabaseBrowser;
   const router = useRouter();
+  
+  // Définir le titre de la page
+  usePageTitle("Création d'agence - QG Chatting");
 
   const [basic, setBasic] = useState<BasicForm>(basicDefaults);
   const [adv, setAdv] = useState<AdvFormExt>(advDefaults);
@@ -814,47 +819,7 @@ export default function OwnerOnboardingPage() {
   }
 
   /* --------- Vérification d'agence existante ---------- */
-  useEffect(() => {
-    const checkExistingAgency = async () => {
-      try {
-        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-        
-        if (sessionError || !session) {
-          console.log("Pas de session, redirection vers la connexion");
-          router.push('/sign-in');
-          return;
-        }
-        
-        const authToken = session.access_token;
-        
-        const response = await fetch("/api/auth/check-existing-agency", {
-          method: "GET",
-          headers: { 
-            "authorization": `Bearer ${authToken}`,
-            "x-session-token": authToken
-          }
-        });
-        
-        const result = await response.json();
-        
-        if (result.ok && result.hasExistingAgency) {
-          console.log("Agence existante trouvée, redirection vers la page d'information");
-          // Rediriger vers la page d'information sur l'agence existante
-          router.push('/agency-exists');
-          return;
-        }
-        
-        // Si pas d'agence existante, continuer normalement
-        console.log("Aucune agence existante, continuer l'onboarding");
-        
-      } catch (error) {
-        console.error("Erreur lors de la vérification d'agence existante:", error);
-        // En cas d'erreur, continuer l'onboarding
-      }
-    };
-    
-    checkExistingAgency();
-  }, [supabase, router]);
+  // La vérification d'agence existante est maintenant gérée par OwnerGuard
 
   /* --------- Chargement des plans d'abonnement ---------- */
   useEffect(() => {
@@ -1237,6 +1202,7 @@ export default function OwnerOnboardingPage() {
 
   return (
     <AuthGuard>
+      <OwnerGuard>
       <TooltipProvider delayDuration={150}>
         <div
           data-theme="preview"
@@ -3280,6 +3246,7 @@ export default function OwnerOnboardingPage() {
         }}
       />
     )}
+      </OwnerGuard>
     </AuthGuard>
   );
 }

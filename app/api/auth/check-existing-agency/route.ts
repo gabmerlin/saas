@@ -72,10 +72,15 @@ export async function GET(req: Request) {
       }, { status: 500 });
     }
 
-    if (existingAgency) {
-      const tenant = existingAgency.tenants[0]; // Prendre le premier élément du tableau
+    
+    if (existingAgency && existingAgency.tenants) {
+      // tenants peut être un objet (jointure simple) ou un tableau (jointure multiple)
+      const tenant = Array.isArray(existingAgency.tenants) 
+        ? existingAgency.tenants[0] 
+        : existingAgency.tenants;
       const rootDomain = process.env.NEXT_PUBLIC_ROOT_DOMAIN || process.env.PRIMARY_ZONE;
       const agencyUrl = rootDomain ? `https://${tenant.subdomain}.${rootDomain}` : null;
+      
       
       return NextResponse.json({
         ok: true,

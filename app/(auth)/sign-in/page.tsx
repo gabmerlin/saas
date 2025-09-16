@@ -4,11 +4,15 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Suspense } from "react";
 import SignInForm from "./SignInForm";
+import { usePageTitle } from "@/lib/hooks/use-page-title";
 
 function SignInContent() {
   // En Client Component, on lit les query params via le hook
   const searchParams = useSearchParams();
   const next = searchParams?.get("next") ?? "/dashboard";
+  
+  // Définir le titre de la page
+  usePageTitle("Connexion - QG Chatting");
 
   return (
     <div className="min-h-[60vh] flex items-center justify-center">

@@ -56,8 +56,8 @@ export async function checkExistingAgency(): Promise<AgencyCheckResult> {
 export async function redirectAfterLogin(defaultRedirect: string = '/fr'): Promise<string> {
   const agencyCheck = await checkExistingAgency();
   
-  if (agencyCheck.hasExistingAgency && agencyCheck.agency) {
-    console.log("Agence existante trouvée, redirection vers:", agencyCheck.agency.url);
+  if (agencyCheck.hasExistingAgency && agencyCheck.agency?.url) {
+    console.log("Agence existante trouvée, redirection directe vers le subdomain");
     return agencyCheck.agency.url;
   }
   

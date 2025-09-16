@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { supabaseBrowser } from "@/lib/supabase/client";
 import { motion } from "framer-motion";
 import { Building2, ArrowRight, CheckCircle, AlertTriangle } from "lucide-react";
+import { usePageTitle } from "@/lib/hooks/use-page-title";
 
 export default function AgencyExistsPage() {
   const router = useRouter();
@@ -16,6 +17,9 @@ export default function AgencyExistsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [countdown, setCountdown] = useState(5);
+  
+  // Définir le titre de la page
+  usePageTitle("Agence existante - QG Chatting");
 
   useEffect(() => {
     const checkExistingAgency = async () => {

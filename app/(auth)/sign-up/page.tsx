@@ -7,6 +7,7 @@ import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { usePageTitle } from "@/lib/hooks/use-page-title";
 
 const SignupSchema = z.object({
   email: z.string().email("Adresse email invalide"),
@@ -30,6 +31,9 @@ function SignUpContent() {
   const searchParams = useSearchParams();
   const next = searchParams?.get("next") ?? "/dashboard";
   const [form, setForm] = useState({ email: "", password: "", username: "" });
+  
+  // Définir le titre de la page
+  usePageTitle("Inscription - QG Chatting");
   const [confirm, setConfirm] = useState("");
   const [loading, setLoading] = useState(false);
 

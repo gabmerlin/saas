@@ -4,9 +4,13 @@ import React from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { AlertTriangle, ArrowLeft, Building2 } from "lucide-react";
+import { usePageTitle } from "@/lib/hooks/use-page-title";
 
 export default function OnboardingBlockedPage() {
   const router = useRouter();
+  
+  // Définir le titre de la page
+  usePageTitle("Onboarding bloqué - QG Chatting");
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-orange-50 to-red-100 flex items-center justify-center">
@@ -37,7 +41,7 @@ export default function OnboardingBlockedPage() {
 
           <div className="space-y-3">
             <button
-              onClick={() => router.push('/agency-exists')}
+              onClick={() => router.push('/agency-initializing')}
               className="w-full bg-indigo-600 text-white px-6 py-3 rounded-lg hover:bg-indigo-700 transition-colors"
             >
               Voir mon agence existante

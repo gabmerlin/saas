@@ -4,6 +4,7 @@
 import Link from 'next/link'
 import AuthGuard from '@/components/auth/auth-guard'
 import { use } from 'react'
+import { usePageTitle } from '@/lib/hooks/use-page-title'
 
 export default function LocaleHome({
   params,
@@ -11,6 +12,9 @@ export default function LocaleHome({
   params: Promise<{ locale: string }>
 }) {
   const { locale } = use(params)
+  
+  // Définir le titre de la page
+  usePageTitle("QG Chatting")
 
   return (
     <AuthGuard>

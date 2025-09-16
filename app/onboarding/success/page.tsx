@@ -6,12 +6,16 @@ import { motion } from "framer-motion";
 import { CheckCircle, Loader2, AlertCircle, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { usePageTitle } from "@/lib/hooks/use-page-title";
 
 function OnboardingSuccessContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [status, setStatus] = useState<"loading" | "success" | "error">("loading");
   const [message, setMessage] = useState("Vérification du paiement en cours...");
+  
+  // Définir le titre de la page
+  usePageTitle("Paiement confirmé - QG Chatting");
 
   useEffect(() => {
     const checkPaymentStatus = async () => {
@@ -39,14 +43,9 @@ function OnboardingSuccessContent() {
           setStatus("success");
           setMessage("Paiement confirmé ! Votre agence est en cours de création...");
           
-          // Rediriger vers le dashboard après 3 secondes
+          // Rediriger vers la page d'initialisation après 3 secondes
           setTimeout(() => {
-            const subdomain = searchParams.get("subdomain");
-            if (subdomain) {
-              window.location.href = `https://${subdomain}.qgchatting.com/dashboard`;
-            } else {
-              router.push("/dashboard");
-            }
+            router.push("/agency-initializing");
           }, 3000);
         } else if (data.status === "expired" || data.status === "cancelled") {
           setStatus("error");
