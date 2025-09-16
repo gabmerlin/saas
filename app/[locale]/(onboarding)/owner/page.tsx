@@ -751,7 +751,16 @@ export default function OwnerOnboardingPage() {
     let tenantId: string | null = null;
     if (!r1.ok) {
       if (r1.status === 409) {
-        setErrors((arr) => [...arr, `S1 – Création agence : Le sous-domaine "${basic.subdomain}" est déjà utilisé. Veuillez en choisir un autre.`]);
+        const errorData = await r1.json().catch(() => ({}));
+        if (errorData.error === "AGENCY_ALREADY_EXISTS") {
+          setErrors((arr) => [...arr, `S1 – Création agence : Vous avez déjà une agence. Vous ne pouvez créer qu'une seule agence par compte.`]);
+          // Rediriger vers la page d'information
+          setTimeout(() => {
+            router.push('/onboarding-blocked');
+          }, 3000);
+        } else {
+          setErrors((arr) => [...arr, `S1 – Création agence : Le sous-domaine "${basic.subdomain}" est déjà utilisé. Veuillez en choisir un autre.`]);
+        }
       } else {
         setErrors((arr) => [...arr, `S1 – Création agence : ${r1.status} ${r1.statusText}`]);
       }
@@ -803,6 +812,49 @@ export default function OwnerOnboardingPage() {
     setShowPaymentPopup(true);
     setSubmitting(false);
   }
+
+  /* --------- Vérification d'agence existante ---------- */
+  useEffect(() => {
+    const checkExistingAgency = async () => {
+      try {
+        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+        
+        if (sessionError || !session) {
+          console.log("Pas de session, redirection vers la connexion");
+          router.push('/sign-in');
+          return;
+        }
+        
+        const authToken = session.access_token;
+        
+        const response = await fetch("/api/auth/check-existing-agency", {
+          method: "GET",
+          headers: { 
+            "authorization": `Bearer ${authToken}`,
+            "x-session-token": authToken
+          }
+        });
+        
+        const result = await response.json();
+        
+        if (result.ok && result.hasExistingAgency) {
+          console.log("Agence existante trouvée, redirection vers la page d'information");
+          // Rediriger vers la page d'information sur l'agence existante
+          router.push('/agency-exists');
+          return;
+        }
+        
+        // Si pas d'agence existante, continuer normalement
+        console.log("Aucune agence existante, continuer l'onboarding");
+        
+      } catch (error) {
+        console.error("Erreur lors de la vérification d'agence existante:", error);
+        // En cas d'erreur, continuer l'onboarding
+      }
+    };
+    
+    checkExistingAgency();
+  }, [supabase, router]);
 
   /* --------- Chargement des plans d'abonnement ---------- */
   useEffect(() => {

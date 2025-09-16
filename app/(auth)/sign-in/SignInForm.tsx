@@ -9,6 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Separator } from "@/components/ui/separator";
 import { Eye, EyeOff, Mail, Lock, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
+import { redirectAfterLogin } from "@/lib/auth/agency-redirect";
 
 type Props = { next: string };
 
@@ -35,7 +36,10 @@ export default function SignInForm({ next }: Props) {
     try {
       await signInWithEmail(email, password, rememberMe);
       toast.success("Connexion réussie !");
-      window.location.replace(next || "/dashboard");
+      
+      // Vérifier l'agence existante avant la redirection
+      const redirectUrl = await redirectAfterLogin(next || "/dashboard");
+      window.location.replace(redirectUrl);
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : "Échec de connexion";
       setMsg(errorMessage);
@@ -48,6 +52,7 @@ export default function SignInForm({ next }: Props) {
   async function handleGoogleSignIn() {
     try {
       await signInWithGoogle();
+      // La redirection sera gérée par le callback OAuth
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : "Échec de connexion Google";
       setMsg(errorMessage);

@@ -14,7 +14,7 @@ export interface InvitationData {
 
 export async function createInvitation(data: InvitationData) {
   const { data: result, error } = await supabase
-    .from('invitations')
+    .from('invitation')
     .insert({
       tenant_id: data.tenantId,
       email: data.email,
@@ -35,11 +35,11 @@ export async function createInvitation(data: InvitationData) {
 
 export async function getInvitations(tenantId: string) {
   const { data, error } = await supabase
-    .from('invitations')
+    .from('invitation')
     .select(`
       *,
       roles!inner(key, description),
-      profiles!invitations_invited_by_fkey(full_name)
+      profiles!invitation_invited_by_fkey(full_name)
     `)
     .eq('tenant_id', tenantId)
     .order('created_at', { ascending: false });
@@ -53,7 +53,7 @@ export async function getInvitations(tenantId: string) {
 
 export async function acceptInvitation(token: string) {
   const { data, error } = await supabase
-    .from('invitations')
+    .from('invitation')
     .select(`
       *,
       tenants!inner(id, name, subdomain)
@@ -103,7 +103,7 @@ export async function acceptInvitation(token: string) {
 
   // Marquer l'invitation comme acceptée
   const { error: updateError } = await supabase
-    .from('invitations')
+    .from('invitation')
     .update({ accepted_at: new Date().toISOString() })
     .eq('id', data.id);
 
@@ -116,7 +116,7 @@ export async function acceptInvitation(token: string) {
 
 export async function revokeInvitation(invitationId: string) {
   const { error } = await supabase
-    .from('invitations')
+    .from('invitation')
     .delete()
     .eq('id', invitationId);
 
@@ -127,7 +127,7 @@ export async function revokeInvitation(invitationId: string) {
 
 export async function resendInvitation(invitationId: string) {
   const { data, error } = await supabase
-    .from('invitations')
+    .from('invitation')
     .update({
       token: crypto.randomUUID(),
       expires_at: new Date(Date.now() + AUTH_CONFIG.INVITATION_EXPIRY_HOURS * 60 * 60 * 1000).toISOString(),

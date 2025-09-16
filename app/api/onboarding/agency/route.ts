@@ -2,6 +2,8 @@
 import { NextResponse } from "next/server";
 import { OwnerOnboardingAgencySchema } from "@/lib/validation/onboarding";
 import { createClient, createClientWithSession } from "@/lib/supabase/server";
+import { generateInvitationEmail } from "@/lib/invitations/email-templates";
+import nodemailer from "nodemailer";
 
 // Service client pour éviter les problèmes RLS
 function getServiceClient() {
@@ -256,8 +258,34 @@ export async function POST(req: Request) {
         expires_at: expiresAt,
         created_by: user.id,
       }));
-      const { error } = await dbClient.from("invitation").insert(rows);
+      const { data: insertedInvitations, error } = await dbClient.from("invitation").insert(rows).select();
       if (error) throw error;
+
+      // Envoyer les emails d'invitation
+      if (insertedInvitations) {
+        for (const invitation of insertedInvitations) {
+          if (invitation.email) {
+            try {
+              await sendInvitationEmail({
+                email: invitation.email,
+                tenantName: input.agencyName,
+                tenantSubdomain: input.subdomain,
+                inviterName: user.email || 'Un administrateur',
+                roleName: invitation.role_key,
+                invitationUrl: `${process.env.APP_BASE_URL || 'http://localhost:3000'}/invitations/accept?token=${invitation.token}`,
+                expiresAt: new Date(invitation.expires_at),
+                tenantColors: {
+                  primary: input.themeTokens?.primary || '#000000',
+                  secondary: input.themeTokens?.secondary || '#666666',
+                },
+              });
+            } catch (emailError) {
+              console.error('Error sending invitation email:', emailError);
+              // Ne pas faire échouer l'onboarding si l'email échoue
+            }
+          }
+        }
+      }
     }
 
     // 11) audit_log
@@ -273,4 +301,38 @@ export async function POST(req: Request) {
     console.error(e);
     return NextResponse.json({ ok: false, error: e instanceof Error ? e.message : "INTERNAL_ERROR" }, { status: 500 });
   }
+}
+
+// Fonction pour envoyer l'email d'invitation
+async function sendInvitationEmail(data: {
+  email: string;
+  tenantName: string;
+  tenantSubdomain: string;
+  inviterName: string;
+  roleName: string;
+  invitationUrl: string;
+  expiresAt: Date;
+  tenantColors?: {
+    primary: string;
+    secondary: string;
+  };
+}) {
+  const transporter = nodemailer.createTransporter({
+    host: process.env.SMTP_HOST,
+    port: parseInt(process.env.SMTP_PORT || '587'),
+    secure: process.env.SMTP_SECURE === 'true',
+    auth: {
+      user: process.env.SMTP_USER,
+      pass: process.env.SMTP_PASS,
+    },
+  });
+
+  const html = generateInvitationEmail(data);
+
+  await transporter.sendMail({
+    from: process.env.SMTP_FROM || 'noreply@qgchatting.com',
+    to: data.email,
+    subject: `Invitation à rejoindre ${data.tenantName} sur QG Chatting`,
+    html,
+  });
 }

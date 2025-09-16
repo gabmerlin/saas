@@ -3,6 +3,7 @@
 import { useEffect, useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { supabaseBrowser } from '@/lib/supabase/client';
+import { redirectAfterLogin } from '@/lib/auth/agency-redirect';
 
 function AuthCallbackContent() {
   const router = useRouter();
@@ -36,7 +37,15 @@ function AuthCallbackContent() {
 
           if (data.session) {
             setStatus('Connexion réussie !');
-            setTimeout(() => router.push(next), 1000);
+            // Vérifier l'agence existante avant la redirection
+            const redirectUrl = await redirectAfterLogin(next);
+            setTimeout(() => {
+              if (redirectUrl.startsWith('http')) {
+                window.location.href = redirectUrl;
+              } else {
+                router.push(redirectUrl);
+              }
+            }, 1000);
             return;
           }
         }
@@ -77,8 +86,13 @@ function AuthCallbackContent() {
                 const checkSession = async () => {
                   const { data: { session } } = await supabaseBrowser.auth.getSession();
                   if (session) {
-                    // Utiliser window.location.href pour forcer une navigation complète
-                    window.location.href = next;
+                    // Vérifier l'agence existante avant la redirection
+                    const redirectUrl = await redirectAfterLogin(next);
+                    if (redirectUrl.startsWith('http')) {
+                      window.location.href = redirectUrl;
+                    } else {
+                      window.location.href = redirectUrl;
+                    }
                   } else if (attempts < maxAttempts) {
                     attempts++;
                     setTimeout(checkSession, 500);
@@ -110,7 +124,15 @@ function AuthCallbackContent() {
         const { data: { session } } = await supabaseBrowser.auth.getSession();
         if (session) {
           setStatus('Connexion réussie !');
-          setTimeout(() => router.push(next), 1000);
+          // Vérifier l'agence existante avant la redirection
+          const redirectUrl = await redirectAfterLogin(next);
+          setTimeout(() => {
+            if (redirectUrl.startsWith('http')) {
+              window.location.href = redirectUrl;
+            } else {
+              router.push(redirectUrl);
+            }
+          }, 1000);
           return;
         }
 

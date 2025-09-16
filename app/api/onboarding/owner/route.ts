@@ -89,9 +89,32 @@ export async function POST(req: Request) {
   }
   const fullDomain = `${input.subdomain}.${rootDomain}`;
 
-  // 5) Unicité DB - Utilisation du service client pour les opérations DB
+  // 5) Vérifier si l'utilisateur a déjà une agence
   const srv = getServiceClient();
+  
+  const { data: existingAgency, error: agencyErr } = await srv
+    .from('user_tenants')
+    .select('tenant_id, is_owner')
+    .eq('user_id', user.id)
+    .eq('is_owner', true)
+    .single();
 
+  if (agencyErr && agencyErr.code !== 'PGRST116') { // PGRST116 = no rows found
+    return NextResponse.json(
+      { ok: false, error: "DB_ERROR_AGENCY_CHECK", detail: agencyErr.message },
+      { status: 500 }
+    );
+  }
+
+  if (existingAgency) {
+    return NextResponse.json({ 
+      ok: false, 
+      error: "AGENCY_ALREADY_EXISTS", 
+      detail: "Un utilisateur ne peut créer qu'une seule agence" 
+    }, { status: 409 });
+  }
+
+  // 6) Unicité DB - Vérifier que le sous-domaine n'est pas pris
   const { data: tExists, error: tErr } = await srv
     .from("tenants")
     .select("id")
@@ -122,7 +145,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ ok: false, error: "DOMAIN_TAKEN" }, { status: 409 });
   }
 
-  // 6) Création tenant + owner
+  // 7) Création tenant + owner
   let tenantId: string | null = null;
   try {
     const res = await createTenantWithOwner({
@@ -141,7 +164,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ ok: false, error: "CREATE_FAILED", detail: msg }, { status: 500 });
   }
 
-  // 7) Vercel (best-effort) → pas de spread sur 'ok'
+  // 8) Vercel (best-effort) → pas de spread sur 'ok'
   let vercel: { ok: boolean; details?: unknown; error?: string } = { ok: false };
   try {
     const details = await addDomainToVercelProject(fullDomain);
@@ -152,7 +175,7 @@ export async function POST(req: Request) {
     vercel = { ok: false, error: msg };
   }
 
-  // 8) OVH (best-effort) → pas de spread sur 'ok'
+  // 9) OVH (best-effort) → pas de spread sur 'ok'
   let ovh: { ok: boolean; details?: unknown; error?: string } = { ok: false };
   if (process.env.OVH_APP_KEY && process.env.OVH_APP_SECRET && process.env.OVH_CONSUMER_KEY) {
     try {
@@ -168,7 +191,7 @@ export async function POST(req: Request) {
     ovh = { ok: false, error: "OVH_ENV_MISSING" };
   }
 
-  // 9) Réponse
+  // 10) Réponse
     return NextResponse.json(
     { 
       ok: true,

@@ -20,12 +20,12 @@ export async function GET(request: NextRequest) {
     const supabase = createClient();
     
     const { data: invitation, error } = await supabase
-      .from('invitations')
+      .from('invitation')
       .select(`
         *,
         roles!inner(key, description),
         tenants!inner(id, name, subdomain),
-        profiles!invitations_invited_by_fkey(full_name)
+        profiles!invitation_invited_by_fkey(full_name)
       `)
       .eq('token', token)
       .eq('accepted_at', null)
