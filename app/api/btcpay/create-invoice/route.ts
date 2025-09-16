@@ -69,13 +69,14 @@ export async function POST(request: NextRequest) {
     // Créer l'invoice BTCPay
     const orderId = `plan_${planId}_${Date.now()}`;
     const invoiceData = {
-      amount: amount,
-      currency: currency,
+      amount: amount, // Montant en USD
+      currency: "USD", // Toujours USD pour BTCPay, il fera la conversion
       metadata: {
         orderId: orderId,
         buyerEmail: user.email,
         itemCode: planId,
         itemDesc: planName,
+        requestedCurrency: currency, // Devise crypto demandée par l'utilisateur
       },
       checkout: {
         redirectURL: `${process.env.NEXT_PUBLIC_APP_URL}/onboarding/success?invoiceId=${orderId}`,
@@ -102,6 +103,9 @@ export async function POST(request: NextRequest) {
 
     const btcpayInvoice = await btcpayResponse.json();
 
+    // Log simple pour debug si nécessaire
+    console.log('Facture BTCPay créée:', btcpayInvoice.id, 'pour', amount, 'USD');
+
     // Vérifier que le tenant existe et que l'utilisateur y a accès
     const { data: userTenant, error: userTenantError } = await supabase
       .from("user_tenants")
@@ -122,11 +126,15 @@ export async function POST(request: NextRequest) {
     const transactionData = {
       tenant_id: tenantId,
       btcpay_invoice_id: btcpayInvoice.id,
-      amount_usd: amount,
-      currency: currency,
+      amount_usd: amount, // Montant en USD (essentiel)
+      currency: currency, // Devise crypto demandée par l'utilisateur
       status: "pending",
       payment_method: currency,
-      plan_id: planId, // Ajouter le plan_id pour le webhook
+      plan_id: planId,
+      // Les colonnes crypto restent vides (pas critique)
+      amount_btc: null,
+      amount_usdt: null,
+      amount_usdc: null,
     };
 
     const { data: transaction, error: transactionError } = await supabase
