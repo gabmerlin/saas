@@ -73,7 +73,7 @@ export async function GET(req: Request) {
     }
 
     if (existingAgency) {
-      const tenant = existingAgency.tenants;
+      const tenant = existingAgency.tenants[0]; // Prendre le premier élément du tableau
       const rootDomain = process.env.NEXT_PUBLIC_ROOT_DOMAIN || process.env.PRIMARY_ZONE;
       const agencyUrl = rootDomain ? `https://${tenant.subdomain}.${rootDomain}` : null;
       
