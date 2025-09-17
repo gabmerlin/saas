@@ -19,7 +19,6 @@ export async function GET(request: NextRequest) {
     const dbClient = getServiceClient();
     const now = new Date();
 
-    console.log(`[SUBSCRIPTION CHECK] Vérification des abonnements expirés`);
 
     // 1. Marquer les abonnements expirés
     const { data: expiredSubscriptions, error: expiredError } = await dbClient
@@ -39,7 +38,6 @@ export async function GET(request: NextRequest) {
       .lt('current_period_end', now.toISOString());
 
     if (expiredError) {
-      console.error('[SUBSCRIPTION CHECK] Erreur lors de la recherche des abonnements expirés:', expiredError);
       return NextResponse.json(
         { error: "Erreur lors de la recherche" },
         { status: 500 }
@@ -65,7 +63,6 @@ export async function GET(request: NextRequest) {
       .in('id', subscriptionIds);
 
     if (updateError) {
-      console.error('[SUBSCRIPTION CHECK] Erreur lors de la mise à jour:', updateError);
       return NextResponse.json(
         { error: "Erreur lors de la mise à jour" },
         { status: 500 }
@@ -84,7 +81,6 @@ export async function GET(request: NextRequest) {
       };
     });
 
-    console.log('[SUBSCRIPTION CHECK] Abonnements expirés:', expiredAgencies);
 
     return NextResponse.json({
       message: `${expiredSubscriptions.length} abonnements marqués comme expirés`,
@@ -93,7 +89,6 @@ export async function GET(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('[SUBSCRIPTION CHECK] Erreur inattendue:', error);
     return NextResponse.json(
       { error: "Erreur interne du serveur" },
       { status: 500 }

@@ -17,20 +17,22 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const supabase = createClient();
+    // Utiliser le service client pour bypasser les restrictions RLS
+    const url = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+    const key = process.env.SUPABASE_SERVICE_ROLE_KEY!;
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const { createClient: createServiceClient } = require('@supabase/supabase-js');
+    const supabase = createServiceClient(url, key, { auth: { persistSession: false } });
     
-    const { data: invitation, error } = await supabase
+    // Vérifier si l'invitation existe
+    const { data: invitations, error } = await supabase
       .from('invitation')
-      .select(`
-        *,
-        roles!inner(key, description),
-        tenants!inner(id, name, subdomain),
-        profiles!invitation_invited_by_fkey(full_name)
-      `)
+      .select('*')
       .eq('token', token)
-      .eq('accepted_at', null)
       .gt('expires_at', new Date().toISOString())
-      .single();
+      .is('accepted_at', null);
+    
+    const invitation = invitations && invitations.length > 0 ? invitations[0] : null;
 
     if (error || !invitation) {
       return NextResponse.json(
@@ -39,9 +41,28 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    return NextResponse.json({ invitation });
+    // Récupérer les données des relations séparément
+    const [roleResult, tenantResult] = await Promise.all([
+      supabase
+        .from('roles')
+        .select('key, description')
+        .eq('key', invitation.role_key)
+        .single(),
+      supabase
+        .from('tenants')
+        .select('id, name, subdomain')
+        .eq('id', invitation.tenant_id)
+        .single()
+    ]);
+
+    const invitationWithRelations = {
+      ...invitation,
+      role: roleResult.data,
+      tenant: tenantResult.data
+    };
+
+    return NextResponse.json({ invitation: invitationWithRelations });
   } catch (error) {
-    console.error('Error checking invitation:', error);
     return NextResponse.json(
       { error: 'Erreur lors de la vérification de l\'invitation' },
       { status: 500 }

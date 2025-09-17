@@ -171,7 +171,6 @@ export async function POST(req: Request) {
     vercel = { ok: true, details };
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : String(e);
-    console.error("[VERCEL] add domain failed:", msg);
     vercel = { ok: false, error: msg };
   }
 
@@ -184,7 +183,6 @@ export async function POST(req: Request) {
       ovh = { ok: true, details };
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : String(e);
-      console.error("[OVH] DNS create failed:", msg);
       ovh = { ok: false, error: msg };
     }
   } else {

@@ -5,7 +5,6 @@ export const runtime = 'nodejs';
 
 export async function GET() {
   try {
-    console.log('[TEST-DB] Test de connexion à la base de données');
     
     const dbClient = getServiceClient();
     
@@ -16,7 +15,6 @@ export async function GET() {
       .limit(1);
 
     if (error) {
-      console.error('[TEST-DB] Erreur de connexion:', error);
       return NextResponse.json({
         ok: false,
         error: error.message,
@@ -24,7 +22,6 @@ export async function GET() {
       }, { status: 500 });
     }
 
-    console.log('[TEST-DB] Connexion réussie');
     
     return NextResponse.json({
       ok: true,
@@ -33,7 +30,6 @@ export async function GET() {
     });
 
   } catch (error) {
-    console.error('[TEST-DB] Erreur inattendue:', error);
     return NextResponse.json({
       ok: false,
       error: "Erreur inattendue",

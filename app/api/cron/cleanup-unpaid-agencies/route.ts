@@ -20,7 +20,6 @@ export async function GET(request: NextRequest) {
     const now = new Date();
     const cutoffDate = new Date(now.getTime() - (45 * 24 * 60 * 60 * 1000)); // 45 jours = 1 mois et 15 jours
 
-    console.log(`[CLEANUP] Recherche des agences non payées depuis le ${cutoffDate.toISOString()}`);
 
     // 1. Trouver toutes les agences créées avant la date limite
     const { data: oldAgencies, error: oldAgenciesError } = await dbClient
@@ -34,7 +33,6 @@ export async function GET(request: NextRequest) {
       .lt('created_at', cutoffDate.toISOString());
 
     if (oldAgenciesError) {
-      console.error('[CLEANUP] Erreur lors de la recherche des anciennes agences:', oldAgenciesError);
       return NextResponse.json(
         { error: "Erreur lors de la recherche" },
         { status: 500 }
@@ -58,7 +56,6 @@ export async function GET(request: NextRequest) {
       .eq('status', 'active');
 
     if (subscriptionsError) {
-      console.error('[CLEANUP] Erreur lors de la vérification des abonnements:', subscriptionsError);
       return NextResponse.json(
         { error: "Erreur lors de la vérification des abonnements" },
         { status: 500 }
@@ -69,7 +66,6 @@ export async function GET(request: NextRequest) {
     const activeTenantIds = new Set(activeSubscriptions?.map(sub => sub.tenant_id) || []);
     const agenciesToDelete = oldAgencies.filter(agency => !activeTenantIds.has(agency.id));
 
-    console.log(`[CLEANUP] ${agenciesToDelete.length} agences à supprimer`);
 
     if (agenciesToDelete.length === 0) {
       return NextResponse.json({
@@ -87,7 +83,6 @@ export async function GET(request: NextRequest) {
       .in('id', agenciesToDeleteIds);
 
     if (deleteError) {
-      console.error('[CLEANUP] Erreur lors de la suppression:', deleteError);
       return NextResponse.json(
         { error: "Erreur lors de la suppression" },
         { status: 500 }
@@ -102,7 +97,6 @@ export async function GET(request: NextRequest) {
       created_at: agency.created_at
     }));
 
-    console.log('[CLEANUP] Agences supprimées:', deletedAgencies);
 
     return NextResponse.json({
       message: `${agenciesToDelete.length} agences supprimées`,
@@ -111,7 +105,6 @@ export async function GET(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('[CLEANUP] Erreur inattendue:', error);
     return NextResponse.json(
       { error: "Erreur interne du serveur" },
       { status: 500 }

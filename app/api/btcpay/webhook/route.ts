@@ -123,7 +123,6 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (subscriptionError) {
-      console.error("Erreur création abonnement:", subscriptionError);
       return NextResponse.json(
         { error: "Erreur lors de la création de l'abonnement" },
         { status: 500 }
@@ -147,7 +146,6 @@ export async function POST(request: NextRequest) {
       });
 
     if (invoiceError) {
-      console.error("Erreur création facture:", invoiceError);
       // Ne pas faire échouer le webhook pour une erreur de facture
     }
 

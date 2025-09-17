@@ -97,7 +97,7 @@ export async function acceptInvitation(token: string) {
       });
 
     if (roleError) {
-      console.warn('Erreur lors de l\'ajout du rôle:', roleError);
+      // Ignorer l'erreur de rôle
     }
   }
 
@@ -108,7 +108,7 @@ export async function acceptInvitation(token: string) {
     .eq('id', data.id);
 
   if (updateError) {
-    console.warn('Erreur lors de la mise à jour de l\'invitation:', updateError);
+    // Ignorer l'erreur de mise à jour de l'invitation
   }
 
   return data;

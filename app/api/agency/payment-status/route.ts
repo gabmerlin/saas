@@ -116,7 +116,6 @@ export async function GET(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('Error checking payment status:', error);
     return NextResponse.json(
       { error: 'Erreur lors de la vérification du statut de paiement' },
       { status: 500 }

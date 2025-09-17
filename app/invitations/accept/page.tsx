@@ -65,6 +65,11 @@ function AcceptInvitationPageContent() {
       const data = await response.json();
 
       if (!response.ok) {
+        // Si l'utilisateur n'est pas authentifié, rediriger vers la page de connexion
+        if (response.status === 401 && data.redirectTo) {
+          window.location.href = data.redirectTo;
+          return;
+        }
         throw new Error(data.error || 'Erreur lors de l\'acceptation');
       }
 

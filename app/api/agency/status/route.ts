@@ -62,7 +62,6 @@ export async function GET(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('Error checking agency status:', error);
     return NextResponse.json(
       { error: 'Erreur lors de la vérification' },
       { status: 500 }

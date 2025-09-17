@@ -4,7 +4,7 @@ import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabaseBrowser } from "@/lib/supabase/client";
 import { motion } from "framer-motion";
-import { Building2, ArrowRight, CheckCircle, AlertTriangle } from "lucide-react";
+import { Building2, ArrowRight, CheckCircle, AlertTriangle, Globe } from "lucide-react";
 import { usePageTitle } from "@/lib/hooks/use-page-title";
 
 export default function AgencyExistsPage() {
@@ -53,8 +53,7 @@ export default function AgencyExistsPage() {
           // Pas d'agence existante, rediriger vers l'onboarding
           router.push('/fr/owner');
         }
-      } catch (err) {
-        console.error("Erreur lors de la vérification d'agence existante:", err);
+      } catch {
         setError("Une erreur est survenue lors de la vérification de votre agence.");
       } finally {
         setLoading(false);
@@ -63,6 +62,12 @@ export default function AgencyExistsPage() {
     
     checkExistingAgency();
   }, [router]);
+
+  const handleRedirectToAgency = () => {
+    if (agencyInfo?.url) {
+      window.location.href = agencyInfo.url;
+    }
+  };
 
   // Compte à rebours pour la redirection automatique
   useEffect(() => {
@@ -74,13 +79,7 @@ export default function AgencyExistsPage() {
     } else if (agencyInfo?.url && countdown === 0) {
       handleRedirectToAgency();
     }
-  }, [agencyInfo, countdown]);
-
-  const handleRedirectToAgency = () => {
-    if (agencyInfo?.url) {
-      window.location.href = agencyInfo.url;
-    }
-  };
+  }, [agencyInfo, countdown, handleRedirectToAgency]);
 
   if (loading) {
     return (
@@ -118,44 +117,110 @@ export default function AgencyExistsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-green-50 to-emerald-100 flex items-center justify-center">
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="bg-white p-8 rounded-lg shadow-lg max-w-md w-full mx-4"
-      >
-        <div className="text-center">
-          <CheckCircle className="h-12 w-12 text-green-500 mx-auto mb-4" />
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">
-            Agence existante détectée
-          </h1>
-          <p className="text-gray-600 mb-6">
-            Vous avez déjà une agence : <strong>{agencyInfo?.name}</strong>
-          </p>
-          
-          <div className="bg-gray-50 p-4 rounded-lg mb-6">
-            <div className="flex items-center justify-center mb-2">
-              <Building2 className="h-5 w-5 text-gray-500 mr-2" />
-              <span className="text-sm text-gray-600">Sous-domaine :</span>
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100">
+      <div className="flex min-h-screen">
+        {/* Left side - Branding */}
+        <div className="hidden lg:flex lg:w-[35%] bg-gradient-to-br from-blue-600 via-indigo-700 to-purple-800 relative overflow-hidden">
+          <div className="absolute inset-0 bg-black/20"></div>
+          <div className="relative z-10 flex flex-col justify-center px-12 text-white">
+            <div className="mb-8">
+              <div className="flex items-center space-x-3 mb-6">
+                <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center">
+                  <Building2 className="w-7 h-7" />
+                </div>
+                <h1 className="text-3xl font-bold">QG Chatting</h1>
+              </div>
+              <h2 className="text-2xl font-semibold mb-4">
+                Votre agence vous attend
+              </h2>
+              <p className="text-blue-100 text-lg leading-relaxed">
+                Nous avons détecté que vous avez déjà une agence active. 
+                Accédez à votre espace de travail pour continuer à collaborer.
+              </p>
             </div>
-            <code className="text-sm font-mono text-gray-800">
-              {agencyInfo?.subdomain}
-            </code>
+            
+            <div className="space-y-6">
+              <div className="flex items-center space-x-4">
+                <div className="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center">
+                  <CheckCircle className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="font-semibold">Agence Active</h3>
+                  <p className="text-blue-100 text-sm">Votre espace de travail est prêt</p>
+                </div>
+              </div>
+              
+              <div className="flex items-center space-x-4">
+                <div className="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center">
+                  <Globe className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="font-semibold">Accès Sécurisé</h3>
+                  <p className="text-blue-100 text-sm">Connexion automatique en cours</p>
+                </div>
+              </div>
+            </div>
           </div>
-
-          <button
-            onClick={handleRedirectToAgency}
-            className="w-full bg-indigo-600 text-white px-6 py-3 rounded-lg hover:bg-indigo-700 transition-colors flex items-center justify-center"
-          >
-            Accéder à mon agence
-            <ArrowRight className="h-4 w-4 ml-2" />
-          </button>
           
-          <p className="text-xs text-gray-500 mt-4">
-            Redirection automatique dans {countdown} seconde{countdown > 1 ? 's' : ''}...
-          </p>
+          {/* Decorative elements */}
+          <div className="absolute top-20 right-20 w-32 h-32 bg-white/10 rounded-full blur-xl"></div>
+          <div className="absolute bottom-20 left-20 w-24 h-24 bg-white/10 rounded-full blur-xl"></div>
         </div>
-      </motion.div>
+
+        {/* Right side - Content */}
+        <div className="flex-1 flex items-center justify-center px-4 sm:px-6 lg:px-8">
+          <div className="w-full max-w-md">
+            <div className="text-center mb-8 lg:hidden">
+              <div className="flex items-center justify-center space-x-3 mb-4">
+                <div className="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center">
+                  <Building2 className="w-6 h-6 text-white" />
+                </div>
+                <h1 className="text-2xl font-bold text-gray-900">QG Chatting</h1>
+              </div>
+            </div>
+            
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-white/20 p-8"
+            >
+              <div className="text-center">
+                <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
+                  <CheckCircle className="h-8 w-8 text-green-600" />
+                </div>
+                <h1 className="text-2xl font-bold text-gray-900 mb-2">
+                  Agence existante détectée
+                </h1>
+                <p className="text-gray-600 mb-6">
+                  Vous avez déjà une agence : <strong className="text-blue-600">{agencyInfo?.name}</strong>
+                </p>
+                
+                <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 mb-6">
+                  <div className="flex items-center justify-center mb-2">
+                    <Building2 className="h-5 w-5 text-blue-600 mr-2" />
+                    <span className="text-sm font-medium text-blue-800">Sous-domaine :</span>
+                  </div>
+                  <code className="text-sm font-mono text-blue-900 bg-blue-100 px-3 py-1 rounded">
+                    {agencyInfo?.subdomain}.qgchatting.com
+                  </code>
+                </div>
+
+                <button
+                  onClick={handleRedirectToAgency}
+                  className="w-full bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg transition-colors flex items-center justify-center font-semibold"
+                >
+                  Accéder à mon agence
+                  <ArrowRight className="h-4 w-4 ml-2" />
+                </button>
+                
+                <p className="text-xs text-gray-500 mt-4">
+                  Redirection automatique dans {countdown} seconde{countdown > 1 ? 's' : ''}...
+                </p>
+              </div>
+            </motion.div>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

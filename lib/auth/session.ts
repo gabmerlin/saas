@@ -83,7 +83,6 @@ export async function getServerSession(): Promise<SessionData | null> {
       expires_at: Date.now() + (AUTH_CONFIG.SESSION_DURATION * 1000),
     };
   } catch (error) {
-    console.error('Error getting server session:', error);
     return null;
   }
 }

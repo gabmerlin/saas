@@ -18,15 +18,32 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Pour l'instant, on ne peut pas récupérer l'userId facilement ici
-    // Il faudrait modifier la logique d'authentification
+    // Récupérer l'utilisateur authentifié
     const supabase = createClient();
     const { data: { user } } = await supabase.auth.getUser();
     
     if (!user) {
+      // Rediriger vers la page d'inscription avec le token d'invitation
       return NextResponse.json(
-        { error: 'Utilisateur non authentifié' },
+        { 
+          error: 'Utilisateur non authentifié',
+          redirectTo: `/sign-up?invitation=${token}`
+        },
         { status: 401 }
+      );
+    }
+    
+    // Vérifier que l'email de l'utilisateur correspond à l'invitation
+    const { data: invitationCheck } = await supabase
+      .from('invitation')
+      .select('email, tenant_id')
+      .eq('token', token)
+      .single();
+    
+    if (!invitationCheck || invitationCheck.email !== user.email) {
+      return NextResponse.json(
+        { error: 'Cette invitation ne correspond pas à votre compte' },
+        { status: 400 }
       );
     }
     
@@ -38,7 +55,6 @@ export async function POST(request: NextRequest) {
       message: 'Invitation acceptée avec succès' 
     });
   } catch (error) {
-    console.error('Error accepting invitation:', error);
     return NextResponse.json(
       { error: error instanceof Error ? error.message : 'Erreur lors de l\'acceptation de l\'invitation' },
       { status: 500 }

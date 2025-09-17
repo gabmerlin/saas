@@ -785,17 +785,21 @@ export default function OwnerOnboardingPage() {
     // Configuration avancée de l'agence
     type AgencyResp = { ok: boolean; error?: string };
     
+    // Transformer les invitations du format local vers le format API
+    const transformedInvites = adv.invitations
+      ?.filter(inv => inv.email && inv.email.trim() !== '') // Filtrer les invitations vides
+      .map(inv => ({
+        email: inv.email,
+        roleKey: inv.role as "admin" | "manager" | "marketing" | "employee"
+      })) || [];
+    
     const agencyPayload = { 
       ...a.data, 
       deadlineDay,
-      tenantId: tenantId // Passer l'ID du tenant directement
+      tenantId: tenantId, // Passer l'ID du tenant directement
+      invites: transformedInvites // Ajouter les invitations transformées
     };
     
-    console.log('Sending to agency API:', { 
-      tenantId: tenantId,
-      hasTenantId: !!tenantId,
-      payload: agencyPayload 
-    });
     
     const r2 = await fetch("/api/onboarding/agency", {
       method: "POST",
@@ -846,7 +850,7 @@ export default function OwnerOnboardingPage() {
           });
         }
       } catch (err) {
-        console.error("Erreur lors du chargement des plans:", err);
+        // Erreur lors du chargement des plans
       }
     };
     
@@ -3234,14 +3238,12 @@ export default function OwnerOnboardingPage() {
         tenantId={currentTenantId}
         selectedPlan={selectedPlan}
         onPaymentSuccess={(transactionId) => {
-          console.log("Paiement réussi:", transactionId);
           setShowPaymentPopup(false);
           // Rediriger vers le dashboard après paiement réussi
           const target = `https://${basic.subdomain}.${ROOT_DOMAIN}/dashboard`;
           window.location.href = target;
         }}
         onPaymentError={(error) => {
-          console.error("Erreur de paiement:", error);
           setErrors((arr) => [...arr, `Erreur de paiement : ${error}`]);
         }}
       />

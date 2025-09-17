@@ -103,8 +103,6 @@ export async function POST(request: NextRequest) {
 
     const btcpayInvoice = await btcpayResponse.json();
 
-    // Log simple pour debug si nécessaire
-    console.log('Facture BTCPay créée:', btcpayInvoice.id, 'pour', amount, 'USD');
 
     // Vérifier que le tenant existe et que l'utilisateur y a accès
     const { data: userTenant, error: userTenantError } = await supabase

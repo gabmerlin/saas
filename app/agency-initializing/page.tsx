@@ -76,8 +76,7 @@ export default function AgencyInitializingPage() {
           setError("Aucune agence trouvée");
           setLoading(false);
         }
-      } catch (error) {
-        console.error("Erreur lors de la vérification d'agence:", error);
+      } catch {
         setError("Erreur lors de la vérification de l'agence");
         setLoading(false);
       }
@@ -93,7 +92,6 @@ export default function AgencyInitializingPage() {
             const { data: { session }, error: sessionError } = await supabaseBrowser.auth.getSession();
             
             if (sessionError || !session) {
-              console.error('Erreur de session:', sessionError);
               return;
             }
 
@@ -124,8 +122,6 @@ export default function AgencyInitializingPage() {
           const totalChecks = 4; // DNS, SSL, Server, Database
           const newProgress = Math.round((completedChecks / totalChecks) * 100);
           
-          console.log('Status:', status);
-          console.log('Completed checks:', completedChecks, '/', totalChecks, '=', newProgress + '%');
           
           setProgress(newProgress);
           
@@ -138,8 +134,8 @@ export default function AgencyInitializingPage() {
             }, 2000);
           }
         }
-      } catch (error) {
-        console.error('Erreur lors de la vérification du statut:', error);
+      } catch {
+        // Erreur lors de la vérification du statut
       }
     }, 3000); // Vérifier toutes les 3 secondes
 
@@ -207,13 +203,83 @@ export default function AgencyInitializingPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-12 px-4">
-      <div className="max-w-2xl mx-auto">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="bg-white rounded-lg shadow-lg p-8"
-        >
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100">
+      <div className="flex min-h-screen">
+        {/* Left side - Branding */}
+        <div className="hidden lg:flex lg:w-[35%] bg-gradient-to-br from-blue-600 via-indigo-700 to-purple-800 relative overflow-hidden">
+          <div className="absolute inset-0 bg-black/20"></div>
+          <div className="relative z-10 flex flex-col justify-center px-12 text-white">
+            <div className="mb-8">
+              <div className="flex items-center space-x-3 mb-6">
+                <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center">
+                  <Building2 className="w-7 h-7" />
+                </div>
+                <h1 className="text-3xl font-bold">QG Chatting</h1>
+              </div>
+              <h2 className="text-2xl font-semibold mb-4">
+                Configuration en cours
+              </h2>
+              <p className="text-blue-100 text-lg leading-relaxed">
+                Votre agence <strong>{agencyInfo?.name}</strong> est en cours de configuration. 
+                Nous préparons votre infrastructure pour une expérience optimale.
+              </p>
+            </div>
+            
+            <div className="space-y-6">
+              <div className="flex items-center space-x-4">
+                <div className="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center">
+                  <Server className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="font-semibold">Infrastructure</h3>
+                  <p className="text-blue-100 text-sm">Serveurs et base de données</p>
+                </div>
+              </div>
+              
+              <div className="flex items-center space-x-4">
+                <div className="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center">
+                  <Shield className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="font-semibold">Sécurité</h3>
+                  <p className="text-blue-100 text-sm">Certificats SSL et chiffrement</p>
+                </div>
+              </div>
+              
+              <div className="flex items-center space-x-4">
+                <div className="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center">
+                  <Globe className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="font-semibold">DNS</h3>
+                  <p className="text-blue-100 text-sm">Configuration des domaines</p>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          {/* Decorative elements */}
+          <div className="absolute top-20 right-20 w-32 h-32 bg-white/10 rounded-full blur-xl"></div>
+          <div className="absolute bottom-20 left-20 w-24 h-24 bg-white/10 rounded-full blur-xl"></div>
+        </div>
+
+        {/* Right side - Content */}
+        <div className="flex-1 flex items-center justify-center px-4 sm:px-6 lg:px-8">
+          <div className="w-full max-w-2xl">
+            <div className="text-center mb-8 lg:hidden">
+              <div className="flex items-center justify-center space-x-3 mb-4">
+                <div className="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center">
+                  <Building2 className="w-6 h-6 text-white" />
+                </div>
+                <h1 className="text-2xl font-bold text-gray-900">QG Chatting</h1>
+              </div>
+            </div>
+            
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-white/20 p-8"
+            >
           {/* Header */}
           <div className="text-center mb-8">
             <Building2 className="h-16 w-16 text-blue-500 mx-auto mb-4" />
@@ -334,7 +400,9 @@ export default function AgencyInitializingPage() {
               Accéder manuellement à l&apos;agence
             </Button>
           </div>
-        </motion.div>
+            </motion.div>
+          </div>
+        </div>
       </div>
     </div>
   );

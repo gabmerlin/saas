@@ -70,17 +70,11 @@ export async function POST(req: Request) {
     // Utilisation du service client pour les opérations DB (bypass RLS)
     const dbClient = getServiceClient();
     
-    console.log('Agency API - Input received:', { 
-      tenantId: input.tenantId, 
-      subdomain: input.subdomain,
-      hasTenantId: !!input.tenantId 
-    });
     
     let tenantId: string;
     
     // Vérifier si l'ID du tenant est fourni directement
     if (input.tenantId) {
-      console.log('Using provided tenantId:', input.tenantId);
       tenantId = input.tenantId;
     } else {
       // Fallback: chercher par sous-domaine
@@ -93,7 +87,6 @@ export async function POST(req: Request) {
         .single();
 
       if (tErr || !tenantRow) {
-        console.error('Tenant not found for subdomain:', input.subdomain, 'Error:', tErr);
         return NextResponse.json({ ok: false, error: "TENANT_NOT_FOUND" }, { status: 404 });
       }
       tenantId = (tenantRow as { id: string }).id;
@@ -246,6 +239,7 @@ export async function POST(req: Request) {
     }
 
     // 10) invitations (expire à 00:00 UTC)
+    
     if (input.invites?.length) {
       const midnightUTC = new Date();
       midnightUTC.setUTCHours(24, 0, 0, 0);
@@ -259,7 +253,10 @@ export async function POST(req: Request) {
         created_by: user.id,
       }));
       const { data: insertedInvitations, error } = await dbClient.from("invitation").insert(rows).select();
-      if (error) throw error;
+      if (error) {
+        throw error;
+      }
+      
 
       // Envoyer les emails d'invitation
       if (insertedInvitations) {
@@ -280,7 +277,6 @@ export async function POST(req: Request) {
                 },
               });
             } catch (emailError) {
-              console.error('Error sending invitation email:', emailError);
               // Ne pas faire échouer l'onboarding si l'email échoue
             }
           }
@@ -298,7 +294,6 @@ export async function POST(req: Request) {
 
     return NextResponse.json({ ok: true });
   } catch (e: unknown) {
-    console.error(e);
     return NextResponse.json({ ok: false, error: e instanceof Error ? e.message : "INTERNAL_ERROR" }, { status: 500 });
   }
 }
@@ -324,6 +319,9 @@ async function sendInvitationEmail(data: {
     auth: {
       user: process.env.SMTP_USER,
       pass: process.env.SMTP_PASS,
+    },
+    tls: {
+      rejectUnauthorized: false, // Ignorer les erreurs de certificat auto-signé
     },
   });
 

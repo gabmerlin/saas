@@ -45,7 +45,6 @@ export async function checkExistingAgency(): Promise<AgencyCheckResult> {
     
     return { hasExistingAgency: false };
   } catch (error) {
-    console.error("Erreur lors de la vérification d'agence existante:", error);
     return { hasExistingAgency: false };
   }
 }
@@ -57,10 +56,8 @@ export async function redirectAfterLogin(defaultRedirect: string = '/fr'): Promi
   const agencyCheck = await checkExistingAgency();
   
   if (agencyCheck.hasExistingAgency && agencyCheck.agency?.url) {
-    console.log("Agence existante trouvée, redirection directe vers le subdomain");
     return agencyCheck.agency.url;
   }
   
-  console.log("Aucune agence existante, redirection vers:", defaultRedirect);
   return defaultRedirect;
 }

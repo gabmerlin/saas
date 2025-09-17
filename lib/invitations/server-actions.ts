@@ -52,7 +52,12 @@ export async function getInvitationsServer(tenantId: string) {
 }
 
 export async function acceptInvitationServer(token: string, userId: string) {
-  const supabase = createClient();
+  // Utiliser le service client pour bypasser les restrictions RLS
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY!;
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const { createClient: createServiceClient } = require('@supabase/supabase-js');
+  const supabase = createServiceClient(url, key, { auth: { persistSession: false } });
   
   const { data, error } = await supabase
     .from('invitation')
@@ -99,7 +104,7 @@ export async function acceptInvitationServer(token: string, userId: string) {
       });
 
     if (roleError) {
-      console.warn('Erreur lors de l\'ajout du rôle:', roleError);
+      // Ignorer l'erreur de rôle
     }
   }
 
@@ -110,7 +115,7 @@ export async function acceptInvitationServer(token: string, userId: string) {
     .eq('id', data.id);
 
   if (updateError) {
-    console.warn('Erreur lors de la mise à jour de l\'invitation:', updateError);
+    // Ignorer l'erreur de mise à jour de l'invitation
   }
 
   return data;

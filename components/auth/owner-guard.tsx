@@ -21,7 +21,6 @@ export default function OwnerGuard({ children }: OwnerGuardProps) {
         const { data: { user }, error: userError } = await supabaseBrowser.auth.getUser();
         
         if (userError || !user) {
-          console.log("Pas d'utilisateur authentifié, redirection vers la connexion");
           router.push('/sign-in');
           return;
         }
@@ -31,7 +30,6 @@ export default function OwnerGuard({ children }: OwnerGuardProps) {
         const { data: { session }, error: sessionError } = await supabaseBrowser.auth.getSession();
         
         if (sessionError || !session) {
-          console.log("Pas de session valide, redirection vers la connexion");
           router.push('/sign-in');
           return;
         }
@@ -58,7 +56,6 @@ export default function OwnerGuard({ children }: OwnerGuardProps) {
         setIsChecking(false);
         
       } catch (error) {
-        console.error("Erreur lors de la vérification d'agence existante:", error);
         // En cas d'erreur, autoriser l'accès pour ne pas bloquer l'utilisateur
         setIsAuthorized(true);
         setIsChecking(false);

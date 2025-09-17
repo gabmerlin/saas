@@ -29,7 +29,6 @@ function AuthCallbackContent() {
           const { data, error } = await supabaseBrowser.auth.exchangeCodeForSession(code);
           
           if (error) {
-            console.error('Error exchanging code for session:', error);
             setStatus('Erreur lors de l\'échange du code');
             setTimeout(() => router.push('/sign-in?error=auth_failed'), 2000);
             return;
@@ -70,7 +69,6 @@ function AuthCallbackContent() {
               });
 
               if (error) {
-                console.error('Error setting session:', error);
                 setStatus('Erreur lors de la création de la session');
                 setTimeout(() => router.push('/sign-in?error=auth_failed'), 2000);
                 return;
@@ -97,7 +95,6 @@ function AuthCallbackContent() {
                     attempts++;
                     setTimeout(checkSession, 500);
                   } else {
-                    console.error('Session non synchronisée après plusieurs tentatives');
                     setStatus('Erreur: Session non synchronisée');
                     setTimeout(() => router.push('/sign-in?error=session_sync_failed'), 2000);
                   }
@@ -106,13 +103,11 @@ function AuthCallbackContent() {
                 setTimeout(checkSession, 1000);
                 return;
               } else {
-                console.error('Aucune session créée');
                 setStatus('Erreur: Aucune session créée');
                 setTimeout(() => router.push('/sign-in?error=no_session'), 2000);
                 return;
               }
             } catch (error) {
-              console.error('Erreur lors de la création de la session:', error);
               setStatus('Erreur lors de la création de la session');
               setTimeout(() => router.push('/sign-in?error=auth_failed'), 2000);
               return;
@@ -140,7 +135,6 @@ function AuthCallbackContent() {
         setStatus('Aucune donnée d\'authentification');
         setTimeout(() => router.push('/sign-in?error=no_auth_data'), 2000);
       } catch (error) {
-        console.error('Auth callback error:', error);
         setStatus('Erreur lors de l\'authentification');
         setTimeout(() => router.push('/sign-in?error=auth_failed'), 2000);
       }

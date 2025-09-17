@@ -26,7 +26,6 @@ export async function GET(request: NextRequest) {
     const invitations = await getInvitationsServer(tenantId);
     return NextResponse.json({ invitations });
   } catch (error) {
-    console.error('Error fetching invitations:', error);
     return NextResponse.json(
       { error: 'Erreur lors de la récupération des invitations' },
       { status: 500 }
@@ -83,20 +82,17 @@ export async function POST(request: NextRequest) {
         },
       });
     } catch (emailError) {
-      console.error('Error sending invitation email:', emailError);
       // Ne pas faire échouer la création de l'invitation si l'email échoue
     }
 
     return NextResponse.json({ invitation });
   } catch (error) {
-    console.error('Error creating invitation:', error);
     return NextResponse.json(
       { error: 'Erreur lors de la création de l\'invitation' },
       { status: 500 }
     );
   }
 }
-
 // Fonction pour envoyer l'email d'invitation
 async function sendInvitationEmail(data: {
   email: string;
@@ -118,6 +114,9 @@ async function sendInvitationEmail(data: {
     auth: {
       user: process.env.SMTP_USER,
       pass: process.env.SMTP_PASS,
+    },
+    tls: {
+      rejectUnauthorized: false, // Ignorer les erreurs de certificat auto-signé
     },
   });
 

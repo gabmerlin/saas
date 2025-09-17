@@ -64,7 +64,6 @@ export async function GET(req: Request) {
       .single();
 
     if (error && error.code !== 'PGRST116') { // PGRST116 = no rows found
-      console.error('Error checking existing agency:', error);
       return NextResponse.json({ 
         ok: false, 
         error: "DATABASE_ERROR", 
@@ -101,7 +100,6 @@ export async function GET(req: Request) {
     });
 
   } catch (error) {
-    console.error('Error in check-existing-agency:', error);
     return NextResponse.json({
       ok: false,
       error: "INTERNAL_ERROR",
