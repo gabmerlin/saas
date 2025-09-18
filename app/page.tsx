@@ -7,8 +7,8 @@ export default function RootRedirect() {
   const router = useRouter();
 
   useEffect(() => {
-    // Rediriger automatiquement vers le dashboard (qui gère tout)
-    router.replace('/dashboard');
+    // Rediriger automatiquement vers la page d'accueil
+    router.replace('/home');
   }, [router]);
 
   return (
