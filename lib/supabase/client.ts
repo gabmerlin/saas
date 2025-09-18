@@ -14,8 +14,8 @@ export const supabaseBrowser = () => {
           detectSessionInUrl: true,
           persistSession: true,
           autoRefreshToken: true,
-          // Configuration pour les subdomains
-          flowType: 'pkce'
+          // Utiliser l'authentification standard au lieu de PKCE
+          flowType: 'implicit'
         }
       }
     );

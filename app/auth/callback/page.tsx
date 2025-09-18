@@ -24,29 +24,11 @@ function AuthCallbackContent() {
       try {
         setStatus('Traitement de l\'authentification...');
 
-        // Cas 1: Code d'autorisation (PKCE flow)
+        // Cas 1: Code d'autorisation (PKCE flow) - Désactivé pour l'instant
         if (code) {
-          const { data, error } = await supabaseBrowser().auth.exchangeCodeForSession(code);
-          
-          if (error) {
-            setStatus('Erreur lors de l\'échange du code');
-            setTimeout(() => router.push('/sign-in?error=auth_failed'), 2000);
-            return;
-          }
-
-          if (data.session) {
-            setStatus('Connexion réussie !');
-            // Vérifier l'agence existante avant la redirection
-            const redirectUrl = await redirectAfterLogin(next);
-            setTimeout(() => {
-              if (redirectUrl.startsWith('http')) {
-                window.location.href = redirectUrl;
-              } else {
-                router.push(redirectUrl);
-              }
-            }, 1000);
-            return;
-          }
+          setStatus('Code d\'autorisation détecté mais PKCE désactivé');
+          setTimeout(() => router.push('/sign-in?error=pkce_disabled'), 2000);
+          return;
         }
 
         // Cas 2: Fragments OAuth (Implicit flow)
