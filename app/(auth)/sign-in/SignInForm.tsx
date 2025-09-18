@@ -78,8 +78,9 @@ export default function SignInForm({ next, invitation }: Props) {
           // Si on est sur un sous-domaine, rediriger vers le dashboard
           window.location.href = '/dashboard';
         } else {
-          // Sinon, rediriger vers la page d'accueil
-          window.location.href = '/fr';
+          // Si on est sur le domaine principal, utiliser le paramètre next ou rediriger vers /fr
+          const targetUrl = next && next !== '/dashboard' ? next : '/fr';
+          window.location.href = targetUrl;
         }
       }, 1500);
     } catch (error) {

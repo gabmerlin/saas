@@ -6,24 +6,30 @@ import { supabaseBrowser } from '@/lib/supabase/client';
 /**
  * Force la synchronisation de session en utilisant les paramètres URL
  */
-export function forceSessionSyncFromUrl() {
-  if (typeof window === 'undefined') return;
+export async function forceSessionSyncFromUrl(): Promise<boolean> {
+  if (typeof window === 'undefined') return false;
 
   const urlParams = new URLSearchParams(window.location.search);
   const accessToken = urlParams.get('access_token');
   const refreshToken = urlParams.get('refresh_token');
+  const expiresAt = urlParams.get('expires_at');
 
   if (accessToken && refreshToken) {
-    const supabase = supabaseBrowser();
-    
-    // Définir la session avec les tokens de l'URL
-    supabase.auth.setSession({
-      access_token: accessToken,
-      refresh_token: refreshToken
-    }).then(({ data, error }) => {
+    try {
+      const supabase = supabaseBrowser();
+      
+      // Définir la session avec les tokens de l'URL
+      const { data, error } = await supabase.auth.setSession({
+        access_token: accessToken,
+        refresh_token: refreshToken
+      });
+      
       if (error) {
         console.error('Erreur lors de la définition de la session:', error);
-      } else if (data.session) {
+        return false;
+      }
+      
+      if (data.session) {
         // Stocker la session
         const sessionData = {
           access_token: data.session.access_token,
@@ -39,10 +45,15 @@ export function forceSessionSyncFromUrl() {
         const newUrl = window.location.pathname;
         window.history.replaceState({}, '', newUrl);
         
-        console.log('Session forcée depuis l\'URL');
+        console.log('Session forcée depuis l\'URL avec succès');
+        return true;
       }
-    });
+    } catch (error) {
+      console.error('Erreur lors de la synchronisation forcée:', error);
+    }
   }
+  
+  return false;
 }
 
 /**

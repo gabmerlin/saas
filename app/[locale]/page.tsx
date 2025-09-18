@@ -66,7 +66,7 @@ export default function AgencyDashboard() {
         
         if (sessionError || !session) {
           // Rediriger vers la page de connexion au lieu d'afficher une erreur
-          window.location.href = '/sign-in';
+          window.location.href = '/sign-in?next=/dashboard';
           return;
         }
 

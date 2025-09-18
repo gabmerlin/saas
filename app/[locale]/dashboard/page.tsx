@@ -20,9 +20,42 @@ export default function DashboardPage() {
     const checkAuth = async () => {
       try {
         // D'abord essayer de forcer la synchronisation depuis l'URL
-        forceSessionSyncFromUrl();
+        const urlSyncSuccess = await forceSessionSyncFromUrl();
         
-        // Puis synchroniser la session entre domaines
+        if (urlSyncSuccess) {
+          // Si la synchronisation URL a réussi, récupérer la session
+          const supabase = supabaseBrowser();
+          const { data: { session } } = await supabase.auth.getSession();
+          
+          if (session?.user) {
+            setUser(session.user);
+            setLoading(false);
+            
+            // Récupérer les informations de l'agence
+            const hostname = window.location.hostname;
+            const subdomain = hostname.split('.')[0];
+            
+            if (subdomain && subdomain !== 'www' && subdomain !== 'qgchatting') {
+              try {
+                const agencyResponse = await fetch(`/api/agency/status?subdomain=${subdomain}`, {
+                  headers: {
+                    'Authorization': `Bearer ${session.access_token}`,
+                  }
+                });
+                
+                const agencyData = await agencyResponse.json();
+                if (agencyData.ok) {
+                  setAgencyInfo(agencyData.status.agency);
+                }
+              } catch (agencyError) {
+                console.error('Erreur lors de la vérification de l\'agence:', agencyError);
+              }
+            }
+            return;
+          }
+        }
+        
+        // Si la synchronisation URL a échoué, essayer la synchronisation normale
         await syncSessionAcrossDomains();
         
         const supabase = supabaseBrowser();
@@ -47,7 +80,7 @@ export default function DashboardPage() {
                 setTimeout(retryAuth, 2000);
               } else {
                 // Après plusieurs tentatives, rediriger vers le login
-                window.location.href = '/sign-in';
+                window.location.href = '/sign-in?next=/dashboard';
               }
             };
             
@@ -55,7 +88,7 @@ export default function DashboardPage() {
             return;
           } else {
             // Rediriger vers la page de connexion
-            window.location.href = '/sign-in';
+            window.location.href = '/sign-in?next=/dashboard';
             return;
           }
         }

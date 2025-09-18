@@ -10,7 +10,15 @@ import { MessageSquare, Shield, Users, Zap } from "lucide-react";
 function SignInContent() {
   // En Client Component, on lit les query params via le hook
   const searchParams = useSearchParams();
-  const next = searchParams?.get("next") ?? "/dashboard";
+  
+  // Détecter le contexte (domaine principal vs sous-domaine)
+  const isSubdomain = typeof window !== 'undefined' && 
+    window.location.hostname.split('.').length > 2 && 
+    !window.location.hostname.includes('localhost');
+  
+  // Ajuster la redirection par défaut selon le contexte
+  const defaultNext = isSubdomain ? "/dashboard" : "/fr";
+  const next = searchParams?.get("next") ?? defaultNext;
   const invitation = searchParams?.get("invitation");
   
   // Définir le titre de la page

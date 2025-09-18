@@ -137,14 +137,27 @@ export default function FrenchHomePage() {
           
           localStorage.setItem('supabase-session', JSON.stringify(sessionData));
           sessionStorage.setItem('supabase-session', JSON.stringify(sessionData));
+          
+          // Rediriger vers le dashboard avec les tokens dans l'URL
+          const subdomain = userAgency.subdomain;
+          const baseUrl = process.env.NODE_ENV === 'production' 
+            ? `https://${subdomain}.qgchatting.com`
+            : `http://${subdomain}.localhost:3000`;
+          
+          const url = new URL(`${baseUrl}/dashboard`);
+          url.searchParams.set('access_token', session.access_token);
+          url.searchParams.set('refresh_token', session.refresh_token);
+          url.searchParams.set('expires_at', (session.expires_at || 0).toString());
+          
+          window.location.href = url.toString();
+        } else {
+          // Pas de session, rediriger vers le login du sous-domaine
+          const subdomain = userAgency.subdomain;
+          const baseUrl = process.env.NODE_ENV === 'production' 
+            ? `https://${subdomain}.qgchatting.com`
+            : `http://${subdomain}.localhost:3000`;
+          window.location.href = `${baseUrl}/sign-in?next=/dashboard`;
         }
-        
-        // Rediriger vers le dashboard de l'agence existante
-        const subdomain = userAgency.subdomain;
-        const baseUrl = process.env.NODE_ENV === 'production' 
-          ? `https://${subdomain}.qgchatting.com`
-          : `http://${subdomain}.localhost:3000`;
-        window.location.href = `${baseUrl}/dashboard`;
       } else {
         // Rediriger vers l'onboarding
         router.push('/fr/owner');
