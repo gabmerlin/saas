@@ -26,7 +26,7 @@ function AuthCallbackContent() {
 
         // Cas 1: Code d'autorisation (PKCE flow)
         if (code) {
-          const { data, error } = await supabaseBrowser.auth.exchangeCodeForSession(code);
+          const { data, error } = await supabaseBrowser().auth.exchangeCodeForSession(code);
           
           if (error) {
             setStatus('Erreur lors de l\'échange du code');
@@ -63,7 +63,7 @@ function AuthCallbackContent() {
             
             try {
               // Définir la session Supabase
-              const { data, error } = await supabaseBrowser.auth.setSession({
+              const { data, error } = await supabaseBrowser().auth.setSession({
                 access_token: accessToken,
                 refresh_token: refreshToken,
               });
@@ -82,7 +82,7 @@ function AuthCallbackContent() {
                 const maxAttempts = 10;
                 
                 const checkSession = async () => {
-                  const { data: { session } } = await supabaseBrowser.auth.getSession();
+                  const { data: { session } } = await supabaseBrowser().auth.getSession();
                   if (session) {
                     // Vérifier l'agence existante avant la redirection
                     const redirectUrl = await redirectAfterLogin(next);
@@ -116,7 +116,7 @@ function AuthCallbackContent() {
         }
 
         // Vérifier si on a déjà une session active
-        const { data: { session } } = await supabaseBrowser.auth.getSession();
+        const { data: { session } } = await supabaseBrowser().auth.getSession();
         if (session) {
           setStatus('Connexion réussie !');
           // Vérifier l'agence existante avant la redirection

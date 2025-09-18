@@ -1,21 +1,28 @@
 'use client';
 import { createClient as createSupabaseClient } from '@supabase/supabase-js';
 
-export const supabaseBrowser = createSupabaseClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-  {
-    auth: {
-      // Permettre le partage des cookies entre domaines
-      detectSessionInUrl: true,
-      persistSession: true,
-      autoRefreshToken: true,
-      // Configuration pour les subdomains
-      flowType: 'pkce'
-    }
+let supabaseInstance: ReturnType<typeof createSupabaseClient> | null = null;
+
+export const supabaseBrowser = () => {
+  if (!supabaseInstance) {
+    supabaseInstance = createSupabaseClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        auth: {
+          // Permettre le partage des cookies entre domaines
+          detectSessionInUrl: true,
+          persistSession: true,
+          autoRefreshToken: true,
+          // Configuration pour les subdomains
+          flowType: 'pkce'
+        }
+      }
+    );
   }
-);
+  return supabaseInstance;
+};
 
 export function createClient() {
-  return supabaseBrowser;
+  return supabaseBrowser();
 }

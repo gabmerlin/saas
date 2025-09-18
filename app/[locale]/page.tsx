@@ -61,7 +61,7 @@ export default function SubdomainHomePage() {
         }
 
         // Vérifier l'authentification (seulement sur les subdomains)
-        const { data: { session }, error: sessionError } = await supabaseBrowser.auth.getSession();
+        const { data: { session }, error: sessionError } = await supabaseBrowser().auth.getSession();
         
         if (sessionError || !session) {
           setError('Non authentifié');

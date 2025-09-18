@@ -28,7 +28,7 @@ export default function AuthGuard({
     const checkAuth = async () => {
       try {
         // Utiliser getSession() qui est plus fiable pour la détection initiale
-        const { data: { session }, error: sessionError } = await supabaseBrowser.auth.getSession();
+        const { data: { session }, error: sessionError } = await supabaseBrowser().auth.getSession();
 
         if (sessionError) {
           setIsAuthenticated(false);
@@ -47,7 +47,7 @@ export default function AuthGuard({
     checkAuth();
 
     // Écouter les changements d'authentification
-    const { data: { subscription } } = supabaseBrowser.auth.onAuthStateChange(
+    const { data: { subscription } } = supabaseBrowser().auth.onAuthStateChange(
       (event, session) => {
         if (event === 'SIGNED_IN' && session?.user) {
           setIsAuthenticated(true);

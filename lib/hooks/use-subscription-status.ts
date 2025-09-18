@@ -30,7 +30,7 @@ export function useSubscriptionStatus() {
         setError(null);
 
         // Récupérer la session utilisateur
-        const { data: { session }, error: sessionError } = await supabaseBrowser.auth.getSession();
+        const { data: { session }, error: sessionError } = await supabaseBrowser().auth.getSession();
         
         if (sessionError || !session) {
           setError('Non authentifié');
@@ -47,7 +47,7 @@ export function useSubscriptionStatus() {
         }
 
         // Récupérer le rôle de l'utilisateur
-        const { data: userRoleData, error: roleError } = await supabaseBrowser
+        const { data: userRoleData, error: roleError } = await supabaseBrowser()
           .from('user_roles')
           .select(`
             roles(key),
@@ -63,7 +63,7 @@ export function useSubscriptionStatus() {
         }
 
         // Type assertion pour le rôle
-        const roles = userRoleData.roles as { key: string } | { key: string }[];
+        const roles = (userRoleData as any).roles as { key: string } | { key: string }[];
         const role = Array.isArray(roles) 
           ? roles[0]?.key 
           : roles?.key;

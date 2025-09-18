@@ -2,6 +2,20 @@
 -- GESTION DES ABONNEMENTS ET EXPIRATION
 -- ================================
 
+-- Fonction pour mettre à jour accepted_at d'une invitation
+CREATE OR REPLACE FUNCTION public.update_invitation_accepted_at(
+  invitation_id uuid,
+  accepted_at timestamp with time zone
+)
+RETURNS void
+LANGUAGE sql
+SECURITY DEFINER
+AS $$
+  UPDATE public.invitation 
+  SET accepted_at = update_invitation_accepted_at.accepted_at
+  WHERE id = invitation_id;
+$$;
+
 -- 1. Fonction pour vérifier si un abonnement est actif
 CREATE OR REPLACE FUNCTION public.is_subscription_active(p_tenant_id uuid)
 RETURNS boolean

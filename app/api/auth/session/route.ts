@@ -6,7 +6,7 @@ export const runtime = 'nodejs';
 export async function GET() {
   try {
     // Cette route sera appelée côté client pour récupérer la session
-    const { data: { session }, error } = await supabaseBrowser.auth.getSession();
+    const { data: { session }, error } = await supabaseBrowser().auth.getSession();
     
     if (error) {
       return NextResponse.json({ 

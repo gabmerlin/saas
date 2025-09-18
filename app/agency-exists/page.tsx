@@ -30,7 +30,7 @@ export default function AgencyExistsPage() {
   useEffect(() => {
     const checkExistingAgency = async () => {
       try {
-        const { data: { session }, error: sessionError } = await supabaseBrowser.auth.getSession();
+        const { data: { session }, error: sessionError } = await supabaseBrowser().auth.getSession();
         
         if (sessionError || !session) {
           router.push('/sign-in');

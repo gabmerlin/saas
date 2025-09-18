@@ -18,7 +18,7 @@ export default function OwnerGuard({ children }: OwnerGuardProps) {
     const checkAgencyStatus = async () => {
       try {
         // Utiliser getUser() au lieu de getSession() pour une meilleure fiabilité
-        const { data: { user }, error: userError } = await supabaseBrowser.auth.getUser();
+        const { data: { user }, error: userError } = await supabaseBrowser().auth.getUser();
         
         if (userError || !user) {
           router.push('/sign-in');
@@ -27,7 +27,7 @@ export default function OwnerGuard({ children }: OwnerGuardProps) {
 
         
         // Récupérer la session pour obtenir le token d'accès
-        const { data: { session }, error: sessionError } = await supabaseBrowser.auth.getSession();
+        const { data: { session }, error: sessionError } = await supabaseBrowser().auth.getSession();
         
         if (sessionError || !session) {
           router.push('/sign-in');

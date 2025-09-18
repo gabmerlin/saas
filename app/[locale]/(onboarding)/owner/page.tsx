@@ -611,7 +611,7 @@ function SourcePill({
 }
 
 export default function OwnerOnboardingPage() {
-  const supabase = supabaseBrowser;
+  const supabase = supabaseBrowser();
   const router = useRouter();
   
   // Définir le titre de la page
@@ -839,7 +839,7 @@ export default function OwnerOnboardingPage() {
         setAvailablePlans(data || []);
         
         // Sélectionner le plan Starter par défaut
-        const starterPlan = data?.find(plan => plan.name === "Starter");
+        const starterPlan = (data as any[])?.find(plan => plan.name === "Starter");
         if (starterPlan) {
           setSelectedPlan({
             id: starterPlan.id,

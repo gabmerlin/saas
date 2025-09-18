@@ -8,7 +8,7 @@ import { redirect } from 'next/navigation';
 const supabase = supabaseBrowser;
 
 export async function signInWithEmail(email: string, password: string, rememberMe = false) {
-  const { data, error } = await supabase.auth.signInWithPassword({
+  const { data, error } = await supabase().auth.signInWithPassword({
     email,
     password,
   });
@@ -19,7 +19,7 @@ export async function signInWithEmail(email: string, password: string, rememberM
 
   // Configurer la durée de session selon Remember Me
   if (rememberMe) {
-    await supabase.auth.setSession({
+    await supabase().auth.setSession({
       access_token: data.session!.access_token,
       refresh_token: data.session!.refresh_token,
     });
@@ -46,7 +46,7 @@ export async function signUpWithEmail(email: string, password: string, fullName:
     throw new Error('Le mot de passe doit contenir au moins une majuscule');
   }
 
-  const { data, error } = await supabase.auth.signUp({
+  const { data, error } = await supabase().auth.signUp({
     email,
     password,
     options: {
@@ -65,7 +65,7 @@ export async function signUpWithEmail(email: string, password: string, fullName:
 }
 
 export async function signInWithGoogle() {
-  const { data, error } = await supabase.auth.signInWithOAuth({
+  const { data, error } = await supabase().auth.signInWithOAuth({
     provider: 'google',
     options: {
       scopes: GOOGLE_OAUTH_CONFIG.SCOPES.join(' '),
@@ -81,7 +81,7 @@ export async function signInWithGoogle() {
 }
 
 export async function signOut() {
-  const { error } = await supabase.auth.signOut();
+  const { error } = await supabase().auth.signOut();
   
   if (error) {
     throw new Error(error.message);
@@ -91,7 +91,7 @@ export async function signOut() {
 }
 
 export async function resetPassword(email: string) {
-  const { data, error } = await supabase.auth.resetPasswordForEmail(email, {
+  const { data, error } = await supabase().auth.resetPasswordForEmail(email, {
     redirectTo: `${window.location.origin}/auth/reset-password`,
   });
 
@@ -103,7 +103,7 @@ export async function resetPassword(email: string) {
 }
 
 export async function updatePassword(newPassword: string) {
-  const { data, error } = await supabase.auth.updateUser({
+  const { data, error } = await supabase().auth.updateUser({
     password: newPassword,
   });
 
@@ -115,13 +115,13 @@ export async function updatePassword(newPassword: string) {
 }
 
 export async function resendVerificationEmail() {
-  const { data: { user } } = await supabase.auth.getUser();
+  const { data: { user } } = await supabase().auth.getUser();
   
   if (!user) {
     throw new Error('Utilisateur non connecté');
   }
 
-  const { data, error } = await supabase.auth.resend({
+  const { data, error } = await supabase().auth.resend({
     type: 'signup',
     email: user.email!,
     options: {
