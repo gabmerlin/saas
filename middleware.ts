@@ -38,19 +38,7 @@ export async function middleware(req: NextRequest) {
     return NextResponse.next()
   }
 
-  // Redirection i18n simple: "/" -> "/fr" (seulement sur le domaine principal)
-  if (pathname === '/') {
-    const host = req.headers.get('host') ?? ''
-    const root = process.env.NEXT_PUBLIC_ROOT_DOMAIN ?? 'qgchatting.com'
-    const sub = extractSubdomain(host, root)
-    
-    // Ne pas rediriger si on est sur un subdomain
-    if (!sub) {
-      const url = req.nextUrl.clone()
-      url.pathname = '/fr'
-      return NextResponse.redirect(url)
-    }
-  }
+  // Pas de redirection automatique - laisser Next.js gérer le routage
 
   // Vérifier l'abonnement pour les sous-domaines
   const host = req.headers.get('host') ?? ''
