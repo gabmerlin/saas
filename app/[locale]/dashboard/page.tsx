@@ -21,15 +21,26 @@ export default function DashboardPage() {
   useEffect(() => {
     const checkAuth = async () => {
       try {
+        console.log('🔍 Début de la vérification d\'authentification...');
+        
         // D'abord essayer de forcer la synchronisation depuis l'URL
         const urlSyncSuccess = await forceSessionSyncFromUrl();
+        console.log('🔄 Résultat de la synchronisation URL:', urlSyncSuccess);
         
         if (urlSyncSuccess) {
           // Si la synchronisation URL a réussi, récupérer la session
           const supabase = supabaseBrowser();
-          const { data: { session } } = await supabase.auth.getSession();
+          const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+          
+          console.log('📋 Session après synchronisation URL:', { 
+            hasSession: !!session, 
+            hasUser: !!session?.user,
+            userEmail: session?.user?.email,
+            error: sessionError 
+          });
           
           if (session?.user) {
+            console.log('✅ Utilisateur trouvé, configuration de l\'état...');
             setUser(session.user);
             setLoading(false);
             
@@ -39,6 +50,7 @@ export default function DashboardPage() {
             
             if (subdomain && subdomain !== 'www' && subdomain !== 'qgchatting') {
               try {
+                console.log('🏢 Récupération des informations de l\'agence pour:', subdomain);
                 const agencyResponse = await fetch(`/api/agency/status?subdomain=${subdomain}`, {
                   headers: {
                     'Authorization': `Bearer ${session.access_token}`,
@@ -46,14 +58,17 @@ export default function DashboardPage() {
                 });
                 
                 const agencyData = await agencyResponse.json();
+                console.log('🏢 Données de l\'agence:', agencyData);
                 if (agencyData.ok) {
                   setAgencyInfo(agencyData.status.agency);
                 }
               } catch (agencyError) {
-                console.error('Erreur lors de la vérification de l\'agence:', agencyError);
+                console.error('❌ Erreur lors de la vérification de l\'agence:', agencyError);
               }
             }
             return;
+          } else {
+            console.warn('⚠️ Aucun utilisateur trouvé après synchronisation URL');
           }
         }
         

@@ -14,9 +14,17 @@ export async function forceSessionSyncFromUrl(): Promise<boolean> {
   const refreshToken = urlParams.get('refresh_token');
   const expiresAt = urlParams.get('expires_at');
 
+  console.log('🔍 Vérification des tokens URL:', { 
+    hasAccessToken: !!accessToken, 
+    hasRefreshToken: !!refreshToken, 
+    hasExpiresAt: !!expiresAt 
+  });
+
   if (accessToken && refreshToken) {
     try {
       const supabase = supabaseBrowser();
+      
+      console.log('🔄 Tentative de définition de la session...');
       
       // Définir la session avec les tokens de l'URL
       const { data, error } = await supabase.auth.setSession({
@@ -25,9 +33,15 @@ export async function forceSessionSyncFromUrl(): Promise<boolean> {
       });
       
       if (error) {
-        console.error('Erreur lors de la définition de la session:', error);
+        console.error('❌ Erreur lors de la définition de la session:', error);
         return false;
       }
+      
+      console.log('✅ Session définie:', { 
+        hasSession: !!data.session, 
+        hasUser: !!data.session?.user,
+        userEmail: data.session?.user?.email 
+      });
       
       if (data.session) {
         // Stocker la session
@@ -45,12 +59,18 @@ export async function forceSessionSyncFromUrl(): Promise<boolean> {
         const newUrl = window.location.pathname;
         window.history.replaceState({}, '', newUrl);
         
-        console.log('Session forcée depuis l\'URL avec succès');
+        console.log('✅ Session forcée depuis l\'URL avec succès');
         return true;
+      } else {
+        console.warn('⚠️ Aucune session retournée par setSession');
+        return false;
       }
     } catch (error) {
-      console.error('Erreur lors de la synchronisation forcée:', error);
+      console.error('❌ Erreur lors de la synchronisation forcée:', error);
+      return false;
     }
+  } else {
+    console.log('ℹ️ Aucun token trouvé dans l\'URL');
   }
   
   return false;
