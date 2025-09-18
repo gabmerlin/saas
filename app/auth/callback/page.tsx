@@ -22,10 +22,14 @@ function AuthCallbackContent() {
       try {
         setStatus('Traitement de l\'authentification...');
 
+        // Attendre un peu pour que Supabase traite l'URL
+        await new Promise(resolve => setTimeout(resolve, 1000));
+
         // Attendre que Supabase traite l'authentification
         const { data: { session }, error } = await supabaseBrowser().auth.getSession();
         
         if (error) {
+          console.error('Erreur de session:', error);
           setStatus('Erreur lors de l\'authentification');
           setTimeout(() => router.push('/sign-in?error=auth_failed'), 2000);
           return;
@@ -41,12 +45,18 @@ function AuthCallbackContent() {
           const checkSession = async () => {
             const { data: { session: currentSession } } = await supabaseBrowser().auth.getSession();
             if (currentSession) {
-              // Vérifier l'agence existante avant la redirection
-              const redirectUrl = await redirectAfterLogin(next);
-              if (redirectUrl.startsWith('http')) {
-                window.location.href = redirectUrl;
-              } else {
-                window.location.href = redirectUrl;
+              try {
+                // Vérifier l'agence existante avant la redirection
+                const redirectUrl = await redirectAfterLogin(next);
+                if (redirectUrl.startsWith('http')) {
+                  window.location.href = redirectUrl;
+                } else {
+                  window.location.href = redirectUrl;
+                }
+              } catch (redirectError) {
+                console.error('Erreur de redirection:', redirectError);
+                // Redirection de fallback
+                window.location.href = next || '/fr';
               }
             } else if (attempts < maxAttempts) {
               attempts++;
