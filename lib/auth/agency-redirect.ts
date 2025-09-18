@@ -62,7 +62,7 @@ export async function redirectAfterLogin(defaultRedirect: string = '/fr'): Promi
       ? `https://${subdomain}.qgchatting.com`
       : `http://${subdomain}.localhost:3000`;
     
-    return `${baseUrl}/dashboard`;
+    return `${baseUrl}/fr`;
   }
   
   return defaultRedirect;

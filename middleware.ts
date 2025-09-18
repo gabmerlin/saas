@@ -38,17 +38,27 @@ export async function middleware(req: NextRequest) {
     return NextResponse.next()
   }
 
-  // Redirection i18n simple: "/" -> "/fr"
+  // Redirection i18n simple: "/" -> "/fr" (seulement sur le domaine principal)
   if (pathname === '/') {
-    const url = req.nextUrl.clone()
-    url.pathname = '/fr'
-    return NextResponse.redirect(url)
+    const host = req.headers.get('host') ?? ''
+    const root = process.env.NEXT_PUBLIC_ROOT_DOMAIN ?? ''
+    const sub = extractSubdomain(host, root)
+    
+    // Ne pas rediriger si on est sur un subdomain
+    if (!sub) {
+      const url = req.nextUrl.clone()
+      url.pathname = '/fr'
+      return NextResponse.redirect(url)
+    }
   }
 
   // Vérifier l'abonnement pour les sous-domaines
   const host = req.headers.get('host') ?? ''
   const root = process.env.NEXT_PUBLIC_ROOT_DOMAIN ?? ''
   const sub = extractSubdomain(host, root)
+  
+  // Debug: log pour voir ce qui se passe
+  console.log('Middleware debug:', { host, root, sub, pathname })
   
   if (sub) {
     // Vérifier si l'abonnement est expiré
@@ -119,14 +129,25 @@ export async function middleware(req: NextRequest) {
 }
 
 function extractSubdomain(host: string, rootDomain: string): string | null {
-  if (!host || !rootDomain) return null
+  if (!host) return null
+  
+  // Si pas de rootDomain défini, utiliser des domaines par défaut
+  const defaultRoots = ['qgchatting.com', 'localhost:3000', 'vercel.app']
+  const roots = rootDomain ? [rootDomain, ...defaultRoots] : defaultRoots
+  
   const h = host.toLowerCase()
-  const root = rootDomain.toLowerCase()
-  if (h === root || h === `www.${root}`) return null
-  if (h.endsWith(`.${root}`)) {
-    const sub = h.slice(0, -(root.length + 1))
-    return sub || null
+  
+  for (const root of roots) {
+    const rootLower = root.toLowerCase()
+    if (h === rootLower || h === `www.${rootLower}`) continue
+    if (h.endsWith(`.${rootLower}`)) {
+      const sub = h.slice(0, -(rootLower.length + 1))
+      if (sub && sub !== 'www') {
+        return sub
+      }
+    }
   }
+  
   return null
 }
 

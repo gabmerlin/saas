@@ -30,6 +30,16 @@ export default function HomePage() {
   usePageTitle("QG Chatting - Solution de communication d'entreprise");
 
   useEffect(() => {
+    // Vérifier si on est sur un subdomain
+    const host = window.location.host;
+    const isSubdomain = host.includes('.') && !host.startsWith('www.');
+    
+    if (isSubdomain) {
+      // Si on est sur un subdomain, rediriger vers le dashboard
+      window.location.href = '/dashboard';
+      return;
+    }
+
     const checkAuth = async () => {
       try {
         const response = await fetch('/api/auth/session');

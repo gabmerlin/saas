@@ -1,143 +1,361 @@
-// app/[locale]/page.tsx
-'use client';
+"use client";
 
-import Link from 'next/link'
-import AuthGuard from '@/components/auth/auth-guard'
-import { use } from 'react'
-import { usePageTitle } from '@/lib/hooks/use-page-title'
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { 
+  Building2, 
+  Users, 
+  CreditCard, 
+  AlertTriangle, 
+  CheckCircle, 
+  Clock,
+  Settings,
+  BarChart3,
+  MessageSquare
+} from "lucide-react";
+import { usePageTitle } from "@/lib/hooks/use-page-title";
+import { useSubscriptionStatus } from "@/lib/hooks/use-subscription-status";
+import { supabaseBrowser } from "@/lib/supabase/client";
 
-export default function LocaleHome({
-  params,
-}: {
-  params: Promise<{ locale: string }>
-}) {
-  const { locale } = use(params)
+interface AgencyInfo {
+  id: string;
+  name: string;
+  subdomain: string;
+  created_at: string;
+  locale: string;
+}
+
+export default function SubdomainHomePage() {
+  const router = useRouter();
+  const [agencyInfo, setAgencyInfo] = useState<AgencyInfo | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
   
+  const { 
+    subscription, 
+    userRole, 
+    loading: subscriptionLoading, 
+    error: subscriptionError 
+  } = useSubscriptionStatus();
+
   // Définir le titre de la page
-  usePageTitle("QG Chatting")
+  usePageTitle("Tableau de bord - QG Chatting");
+
+  useEffect(() => {
+    const checkAuthAndAgency = async () => {
+      try {
+        // Vérifier l'authentification
+        const { data: { session }, error: sessionError } = await supabaseBrowser.auth.getSession();
+        
+        if (sessionError || !session) {
+          setError('Non authentifié');
+          setLoading(false);
+          return;
+        }
+
+        setIsAuthenticated(true);
+
+        // Récupérer les informations de l'agence
+        const response = await fetch('/api/agency/status');
+        const data = await response.json();
+        
+        if (data.ok) {
+          setAgencyInfo({
+            id: data.status.agency.name,
+            name: data.status.agency.name,
+            subdomain: data.status.agency.subdomain,
+            created_at: new Date().toISOString(),
+            locale: 'fr'
+          });
+        } else {
+          setError(data.error || 'Erreur lors du chargement des informations');
+        }
+      } catch (err) {
+        setError('Erreur de connexion');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    checkAuthAndAgency();
+  }, []);
+
+  if (loading || subscriptionLoading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Chargement du tableau de bord...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!isAuthenticated) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <AlertTriangle className="h-12 w-12 text-red-500 mx-auto mb-4" />
+          <h2 className="text-xl font-semibold text-gray-900 mb-2">Authentification requise</h2>
+          <p className="text-gray-600 mb-4">Veuillez vous connecter pour accéder à cette agence</p>
+          <Button onClick={() => router.push('/sign-in')}>
+            Se connecter
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  if (error || subscriptionError) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <AlertTriangle className="h-12 w-12 text-red-500 mx-auto mb-4" />
+          <h2 className="text-xl font-semibold text-gray-900 mb-2">Erreur</h2>
+          <p className="text-gray-600 mb-4">{error || subscriptionError}</p>
+          <Button onClick={() => window.location.reload()}>
+            Réessayer
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  const getSubscriptionStatus = () => {
+    if (!subscription) {
+      return {
+        status: 'no_subscription',
+        message: 'Aucun abonnement actif',
+        color: 'bg-gray-500',
+        icon: AlertTriangle
+      };
+    }
+
+    if (subscription.is_expired) {
+      return {
+        status: 'expired',
+        message: 'Abonnement expiré',
+        color: 'bg-red-500',
+        icon: AlertTriangle
+      };
+    }
+
+    if (subscription.is_expiring_soon) {
+      return {
+        status: 'expiring_soon',
+        message: `Expire dans ${subscription.days_remaining} jour(s)`,
+        color: 'bg-yellow-500',
+        icon: Clock
+      };
+    }
+
+    return {
+      status: 'active',
+      message: `Actif - ${subscription.days_remaining} jour(s) restant(s)`,
+      color: 'bg-green-500',
+      icon: CheckCircle
+    };
+  };
+
+  const subscriptionStatus = getSubscriptionStatus();
+  const StatusIcon = subscriptionStatus.icon;
 
   return (
-    <AuthGuard>
-      <main className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100">
-        <div className="flex min-h-screen">
-          {/* Left side - Branding */}
-          <div className="hidden lg:flex lg:w-[35%] bg-gradient-to-br from-blue-600 via-indigo-700 to-purple-800 relative overflow-hidden">
-            <div className="absolute inset-0 bg-black/20"></div>
-            <div className="relative z-10 flex flex-col justify-center px-12 text-white">
-              <div className="mb-8">
-                <div className="flex items-center space-x-3 mb-6">
-                  <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center">
-                    <svg className="w-7 h-7" fill="currentColor" viewBox="0 0 24 24">
-                      <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
-                    </svg>
-                  </div>
-                  <h1 className="text-3xl font-bold">QG Chatting</h1>
-                </div>
-                <h2 className="text-2xl font-semibold mb-4">
-                  Bienvenue dans votre espace
-                </h2>
-                <p className="text-blue-100 text-lg leading-relaxed">
-                  Vous êtes connecté et prêt à utiliser QG Chatting. 
-                  Accédez à votre tableau de bord pour commencer à collaborer avec votre équipe.
-                </p>
+    <div className="min-h-screen bg-gray-50">
+      {/* Header */}
+      <div className="bg-white shadow-sm border-b">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center py-6">
+            <div className="flex items-center space-x-3">
+              <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
+                <Building2 className="w-6 h-6 text-white" />
               </div>
-              
-              <div className="space-y-6">
-                <div className="flex items-center space-x-4">
-                  <div className="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center">
-                    <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-                      <path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4z"/>
-                    </svg>
-                  </div>
-                  <div>
-                    <h3 className="font-semibold">Sécurité</h3>
-                    <p className="text-blue-100 text-sm">Session authentifiée</p>
-                  </div>
-                </div>
-                
-                <div className="flex items-center space-x-4">
-                  <div className="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center">
-                    <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-                      <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
-                    </svg>
-                  </div>
-                  <div>
-                    <h3 className="font-semibold">Performance</h3>
-                    <p className="text-blue-100 text-sm">Interface optimisée</p>
-                  </div>
-                </div>
+              <div>
+                <h1 className="text-2xl font-bold text-gray-900">
+                  {agencyInfo?.name || 'Tableau de bord'}
+                </h1>
+                <p className="text-sm text-gray-500">
+                  {agencyInfo?.subdomain && `${agencyInfo.subdomain}.qgchatting.com`}
+                </p>
               </div>
             </div>
             
-            {/* Decorative elements */}
-            <div className="absolute top-20 right-20 w-32 h-32 bg-white/10 rounded-full blur-xl"></div>
-            <div className="absolute bottom-20 left-20 w-24 h-24 bg-white/10 rounded-full blur-xl"></div>
-          </div>
-
-          {/* Right side - Content */}
-          <div className="flex-1 flex items-center justify-center px-4 sm:px-6 lg:px-8">
-            <div className="w-full max-w-md">
-              <div className="text-center mb-8 lg:hidden">
-                <div className="flex items-center justify-center space-x-3 mb-4">
-                  <div className="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center">
-                    <svg className="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 24 24">
-                      <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
-                    </svg>
-                  </div>
-                  <h1 className="text-2xl font-bold text-gray-900">QG Chatting</h1>
-                </div>
-              </div>
+            <div className="flex items-center space-x-4">
+              <Badge 
+                variant="outline" 
+                className={`${subscriptionStatus.color} text-white border-0`}
+              >
+                <StatusIcon className="w-3 h-3 mr-1" />
+                {subscriptionStatus.message}
+              </Badge>
               
-              <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-white/20 p-8">
-                <div className="text-center">
-                  <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
-                    <svg className="w-8 h-8 text-green-600" fill="currentColor" viewBox="0 0 24 24">
-                      <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
-                    </svg>
-                  </div>
-                  <h1 className="text-2xl font-bold text-gray-900 mb-2">
-                    Setup OK ✅
-                  </h1>
-                  <p className="text-gray-600 mb-6">
-                    Next.js (App Router) + Tailwind v4 + shadcn/ui — locale: <span className="font-semibold text-blue-600">{locale}</span>
-                  </p>
-                  
-                  <div className="space-y-4">
-                    <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
-                      <div className="flex items-center justify-center mb-2">
-                        <svg className="w-5 h-5 text-blue-600 mr-2" fill="currentColor" viewBox="0 0 24 24">
-                          <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
-                        </svg>
-                        <span className="text-sm font-medium text-blue-800">Actions disponibles</span>
-                      </div>
-                      <div className="space-y-2">
-                        <Link 
-                          className="block w-full bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors text-sm font-medium"
-                          href={`/${locale}/owner`}
-                        >
-                          Ouvrir l&apos;onboarding owner
-                        </Link>
-                        <Link 
-                          className="block w-full bg-gray-200 hover:bg-gray-300 text-gray-800 px-4 py-2 rounded-lg transition-colors text-sm font-medium"
-                          href="/api/health"
-                        >
-                          Vérifier l&apos;API Health
-                        </Link>
-                        <Link 
-                          className="block w-full bg-gray-200 hover:bg-gray-300 text-gray-800 px-4 py-2 rounded-lg transition-colors text-sm font-medium"
-                          href="/debug-auth"
-                        >
-                          Debug Auth
-                        </Link>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
+              <Button variant="outline" size="sm">
+                <Settings className="w-4 h-4 mr-2" />
+                Paramètres
+              </Button>
             </div>
           </div>
         </div>
-      </main>
-    </AuthGuard>
-  )
+      </div>
+
+      {/* Main Content */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Notifications d'abonnement */}
+        {subscription && (subscription.is_expiring_soon || subscription.is_expired) && (
+          <Alert className="mb-6 border-yellow-200 bg-yellow-50">
+            <AlertTriangle className="h-4 w-4 text-yellow-600" />
+            <AlertDescription className="text-yellow-800">
+              {subscription.is_expired 
+                ? "Votre abonnement a expiré. Veuillez le renouveler pour continuer à utiliser l'agence."
+                : `Votre abonnement expire dans ${subscription.days_remaining} jour(s). Pensez à le renouveler.`
+              }
+              {userRole === 'owner' && (
+                <Button 
+                  size="sm" 
+                  className="ml-4"
+                  onClick={() => router.push('/subscription-renewal')}
+                >
+                  Renouveler
+                </Button>
+              )}
+            </AlertDescription>
+          </Alert>
+        )}
+
+        {/* Cards Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+          {/* Abonnement */}
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Abonnement</CardTitle>
+              <CreditCard className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">
+                {subscription?.plan_name || 'Aucun'}
+              </div>
+              <p className="text-xs text-muted-foreground">
+                {subscription?.status || 'Non configuré'}
+              </p>
+              {subscription && (
+                <div className="mt-2">
+                  <p className="text-sm text-gray-600">
+                    Expire le {new Date(subscription.current_period_end).toLocaleDateString('fr-FR')}
+                  </p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Employés */}
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Employés</CardTitle>
+              <Users className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">0</div>
+              <p className="text-xs text-muted-foreground">
+                Aucun employé pour le moment
+              </p>
+            </CardContent>
+          </Card>
+
+          {/* Activité */}
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Activité</CardTitle>
+              <BarChart3 className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">0</div>
+              <p className="text-xs text-muted-foreground">
+                Messages aujourd'hui
+              </p>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Actions rapides */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <Button 
+            variant="outline" 
+            className="h-20 flex flex-col items-center justify-center space-y-2"
+            onClick={() => router.push('/employees')}
+          >
+            <Users className="h-6 w-6" />
+            <span>Gérer les employés</span>
+          </Button>
+          
+          <Button 
+            variant="outline" 
+            className="h-20 flex flex-col items-center justify-center space-y-2"
+            onClick={() => router.push('/messages')}
+          >
+            <MessageSquare className="h-6 w-6" />
+            <span>Messages</span>
+          </Button>
+          
+          <Button 
+            variant="outline" 
+            className="h-20 flex flex-col items-center justify-center space-y-2"
+            onClick={() => router.push('/analytics')}
+          >
+            <BarChart3 className="h-6 w-6" />
+            <span>Analytiques</span>
+          </Button>
+          
+          <Button 
+            variant="outline" 
+            className="h-20 flex flex-col items-center justify-center space-y-2"
+            onClick={() => router.push('/settings')}
+          >
+            <Settings className="h-6 w-6" />
+            <span>Paramètres</span>
+          </Button>
+        </div>
+
+        {/* Informations de l'agence */}
+        {agencyInfo && (
+          <Card className="mt-8">
+            <CardHeader>
+              <CardTitle>Informations de l'agence</CardTitle>
+              <CardDescription>
+                Détails de votre agence et configuration
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="text-sm font-medium text-gray-500">Nom de l'agence</label>
+                  <p className="text-lg font-semibold">{agencyInfo.name}</p>
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-gray-500">Sous-domaine</label>
+                  <p className="text-lg font-semibold">{agencyInfo.subdomain}.qgchatting.com</p>
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-gray-500">Créée le</label>
+                  <p className="text-lg font-semibold">
+                    {new Date(agencyInfo.created_at).toLocaleDateString('fr-FR')}
+                  </p>
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-gray-500">Langue</label>
+                  <p className="text-lg font-semibold">
+                    {agencyInfo.locale === 'fr' ? 'Français' : 'Anglais'}
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+      </div>
+    </div>
+  );
 }
