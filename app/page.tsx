@@ -25,6 +25,7 @@ export default function HomePage() {
   const router = useRouter();
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [userAgency, setUserAgency] = useState<{name: string; subdomain: string} | null>(null);
+  const [userEmail, setUserEmail] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [showNotification, setShowNotification] = useState(false);
   const [isDismissed, setIsDismissed] = useState(false);
@@ -53,6 +54,7 @@ export default function HomePage() {
         
         if (data.ok && data.user) {
           setIsLoggedIn(true);
+          setUserEmail(data.user.email);
           
           // Vérifier si l'utilisateur a une agence
           const agencyResponse = await fetch('/api/auth/check-existing-agency', {
@@ -140,54 +142,68 @@ export default function HomePage() {
         />
       )}
 
-      {/* Navigation simple */}
-      <nav className="bg-white/80 backdrop-blur-sm border-b border-white/20">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center py-4">
-            <div className="flex items-center space-x-3">
-              <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
-                <MessageSquare className="w-5 h-5 text-white" />
-              </div>
-              <h1 className="text-xl font-bold text-gray-900">QG Chatting</h1>
-            </div>
-            
-            <div className="flex items-center space-x-4">
-              {isLoggedIn ? (
-                <div className="flex items-center space-x-4">
-                  {userAgency && (
-                    <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
-                      <Building2 className="w-3 h-3 mr-1" />
-                      {userAgency.name}
-                    </Badge>
-                  )}
-                  <Button 
-                    onClick={handleGetStarted}
-                    className="bg-blue-600 hover:bg-blue-700 text-white"
-                  >
-                    {userAgency ? 'Accéder à mon agence' : 'Créer une agence'}
-                    <ArrowRight className="w-4 h-4 ml-2" />
-                  </Button>
-                </div>
-              ) : (
-                <div className="flex items-center space-x-4">
-                  <Link href="/sign-in">
-                    <Button variant="ghost">Se connecter</Button>
-                  </Link>
-                  <Link href="/sign-up">
-                    <Button className="bg-blue-600 hover:bg-blue-700 text-white">
-                      Commencer
-                    </Button>
-                  </Link>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      </nav>
 
       {/* Hero Section */}
       <section className="py-20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          {/* Header avec logo et informations de connexion */}
+          <div className="flex justify-between items-center mb-12">
+            {/* Logo */}
+            <div className="flex items-center space-x-3">
+              <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
+                <MessageSquare className="w-6 h-6 text-white" />
+              </div>
+              <h1 className="text-2xl font-bold text-gray-900">QG Chatting</h1>
+            </div>
+
+            {/* Informations de connexion */}
+            {isLoggedIn ? (
+              <div className="flex items-center space-x-4 bg-white/80 backdrop-blur-sm rounded-lg px-4 py-3 shadow-sm border border-white/20">
+                {userAgency && (
+                  <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+                    <Building2 className="w-3 h-3 mr-1" />
+                    {userAgency.name}
+                  </Badge>
+                )}
+                <div className="flex flex-col items-end">
+                  <span className="text-sm text-gray-600">
+                    Connecté en tant que <strong>{userEmail}</strong>
+                  </span>
+                  {userAgency && (
+                    <span className="text-xs text-gray-500">
+                      Agence: {userAgency.name}
+                    </span>
+                  )}
+                </div>
+                <Button 
+                  onClick={() => {
+                    // Déconnexion
+                    fetch('/api/auth/signout', { method: 'POST' })
+                      .then(() => window.location.reload());
+                  }}
+                  variant="ghost" 
+                  size="sm"
+                  className="text-gray-500 hover:text-red-600"
+                >
+                  Se déconnecter
+                </Button>
+              </div>
+            ) : (
+              <div className="flex items-center space-x-3">
+                <Link href="/sign-in">
+                  <Button variant="ghost" size="sm">
+                    Se connecter
+                  </Button>
+                </Link>
+                <Link href="/sign-up">
+                  <Button size="sm" className="bg-blue-600 hover:bg-blue-700 text-white">
+                    S'inscrire
+                  </Button>
+                </Link>
+              </div>
+            )}
+          </div>
+
           <div className="text-center">
             <h1 className="text-4xl md:text-6xl font-bold text-gray-900 mb-6">
               La solution de communication
