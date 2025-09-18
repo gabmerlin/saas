@@ -7,7 +7,7 @@ import { redirectAfterLogin } from '@/lib/auth/agency-redirect';
 function AuthCallbackContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const next = searchParams.get('next') || '/';
+  const next = searchParams.get('next') || '/fr';
   const [status, setStatus] = useState('Connexion en cours...');
   const [isClient, setIsClient] = useState(false);
 

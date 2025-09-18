@@ -8,7 +8,6 @@ import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Eye, EyeOff, Mail, Lock, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
-import { redirectAfterLogin } from "@/lib/auth/agency-redirect";
 import { supabaseBrowser } from "@/lib/supabase/client";
 
 type Props = { next: string; invitation?: string | null };
@@ -65,9 +64,8 @@ export default function SignInForm({ next, invitation }: Props) {
         }
       }
       
-      // Vérifier l'agence existante avant la redirection
-      const redirectUrl = await redirectAfterLogin(next || "/dashboard");
-      window.location.replace(redirectUrl);
+      // Redirection vers la page d'accueil après connexion réussie
+      window.location.href = '/fr';
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : "Échec de connexion";
       setMsg(errorMessage);

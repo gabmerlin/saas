@@ -171,15 +171,9 @@ function SignUpContent() {
             return;
           }
 
-          // Rediriger vers le dashboard du tenant
-          if (data.tenant?.subdomain) {
-            window.location.href = `https://${data.tenant.subdomain}.qgchatting.com/dashboard`;
-            return;
-          } else {
-            // Fallback vers la page de connexion
-            window.location.replace(`/sign-in?next=${encodeURIComponent(next)}`);
-            return;
-          }
+          // Rediriger vers la page d'accueil après inscription avec invitation
+          window.location.href = '/fr';
+          return;
         }
 
         // Inscription normale (sans invitation)
@@ -190,7 +184,7 @@ function SignUpContent() {
             data: { username: form.username },
             emailRedirectTo:
             typeof window !== "undefined"
-                ? `${window.location.origin}/callback?next=%2Ffr%2Fowner`
+                ? `${window.location.origin}/callback?next=%2Ffr`
                 : undefined,
         },
         });

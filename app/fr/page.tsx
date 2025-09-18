@@ -5,14 +5,12 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { 
   MessageSquare, 
   Shield, 
   Users, 
   Zap, 
   ArrowRight,
-  Building2,
   CreditCard,
   Globe,
   Lock
@@ -109,21 +107,10 @@ export default function FrenchHomePage() {
             <div className="flex items-center space-x-4">
               {isLoggedIn ? (
                 <div className="flex items-center space-x-4 bg-white/80 backdrop-blur-sm rounded-lg px-4 py-3 shadow-sm border border-white/20">
-                  {userAgency && (
-                    <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
-                      <Building2 className="w-3 h-3 mr-1" />
-                      {userAgency.name}
-                    </Badge>
-                  )}
                   <div className="flex flex-col items-end">
                     <span className="text-sm text-gray-600">
-                      Connecté en tant que <strong>{userEmail}</strong>
+                      <strong>{userEmail}</strong>
                     </span>
-                    {userAgency && (
-                      <span className="text-xs text-gray-500">
-                        Agence: {userAgency.name}
-                      </span>
-                    )}
                   </div>
                   <Button 
                     onClick={() => {
@@ -141,7 +128,7 @@ export default function FrenchHomePage() {
                     onClick={handleGetStarted}
                     className="bg-blue-600 hover:bg-blue-700 text-white"
                   >
-                    {userAgency ? 'Accéder à mon agence' : 'Créer une agence'}
+                    {userAgency ? 'Mon agence' : 'Commencer'}
                     <ArrowRight className="w-4 h-4 ml-2" />
                   </Button>
                 </div>
@@ -150,11 +137,12 @@ export default function FrenchHomePage() {
                   <Link href="/sign-in">
                     <Button variant="ghost">Se connecter</Button>
                   </Link>
-                  <Link href="/sign-up">
-                    <Button className="bg-blue-600 hover:bg-blue-700 text-white">
-                      Commencer
-                    </Button>
-                  </Link>
+                  <Button 
+                    onClick={() => router.push('/sign-in')}
+                    className="bg-blue-600 hover:bg-blue-700 text-white"
+                  >
+                    Commencer
+                  </Button>
                 </div>
               )}
             </div>
