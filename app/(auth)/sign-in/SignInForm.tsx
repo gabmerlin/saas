@@ -68,11 +68,20 @@ export default function SignInForm({ next, invitation }: Props) {
       // Synchroniser la session et rediriger
       await syncSessionAcrossDomains();
       
-      // Redirection vers la page d'accueil après connexion réussie
       // Attendre un peu pour que la session soit bien persistée
       setTimeout(() => {
-        window.location.href = '/fr';
-      }, 1000);
+        // Vérifier si on est sur un sous-domaine
+        const hostname = window.location.hostname;
+        const subdomain = hostname.split('.')[0];
+        
+        if (subdomain && subdomain !== 'www' && subdomain !== 'qgchatting' && subdomain !== 'localhost') {
+          // Si on est sur un sous-domaine, rediriger vers le dashboard
+          window.location.href = '/dashboard';
+        } else {
+          // Sinon, rediriger vers la page d'accueil
+          window.location.href = '/fr';
+        }
+      }, 1500);
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : "Échec de connexion";
       setMsg(errorMessage);

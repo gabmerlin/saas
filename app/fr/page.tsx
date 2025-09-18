@@ -119,9 +119,26 @@ export default function FrenchHomePage() {
     return () => subscription.unsubscribe();
   }, []);
 
-  const handleGetStarted = () => {
+  const handleGetStarted = async () => {
     if (isLoggedIn) {
       if (userAgency) {
+        // Récupérer la session actuelle pour la passer en paramètre
+        const supabase = supabaseBrowser();
+        const { data: { session } } = await supabase.auth.getSession();
+        
+        if (session) {
+          // Stocker la session avant la redirection
+          const sessionData = {
+            access_token: session.access_token,
+            refresh_token: session.refresh_token,
+            expires_at: session.expires_at,
+            user: session.user
+          };
+          
+          localStorage.setItem('supabase-session', JSON.stringify(sessionData));
+          sessionStorage.setItem('supabase-session', JSON.stringify(sessionData));
+        }
+        
         // Rediriger vers le dashboard de l'agence existante
         const subdomain = userAgency.subdomain;
         const baseUrl = process.env.NODE_ENV === 'production' 

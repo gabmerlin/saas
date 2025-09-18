@@ -11,6 +11,38 @@ export async function syncSessionAcrossDomains() {
 
   try {
     const supabase = supabaseBrowser();
+    
+    // D'abord vérifier s'il y a une session stockée
+    const storedSession = localStorage.getItem('supabase-session') || sessionStorage.getItem('supabase-session');
+    
+    if (storedSession) {
+      try {
+        const sessionData = JSON.parse(storedSession);
+        
+        // Vérifier si la session n'est pas expirée
+        if (sessionData.expires_at && new Date(sessionData.expires_at * 1000) > new Date()) {
+          // Restaurer la session
+          await supabase.auth.setSession({
+            access_token: sessionData.access_token,
+            refresh_token: sessionData.refresh_token
+          });
+          
+          console.log('Session restaurée depuis le stockage local');
+          return;
+        } else {
+          // Session expirée, nettoyer
+          localStorage.removeItem('supabase-session');
+          sessionStorage.removeItem('supabase-session');
+        }
+      } catch (parseError) {
+        console.error('Erreur lors du parsing de la session stockée:', parseError);
+        // Nettoyer les données corrompues
+        localStorage.removeItem('supabase-session');
+        sessionStorage.removeItem('supabase-session');
+      }
+    }
+    
+    // Si pas de session stockée, vérifier la session actuelle
     const { data: { session }, error } = await supabase.auth.getSession();
     
     if (error) {
@@ -31,28 +63,6 @@ export async function syncSessionAcrossDomains() {
       sessionStorage.setItem('supabase-session', JSON.stringify(sessionData));
       
       console.log('Session synchronisée entre domaines');
-    } else {
-      // Vérifier s'il y a une session stockée
-      const storedSession = localStorage.getItem('supabase-session') || sessionStorage.getItem('supabase-session');
-      
-      if (storedSession) {
-        try {
-          const sessionData = JSON.parse(storedSession);
-          
-          // Restaurer la session
-          await supabase.auth.setSession({
-            access_token: sessionData.access_token,
-            refresh_token: sessionData.refresh_token
-          });
-          
-          console.log('Session restaurée depuis le stockage local');
-        } catch (parseError) {
-          console.error('Erreur lors du parsing de la session stockée:', parseError);
-          // Nettoyer les données corrompues
-          localStorage.removeItem('supabase-session');
-          sessionStorage.removeItem('supabase-session');
-        }
-      }
     }
   } catch (error) {
     console.error('Erreur lors de la synchronisation de session:', error);

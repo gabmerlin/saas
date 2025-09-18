@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabaseBrowser } from "@/lib/supabase/client";
 import { syncSessionAcrossDomains, hasStoredSession, clearStoredSession } from "@/lib/auth/session-sync";
+import { forceSessionSyncFromUrl, isSessionValid } from "@/lib/auth/force-session-sync";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { MessageSquare, Users, Settings, CreditCard } from "lucide-react";
@@ -18,7 +19,10 @@ export default function DashboardPage() {
   useEffect(() => {
     const checkAuth = async () => {
       try {
-        // D'abord synchroniser la session entre domaines
+        // D'abord essayer de forcer la synchronisation depuis l'URL
+        forceSessionSyncFromUrl();
+        
+        // Puis synchroniser la session entre domaines
         await syncSessionAcrossDomains();
         
         const supabase = supabaseBrowser();
@@ -27,16 +31,27 @@ export default function DashboardPage() {
         if (error || !session) {
           // Vérifier s'il y a une session stockée
           if (hasStoredSession()) {
-            // Attendre un peu et réessayer
-            setTimeout(async () => {
+            // Attendre plus longtemps et réessayer plusieurs fois
+            let attempts = 0;
+            const maxAttempts = 5;
+            
+            const retryAuth = async () => {
+              attempts++;
               const { data: { session: retrySession } } = await supabase.auth.getSession();
+              
               if (retrySession?.user) {
                 setUser(retrySession.user);
                 setLoading(false);
+              } else if (attempts < maxAttempts) {
+                // Réessayer après un délai plus long
+                setTimeout(retryAuth, 2000);
               } else {
+                // Après plusieurs tentatives, rediriger vers le login
                 window.location.href = '/sign-in';
               }
-            }, 1000);
+            };
+            
+            setTimeout(retryAuth, 1000);
             return;
           } else {
             // Rediriger vers la page de connexion
