@@ -4,15 +4,14 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { 
   MessageSquare, 
   Shield, 
   Users, 
   Zap, 
-  ArrowRight, 
-  CheckCircle,
+  ArrowRight,
   Building2,
   CreditCard,
   Globe,
@@ -23,7 +22,7 @@ import { usePageTitle } from "@/lib/hooks/use-page-title";
 export default function HomePage() {
   const router = useRouter();
   const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [userAgency, setUserAgency] = useState<any>(null);
+  const [userAgency, setUserAgency] = useState<{name: string; subdomain: string} | null>(null);
   const [loading, setLoading] = useState(true);
 
   // Définir le titre de la page
@@ -32,11 +31,11 @@ export default function HomePage() {
   useEffect(() => {
     // Vérifier si on est sur un subdomain
     const host = window.location.host;
-    const isSubdomain = host.includes('.') && !host.startsWith('www.');
+    const isSubdomain = host.includes('.') && !host.startsWith('www.') && !host.includes('localhost');
     
     if (isSubdomain) {
-      // Si on est sur un subdomain, rediriger vers le dashboard
-      window.location.href = '/dashboard';
+      // Si on est sur un subdomain, rediriger vers la page locale
+      window.location.href = '/fr';
       return;
     }
 

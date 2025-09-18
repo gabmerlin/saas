@@ -75,7 +75,7 @@ export default function SubdomainHomePage() {
         } else {
           setError(data.error || 'Erreur lors du chargement des informations');
         }
-      } catch (err) {
+      } catch {
         setError('Erreur de connexion');
       } finally {
         setLoading(false);

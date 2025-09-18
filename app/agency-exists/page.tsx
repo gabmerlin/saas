@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { supabaseBrowser } from "@/lib/supabase/client";
 import { motion } from "framer-motion";
@@ -82,11 +82,11 @@ export default function AgencyExistsPage() {
     checkExistingAgency();
   }, [router]);
 
-  const handleRedirectToAgency = () => {
+  const handleRedirectToAgency = useCallback(() => {
     if (agencyInfo?.url) {
       window.location.href = agencyInfo.url;
     }
-  };
+  }, [agencyInfo?.url]);
 
   // Compte à rebours pour la redirection automatique (seulement si accessible)
   useEffect(() => {
