@@ -16,12 +16,7 @@ export default function DashboardPage() {
   const [user, setUser] = useState<any>(null);
   const [agencyInfo, setAgencyInfo] = useState<any>(null);
 
-  // Rediriger automatiquement vers la page de connexion si pas de session
-  useEffect(() => {
-    if (!user && !loading) {
-      window.location.href = '/sign-in?next=/dashboard';
-    }
-  }, [user, loading]);
+  // Ne pas rediriger automatiquement - laisser l'interface de connexion s'afficher
 
   useEffect(() => {
     const checkAuth = async () => {

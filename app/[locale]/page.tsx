@@ -65,9 +65,8 @@ export default function AgencyDashboard() {
         const { data: { session }, error: sessionError } = await supabaseBrowser().auth.getSession();
         
         if (sessionError || !session) {
-          // Rediriger vers la page de connexion au lieu d'afficher une erreur
-          window.location.href = '/sign-in?next=/dashboard';
-          return;
+          // Ne pas rediriger automatiquement - laisser l'utilisateur voir la page d'accueil
+          console.log('Pas de session détectée, affichage de la page d\'accueil');
         }
 
         setIsAuthenticated(true);

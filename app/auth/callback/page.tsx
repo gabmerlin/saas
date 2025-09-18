@@ -37,6 +37,17 @@ function AuthCallbackContent() {
         if (session) {
           setStatus('Connexion réussie !');
           
+          // Stocker la session dans localStorage pour la synchronisation
+          const sessionData = {
+            access_token: session.access_token,
+            refresh_token: session.refresh_token,
+            expires_at: session.expires_at,
+            user: session.user
+          };
+          
+          localStorage.setItem('supabase-session', JSON.stringify(sessionData));
+          sessionStorage.setItem('supabase-session', JSON.stringify(sessionData));
+          
           // Redirection simple et directe
           setTimeout(() => {
             window.location.href = next || '/fr';

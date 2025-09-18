@@ -68,22 +68,28 @@ export default function SignInForm({ next, invitation }: Props) {
       // Synchroniser la session et rediriger
       await syncSessionAcrossDomains();
       
-      // Attendre un peu pour que la session soit bien persistée
-      setTimeout(() => {
-        // Vérifier si on est sur un sous-domaine
-        const hostname = window.location.hostname;
-        const subdomain = hostname.split('.')[0];
+      // Récupérer la session après connexion
+      const supabase = supabaseBrowser();
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (session) {
+        // Stocker la session dans localStorage pour la synchronisation
+        const sessionData = {
+          access_token: session.access_token,
+          refresh_token: session.refresh_token,
+          expires_at: session.expires_at,
+          user: session.user
+        };
         
-        if (subdomain && subdomain !== 'www' && subdomain !== 'qgchatting' && subdomain !== 'localhost') {
-          // Si on est sur un sous-domaine, utiliser le paramètre next ou rediriger vers la page d'accueil du sous-domaine
-          const targetUrl = next || '/';
-          window.location.href = targetUrl;
-        } else {
-          // Si on est sur le domaine principal, utiliser le paramètre next ou rediriger vers /fr
-          const targetUrl = next && next !== '/dashboard' ? next : '/fr';
-          window.location.href = targetUrl;
-        }
-      }, 1500);
+        localStorage.setItem('supabase-session', JSON.stringify(sessionData));
+        sessionStorage.setItem('supabase-session', JSON.stringify(sessionData));
+      }
+      
+      // Redirection simple basée sur le paramètre next
+      setTimeout(() => {
+        const targetUrl = next || '/fr';
+        window.location.href = targetUrl;
+      }, 1000);
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : "Échec de connexion";
       setMsg(errorMessage);
@@ -99,7 +105,7 @@ export default function SignInForm({ next, invitation }: Props) {
       const { error } = await supabaseBrowser().auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent('/fr')}`
+          redirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(next || '/fr')}`
         }
       });
       
