@@ -18,8 +18,6 @@ import {
   Lock
 } from "lucide-react";
 import { usePageTitle } from "@/lib/hooks/use-page-title";
-import { useSubscriptionStatus } from "@/lib/hooks/use-subscription-status";
-import SubscriptionNotification from "@/components/subscription/subscription-notification";
 
 export default function HomePage() {
   const router = useRouter();
@@ -27,26 +25,11 @@ export default function HomePage() {
   const [userAgency, setUserAgency] = useState<{name: string; subdomain: string} | null>(null);
   const [userEmail, setUserEmail] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
-  const [showNotification, setShowNotification] = useState(false);
-  const [isDismissed, setIsDismissed] = useState(false);
 
   // Définir le titre de la page
   usePageTitle("QG Chatting - Solution de communication d'entreprise");
 
-  // Hook pour le statut d'abonnement (seulement si on est sur un subdomain)
-  const { subscription, userRole, loading: subscriptionLoading } = useSubscriptionStatus();
-
   useEffect(() => {
-    // Vérifier si on est sur un subdomain
-    const host = window.location.host;
-    const isSubdomain = host.includes('.') && !host.startsWith('www.') && !host.includes('localhost');
-    
-    if (isSubdomain) {
-      // Si on est sur un subdomain, rester sur la page d'accueil du subdomain
-      // Ne pas rediriger pour éviter les boucles
-      return;
-    }
-
     const checkAuth = async () => {
       try {
         const response = await fetch('/api/auth/session');
@@ -79,18 +62,6 @@ export default function HomePage() {
     checkAuth();
   }, []);
 
-  // Gérer l'affichage de la notification d'abonnement
-  useEffect(() => {
-    if (subscription && !subscriptionLoading) {
-      const host = window.location.host;
-      const isSubdomain = host.includes('.') && !host.startsWith('www.') && !host.includes('localhost');
-      
-      if (isSubdomain && subscription.is_expiring_soon && userRole !== 'employee' && !isDismissed) {
-        setShowNotification(true);
-      }
-    }
-  }, [subscription, subscriptionLoading, userRole, isDismissed]);
-
   const handleGetStarted = () => {
     if (isLoggedIn) {
       if (userAgency) {
@@ -99,7 +70,7 @@ export default function HomePage() {
         const baseUrl = process.env.NODE_ENV === 'production' 
           ? `https://${subdomain}.qgchatting.com`
           : `http://${subdomain}.localhost:3000`;
-        window.location.href = `${baseUrl}/dashboard`;
+        window.location.href = `${baseUrl}/fr`;
       } else {
         // Rediriger vers l'onboarding
         router.push('/fr/owner');
@@ -108,15 +79,6 @@ export default function HomePage() {
       // Rediriger vers la connexion
       router.push('/sign-in');
     }
-  };
-
-  const handleDismissNotification = () => {
-    setShowNotification(false);
-    setIsDismissed(true);
-  };
-
-  const handleRenewSubscription = () => {
-    window.location.href = '/subscription-renewal';
   };
 
   if (loading) {
@@ -132,32 +94,19 @@ export default function HomePage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100">
-      {/* Notification d'abonnement */}
-      {showNotification && subscription && (
-        <SubscriptionNotification
-          subscription={subscription}
-          userRole={userRole || 'employee'}
-          onRenew={handleRenewSubscription}
-          onDismiss={handleDismissNotification}
-        />
-      )}
-
-
       {/* Hero Section */}
       <section className="py-20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center">
-            {/* Logo et informations de connexion intégrés dans le contenu principal */}
-            <div className="flex justify-between items-center mb-16">
-              {/* Logo */}
-              <div className="flex items-center space-x-3">
-                <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
-                  <MessageSquare className="w-6 h-6 text-white" />
-                </div>
-                <h1 className="text-2xl font-bold text-gray-900">QG Chatting</h1>
+          {/* Logo et informations de connexion intégrés */}
+          <div className="flex justify-between items-center mb-16">
+            <div className="flex items-center space-x-3">
+              <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
+                <MessageSquare className="w-6 h-6 text-white" />
               </div>
-
-              {/* Informations de connexion */}
+              <h1 className="text-2xl font-bold text-gray-900">QG Chatting</h1>
+            </div>
+            
+            <div className="flex items-center space-x-4">
               {isLoggedIn ? (
                 <div className="flex items-center space-x-4 bg-white/80 backdrop-blur-sm rounded-lg px-4 py-3 shadow-sm border border-white/20">
                   {userAgency && (
@@ -188,22 +137,30 @@ export default function HomePage() {
                   >
                     Se déconnecter
                   </Button>
+                  <Button 
+                    onClick={handleGetStarted}
+                    className="bg-blue-600 hover:bg-blue-700 text-white"
+                  >
+                    {userAgency ? 'Accéder à mon agence' : 'Créer une agence'}
+                    <ArrowRight className="w-4 h-4 ml-2" />
+                  </Button>
                 </div>
               ) : (
-                <div className="flex items-center space-x-3">
+                <div className="flex items-center space-x-4">
                   <Link href="/sign-in">
-                    <Button variant="ghost" size="sm">
-                      Se connecter
-                    </Button>
+                    <Button variant="ghost">Se connecter</Button>
                   </Link>
                   <Link href="/sign-up">
-                    <Button size="sm" className="bg-blue-600 hover:bg-blue-700 text-white">
-                      S'inscrire
+                    <Button className="bg-blue-600 hover:bg-blue-700 text-white">
+                      Commencer
                     </Button>
                   </Link>
                 </div>
               )}
             </div>
+          </div>
+
+          <div className="text-center">
             <h1 className="text-4xl md:text-6xl font-bold text-gray-900 mb-6">
               La solution de communication
               <span className="text-blue-600"> d'entreprise</span>
@@ -278,7 +235,7 @@ export default function HomePage() {
               <CardHeader>
                 <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center mb-4">
                   <Zap className="w-6 h-6 text-purple-600" />
-              </div>
+                </div>
                 <CardTitle className="text-xl">Performance optimisée</CardTitle>
                 <CardDescription>
                   Interface rapide et intuitive pour une productivité maximale
@@ -314,7 +271,7 @@ export default function HomePage() {
               <CardHeader>
                 <div className="w-12 h-12 bg-indigo-100 rounded-lg flex items-center justify-center mb-4">
                   <Lock className="w-6 h-6 text-indigo-600" />
-              </div>
+                </div>
                 <CardTitle className="text-xl">Confidentialité totale</CardTitle>
                 <CardDescription>
                   Vos données restent privées et ne sont jamais partagées avec des tiers
@@ -344,8 +301,8 @@ export default function HomePage() {
               {isLoggedIn ? (userAgency ? 'Accéder à mon agence' : 'Créer une agence') : 'Commencer maintenant'}
               <ArrowRight className="w-5 h-5 ml-2" />
             </Button>
-                    </div>
-                  </div>
+          </div>
+        </div>
       </section>
 
       {/* Footer */}
@@ -367,6 +324,6 @@ export default function HomePage() {
           </div>
         </div>
       </footer>
-      </div>
+    </div>
   );
 }

@@ -52,7 +52,7 @@ export async function checkExistingAgency(): Promise<AgencyCheckResult> {
 /**
  * Redirige l'utilisateur vers son agence existante ou vers la page par défaut
  */
-export async function redirectAfterLogin(defaultRedirect: string = '/fr'): Promise<string> {
+export async function redirectAfterLogin(defaultRedirect: string = '/'): Promise<string> {
   const agencyCheck = await checkExistingAgency();
   
   if (agencyCheck.hasExistingAgency && agencyCheck.agency?.subdomain) {

@@ -28,7 +28,7 @@ export async function middleware(req: NextRequest) {
   ) {
     // Propage le sous-domaine en header interne si présent
     const host = req.headers.get('host') ?? ''
-    const root = process.env.NEXT_PUBLIC_ROOT_DOMAIN ?? ''
+    const root = process.env.NEXT_PUBLIC_ROOT_DOMAIN ?? 'qgchatting.com'
     const sub = extractSubdomain(host, root)
     if (sub) {
       const res = NextResponse.next()
@@ -41,7 +41,7 @@ export async function middleware(req: NextRequest) {
   // Redirection i18n simple: "/" -> "/fr" (seulement sur le domaine principal)
   if (pathname === '/') {
     const host = req.headers.get('host') ?? ''
-    const root = process.env.NEXT_PUBLIC_ROOT_DOMAIN ?? ''
+    const root = process.env.NEXT_PUBLIC_ROOT_DOMAIN ?? 'qgchatting.com'
     const sub = extractSubdomain(host, root)
     
     // Ne pas rediriger si on est sur un subdomain
@@ -54,11 +54,8 @@ export async function middleware(req: NextRequest) {
 
   // Vérifier l'abonnement pour les sous-domaines
   const host = req.headers.get('host') ?? ''
-  const root = process.env.NEXT_PUBLIC_ROOT_DOMAIN ?? ''
+  const root = process.env.NEXT_PUBLIC_ROOT_DOMAIN ?? 'qgchatting.com'
   const sub = extractSubdomain(host, root)
-  
-  // Debug: log pour voir ce qui se passe
-  console.log('Middleware debug:', { host, root, sub, pathname })
   
   if (sub) {
     // Vérifier si l'abonnement est expiré
@@ -152,5 +149,14 @@ function extractSubdomain(host: string, rootDomain: string): string | null {
 }
 
 export const config = {
-  matcher: ['/((?!.*\\..*|_next).*)', '/', '/(api)(.*)'],
+  matcher: [
+    /*
+     * Match all request paths except for the ones starting with:
+     * - api (API routes)
+     * - _next/static (static files)
+     * - _next/image (image optimization files)
+     * - favicon.ico (favicon file)
+     */
+    '/((?!api|_next/static|_next/image|favicon.ico).*)',
+  ],
 }
