@@ -32,6 +32,16 @@ export default function FrenchHomePage() {
   useEffect(() => {
     const checkAuth = async () => {
       try {
+        // Vérifier si on est sur un sous-domaine
+        const hostname = window.location.hostname;
+        const subdomain = hostname.split('.')[0];
+        
+        // Si on est sur un sous-domaine, rediriger vers le dashboard
+        if (subdomain && subdomain !== 'www' && subdomain !== 'qgchatting' && subdomain !== 'localhost') {
+          window.location.href = '/dashboard';
+          return;
+        }
+        
         // Synchroniser la session entre domaines
         await syncSessionAcrossDomains();
         
@@ -112,12 +122,12 @@ export default function FrenchHomePage() {
   const handleGetStarted = () => {
     if (isLoggedIn) {
       if (userAgency) {
-        // Rediriger vers l'agence existante
+        // Rediriger vers le dashboard de l'agence existante
         const subdomain = userAgency.subdomain;
         const baseUrl = process.env.NODE_ENV === 'production' 
           ? `https://${subdomain}.qgchatting.com`
           : `http://${subdomain}.localhost:3000`;
-        window.location.href = `${baseUrl}/fr`;
+        window.location.href = `${baseUrl}/dashboard`;
       } else {
         // Rediriger vers l'onboarding
         router.push('/fr/owner');

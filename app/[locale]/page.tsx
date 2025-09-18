@@ -57,7 +57,7 @@ export default function AgencyDashboard() {
         
         if (isMainDomain) {
           // Sur le domaine principal, rediriger vers la page d'accueil publique
-          window.location.href = '/';
+          window.location.href = '/fr';
           return;
         }
 
@@ -77,7 +77,7 @@ export default function AgencyDashboard() {
         
         if (!subdomain || subdomain === 'www' || subdomain === 'qgchatting') {
           // Rediriger vers la page d'accueil publique si pas de subdomain valide
-          window.location.href = '/';
+          window.location.href = '/fr';
           return;
         }
 
@@ -86,13 +86,9 @@ export default function AgencyDashboard() {
         const data = await response.json();
         
         if (data.ok) {
-          setAgencyInfo({
-            id: data.status.agency.name,
-            name: data.status.agency.name,
-            subdomain: data.status.agency.subdomain,
-            created_at: new Date().toISOString(),
-            locale: 'fr'
-          });
+          // Rediriger automatiquement vers le dashboard au lieu d'afficher le contenu
+          window.location.href = '/dashboard';
+          return;
         } else {
           setError(data.error || 'Erreur lors du chargement des informations');
         }
