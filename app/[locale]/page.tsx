@@ -49,7 +49,18 @@ export default function SubdomainHomePage() {
   useEffect(() => {
     const checkAuthAndAgency = async () => {
       try {
-        // Vérifier l'authentification
+        // Vérifier si on est sur le domaine principal
+        const hostname = window.location.hostname;
+        const isMainDomain = hostname === 'qgchatting.com' || hostname === 'www.qgchatting.com' || 
+                           hostname === 'localhost:3000' || hostname === 'vercel.app';
+        
+        if (isMainDomain) {
+          // Sur le domaine principal, rediriger vers la page d'accueil
+          window.location.href = '/';
+          return;
+        }
+
+        // Vérifier l'authentification (seulement sur les subdomains)
         const { data: { session }, error: sessionError } = await supabaseBrowser.auth.getSession();
         
         if (sessionError || !session) {
@@ -61,7 +72,6 @@ export default function SubdomainHomePage() {
         setIsAuthenticated(true);
 
         // Récupérer le subdomain depuis l'URL
-        const hostname = window.location.hostname;
         const subdomain = hostname.split('.')[0];
         
         if (!subdomain || subdomain === 'www' || subdomain === 'qgchatting') {
