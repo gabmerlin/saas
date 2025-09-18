@@ -2,7 +2,6 @@
 import { useEffect, useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { supabaseBrowser } from '@/lib/supabase/client';
-import { redirectAfterLogin } from '@/lib/auth/agency-redirect';
 
 function AuthCallbackContent() {
   const router = useRouter();
@@ -38,36 +37,10 @@ function AuthCallbackContent() {
         if (session) {
           setStatus('Connexion réussie !');
           
-          // Attendre que la session soit bien persistée
-          let attempts = 0;
-          const maxAttempts = 10;
-          
-          const checkSession = async () => {
-            const { data: { session: currentSession } } = await supabaseBrowser().auth.getSession();
-            if (currentSession) {
-              try {
-                // Vérifier l'agence existante avant la redirection
-                const redirectUrl = await redirectAfterLogin(next);
-                if (redirectUrl.startsWith('http')) {
-                  window.location.href = redirectUrl;
-                } else {
-                  window.location.href = redirectUrl;
-                }
-              } catch (redirectError) {
-                console.error('Erreur de redirection:', redirectError);
-                // Redirection de fallback
-                window.location.href = next || '/fr';
-              }
-            } else if (attempts < maxAttempts) {
-              attempts++;
-              setTimeout(checkSession, 500);
-            } else {
-              setStatus('Erreur: Session non synchronisée');
-              setTimeout(() => router.push('/sign-in?error=session_sync_failed'), 2000);
-            }
-          };
-          
-          setTimeout(checkSession, 1000);
+          // Redirection simple et directe
+          setTimeout(() => {
+            window.location.href = next || '/fr';
+          }, 1500);
         } else {
           setStatus('Aucune session trouvée');
           setTimeout(() => router.push('/sign-in?error=no_session'), 2000);

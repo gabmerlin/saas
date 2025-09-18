@@ -10,7 +10,7 @@ import { Eye, EyeOff, Mail, Lock, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
 import { supabaseBrowser } from "@/lib/supabase/client";
 
-type Props = { next: string; invitation?: string | null };
+type Props = { next?: string; invitation?: string | null };
 
 
 // ⚠️ IMPORTANT : on utilise le client "auth-helpers" côté client
@@ -65,7 +65,10 @@ export default function SignInForm({ next, invitation }: Props) {
       }
       
       // Redirection vers la page d'accueil après connexion réussie
-      window.location.href = '/fr';
+      // Attendre un peu pour que la session soit bien persistée
+      setTimeout(() => {
+        window.location.href = '/fr';
+      }, 1000);
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : "Échec de connexion";
       setMsg(errorMessage);
@@ -81,7 +84,7 @@ export default function SignInForm({ next, invitation }: Props) {
       const { error } = await supabaseBrowser().auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(next || '/dashboard')}`
+          redirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent('/fr')}`
         }
       });
       

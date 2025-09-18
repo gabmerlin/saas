@@ -16,6 +16,7 @@ import {
   Lock
 } from "lucide-react";
 import { usePageTitle } from "@/lib/hooks/use-page-title";
+import { supabaseBrowser } from "@/lib/supabase/client";
 
 export default function FrenchHomePage() {
   const router = useRouter();
@@ -30,24 +31,36 @@ export default function FrenchHomePage() {
   useEffect(() => {
     const checkAuth = async () => {
       try {
-        const response = await fetch('/api/auth/session');
-        const data = await response.json();
+        const supabase = supabaseBrowser();
         
-        if (data.ok && data.user) {
+        // Récupérer la session actuelle
+        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+        
+        if (sessionError) {
+          console.error('Erreur de session:', sessionError);
+          setLoading(false);
+          return;
+        }
+
+        if (session?.user) {
           setIsLoggedIn(true);
-          setUserEmail(data.user.email);
+          setUserEmail(session.user.email || null);
           
           // Vérifier si l'utilisateur a une agence
-          const agencyResponse = await fetch('/api/auth/check-existing-agency', {
-            headers: {
-              'Authorization': `Bearer ${data.session.access_token}`,
-              'x-session-token': data.session.access_token
+          try {
+            const agencyResponse = await fetch('/api/auth/check-existing-agency', {
+              headers: {
+                'Authorization': `Bearer ${session.access_token}`,
+                'x-session-token': session.access_token
+              }
+            });
+            
+            const agencyData = await agencyResponse.json();
+            if (agencyData.ok && agencyData.hasExistingAgency) {
+              setUserAgency(agencyData.agency);
             }
-          });
-          
-          const agencyData = await agencyResponse.json();
-          if (agencyData.ok && agencyData.hasExistingAgency) {
-            setUserAgency(agencyData.agency);
+          } catch (agencyError) {
+            console.error('Erreur lors de la vérification de l\'agence:', agencyError);
           }
         }
       } catch (error) {
@@ -58,6 +71,38 @@ export default function FrenchHomePage() {
     };
 
     checkAuth();
+
+    // Écouter les changements d'état d'authentification
+    const supabase = supabaseBrowser();
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'SIGNED_IN' && session?.user) {
+        setIsLoggedIn(true);
+        setUserEmail(session.user.email || null);
+        
+        // Vérifier l'agence après connexion
+        if (session.access_token) {
+          fetch('/api/auth/check-existing-agency', {
+            headers: {
+              'Authorization': `Bearer ${session.access_token}`,
+              'x-session-token': session.access_token
+            }
+          })
+          .then(res => res.json())
+          .then(data => {
+            if (data.ok && data.hasExistingAgency) {
+              setUserAgency(data.agency);
+            }
+          })
+          .catch(console.error);
+        }
+      } else if (event === 'SIGNED_OUT') {
+        setIsLoggedIn(false);
+        setUserEmail(null);
+        setUserAgency(null);
+      }
+    });
+
+    return () => subscription.unsubscribe();
   }, []);
 
   const handleGetStarted = () => {
@@ -113,10 +158,11 @@ export default function FrenchHomePage() {
                     </span>
                   </div>
                   <Button 
-                    onClick={() => {
+                    onClick={async () => {
                       // Déconnexion
-                      fetch('/api/auth/signout', { method: 'POST' })
-                        .then(() => window.location.reload());
+                      const supabase = supabaseBrowser();
+                      await supabase.auth.signOut();
+                      // L'état sera mis à jour automatiquement via onAuthStateChange
                     }}
                     variant="ghost" 
                     size="sm"
