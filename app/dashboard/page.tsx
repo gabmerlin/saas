@@ -7,7 +7,7 @@ import { syncSessionAcrossDomains, hasStoredSession, clearStoredSession } from "
 import { forceSessionSyncFromUrl } from "@/lib/auth/force-session-sync";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { MessageSquare, Users, Settings, CreditCard } from "lucide-react";
+import { MessageSquare, Users, Settings, CreditCard, Shield, Zap } from "lucide-react";
 
 export default function DirectDashboardPage() {
   const router = useRouter();
@@ -19,6 +19,21 @@ export default function DirectDashboardPage() {
     const checkAuth = async () => {
       try {
         console.log('🔍 [DIRECT DASHBOARD] Début de la vérification d\'authentification...');
+        
+        // Vérifier le domaine
+        const hostname = window.location.hostname;
+        const subdomain = hostname.split('.')[0];
+        
+        console.log('🔍 [DASHBOARD] Vérification du domaine:', { hostname, subdomain });
+        
+        // Si on est sur le domaine principal (sans sous-domaine), afficher la page d'accueil
+        if (!subdomain || subdomain === 'www' || subdomain === 'qgchatting' || subdomain === 'localhost') {
+          console.log('✅ [DASHBOARD] Domaine principal détecté - Affichage de la page d\'accueil');
+          setLoading(false);
+          return;
+        }
+        
+        console.log('✅ [DASHBOARD] Sous-domaine détecté, accès au dashboard de l\'agence');
         
         // Vérifier manuellement les tokens dans l'URL
         const urlParams = new URLSearchParams(window.location.search);
@@ -135,11 +150,11 @@ export default function DirectDashboardPage() {
         setUser(session.user);
 
         // Récupérer les informations de l'agence
-        const hostname = window.location.hostname;
-        const subdomain = hostname.split('.')[0];
+        const agencyHostname = window.location.hostname;
+        const agencySubdomain = agencyHostname.split('.')[0];
         
-        if (subdomain && subdomain !== 'www' && subdomain !== 'qgchatting') {
-          const response = await fetch(`/api/agency/status?subdomain=${subdomain}`, {
+        if (agencySubdomain && agencySubdomain !== 'www' && agencySubdomain !== 'qgchatting') {
+          const response = await fetch(`/api/agency/status?subdomain=${agencySubdomain}`, {
             headers: {
               'Authorization': `Bearer ${session.access_token}`,
             }
@@ -166,8 +181,127 @@ export default function DirectDashboardPage() {
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Chargement du tableau de bord...</p>
+          <p className="text-gray-600">Chargement...</p>
         </div>
+      </div>
+    );
+  }
+
+  // Vérifier si on est sur le domaine principal
+  const hostname = typeof window !== 'undefined' ? window.location.hostname : '';
+  const subdomain = hostname.split('.')[0];
+  const isMainDomain = !subdomain || subdomain === 'www' || subdomain === 'qgchatting' || subdomain === 'localhost';
+
+  // Si on est sur le domaine principal, afficher la page d'accueil
+  if (isMainDomain) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100">
+        {/* Hero Section */}
+        <section className="py-20">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            {/* Logo et informations de connexion intégrés */}
+            <div className="flex justify-between items-center mb-16">
+              <div className="flex items-center space-x-3">
+                <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
+                  <MessageSquare className="w-6 h-6 text-white" />
+                </div>
+                <h1 className="text-2xl font-bold text-gray-900">QG Chatting</h1>
+              </div>
+              
+              <div className="flex items-center space-x-4">
+                <Button 
+                  onClick={() => window.location.href = '/sign-in'}
+                  className="bg-blue-600 hover:bg-blue-700 text-white"
+                >
+                  Se connecter
+                </Button>
+              </div>
+            </div>
+
+            <div className="text-center">
+              <h1 className="text-4xl md:text-6xl font-bold text-gray-900 mb-6">
+                La solution de communication
+                <span className="text-blue-600"> d'entreprise</span>
+                <br />
+                nouvelle génération
+              </h1>
+              <p className="text-xl text-gray-600 mb-8 max-w-3xl mx-auto">
+                Connectez vos équipes, collaborez efficacement et transformez votre façon de travailler 
+                avec une plateforme sécurisée et intuitive.
+              </p>
+              
+              <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                <Button 
+                  size="lg" 
+                  className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-4 text-lg"
+                  onClick={() => window.location.href = '/sign-in'}
+                >
+                  Commencer gratuitement
+                </Button>
+                
+                <Button 
+                  size="lg" 
+                  variant="outline" 
+                  className="px-8 py-4 text-lg border-gray-300 hover:bg-gray-50"
+                >
+                  Voir la démo
+                </Button>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* Features Section */}
+        <section className="py-20 bg-white/50">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="text-center mb-16">
+              <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
+                Pourquoi choisir QG Chatting ?
+              </h2>
+              <p className="text-xl text-gray-600 max-w-2xl mx-auto">
+                Une plateforme complète conçue pour les entreprises modernes
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+              <Card className="border-0 shadow-lg bg-white/80 backdrop-blur-sm">
+                <CardHeader>
+                  <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center mb-4">
+                    <Shield className="w-6 h-6 text-blue-600" />
+                  </div>
+                  <CardTitle className="text-xl">Sécurité Enterprise</CardTitle>
+                  <CardDescription>
+                    Chiffrement de bout en bout et conformité aux standards de sécurité les plus élevés
+                  </CardDescription>
+                </CardHeader>
+              </Card>
+
+              <Card className="border-0 shadow-lg bg-white/80 backdrop-blur-sm">
+                <CardHeader>
+                  <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center mb-4">
+                    <Users className="w-6 h-6 text-green-600" />
+                  </div>
+                  <CardTitle className="text-xl">Gestion d'équipe</CardTitle>
+                  <CardDescription>
+                    Invitez, gérez et organisez vos équipes avec des rôles et permissions personnalisables
+                  </CardDescription>
+                </CardHeader>
+              </Card>
+
+              <Card className="border-0 shadow-lg bg-white/80 backdrop-blur-sm">
+                <CardHeader>
+                  <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center mb-4">
+                    <Zap className="w-6 h-6 text-purple-600" />
+                  </div>
+                  <CardTitle className="text-xl">Performance optimisée</CardTitle>
+                  <CardDescription>
+                    Interface rapide et intuitive pour une productivité maximale
+                  </CardDescription>
+                </CardHeader>
+              </Card>
+            </div>
+          </div>
+        </section>
       </div>
     );
   }
