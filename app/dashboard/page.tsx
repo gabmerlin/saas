@@ -280,7 +280,12 @@ export default function DirectDashboardPage() {
               await supabase.auth.signOut();
               // Nettoyer la session stockée
               clearStoredSession();
-              window.location.href = '/';
+              
+              // Rediriger vers la page d'accueil du domaine principal
+              const mainDomain = process.env.NODE_ENV === 'production' 
+                ? 'https://qgchatting.com'
+                : 'http://localhost:3000';
+              window.location.href = `${mainDomain}/home`;
             }}
             variant="outline"
           >

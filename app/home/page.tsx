@@ -17,6 +17,20 @@ export default function HomePage() {
   useEffect(() => {
     const checkAuth = async () => {
       try {
+        // Vérifier si on est sur le domaine principal
+        const hostname = window.location.hostname;
+        const subdomain = hostname.split('.')[0];
+        
+        // Si on est sur un sous-domaine, rediriger vers le domaine principal
+        if (subdomain && subdomain !== 'www' && subdomain !== 'qgchatting' && subdomain !== 'localhost') {
+          console.log('🔄 [HOME] Sous-domaine détecté, redirection vers le domaine principal');
+          const mainDomain = process.env.NODE_ENV === 'production' 
+            ? 'https://qgchatting.com'
+            : 'http://localhost:3000';
+          window.location.href = `${mainDomain}/home`;
+          return;
+        }
+        
         // Synchroniser la session entre domaines
         await syncSessionAcrossDomains();
         
@@ -165,7 +179,12 @@ export default function HomePage() {
                       const supabase = supabaseBrowser();
                       await supabase.auth.signOut();
                       clearStoredSession();
-                      window.location.reload();
+                      
+                      // Rediriger vers la page d'accueil du domaine principal
+                      const mainDomain = process.env.NODE_ENV === 'production' 
+                        ? 'https://qgchatting.com'
+                        : 'http://localhost:3000';
+                      window.location.href = `${mainDomain}/home`;
                     }}
                     variant="ghost" 
                     size="sm"

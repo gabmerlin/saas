@@ -46,6 +46,15 @@ export async function middleware(req: NextRequest) {
   const sub = extractSubdomain(host, root)
   
   if (sub) {
+    // Rediriger /home vers le domaine principal si accédé depuis un sous-domaine
+    if (pathname === '/home') {
+      const mainDomain = process.env.NODE_ENV === 'production' 
+        ? 'https://qgchatting.com'
+        : 'http://localhost:3000';
+      const url = new URL(`${mainDomain}/home`);
+      return NextResponse.redirect(url);
+    }
+    
     // Ne pas rediriger automatiquement - laisser les pages gérer leur propre logique
     // Les pages peuvent décider si elles veulent rediriger ou afficher du contenu
     
