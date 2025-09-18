@@ -3,9 +3,11 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabaseBrowser } from "@/lib/supabase/client";
+import { syncSessionAcrossDomains, hasStoredSession, clearStoredSession } from "@/lib/auth/session-sync";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { MessageSquare, Users, Settings, CreditCard } from "lucide-react";
+import SessionDebug from "@/components/debug/session-debug";
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -16,13 +18,31 @@ export default function DashboardPage() {
   useEffect(() => {
     const checkAuth = async () => {
       try {
+        // D'abord synchroniser la session entre domaines
+        await syncSessionAcrossDomains();
+        
         const supabase = supabaseBrowser();
         const { data: { session }, error } = await supabase.auth.getSession();
         
         if (error || !session) {
-          // Rediriger vers la page de connexion
-          window.location.href = '/sign-in';
-          return;
+          // Vérifier s'il y a une session stockée
+          if (hasStoredSession()) {
+            // Attendre un peu et réessayer
+            setTimeout(async () => {
+              const { data: { session: retrySession } } = await supabase.auth.getSession();
+              if (retrySession?.user) {
+                setUser(retrySession.user);
+                setLoading(false);
+              } else {
+                window.location.href = '/sign-in';
+              }
+            }, 1000);
+            return;
+          } else {
+            // Rediriger vers la page de connexion
+            window.location.href = '/sign-in';
+            return;
+          }
         }
 
         setUser(session.user);
@@ -83,6 +103,8 @@ export default function DashboardPage() {
             onClick={async () => {
               const supabase = supabaseBrowser();
               await supabase.auth.signOut();
+              // Nettoyer la session stockée
+              clearStoredSession();
               window.location.href = '/';
             }}
             variant="outline"
@@ -165,6 +187,11 @@ export default function DashboardPage() {
             </div>
           </CardContent>
         </Card>
+
+        {/* Debug Session - À supprimer en production */}
+        <div className="mt-8">
+          <SessionDebug />
+        </div>
       </div>
     </div>
   );

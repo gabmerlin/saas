@@ -9,6 +9,7 @@ import { Separator } from "@/components/ui/separator";
 import { Eye, EyeOff, Mail, Lock, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
 import { supabaseBrowser } from "@/lib/supabase/client";
+import { syncSessionAcrossDomains } from "@/lib/auth/session-sync";
 
 type Props = { next?: string; invitation?: string | null };
 
@@ -63,6 +64,9 @@ export default function SignInForm({ next, invitation }: Props) {
           toast.error("Erreur lors de l'acceptation de l'invitation");
         }
       }
+      
+      // Synchroniser la session et rediriger
+      await syncSessionAcrossDomains();
       
       // Redirection vers la page d'accueil après connexion réussie
       // Attendre un peu pour que la session soit bien persistée

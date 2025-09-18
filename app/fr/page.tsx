@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import { usePageTitle } from "@/lib/hooks/use-page-title";
 import { supabaseBrowser } from "@/lib/supabase/client";
+import { syncSessionAcrossDomains, clearStoredSession } from "@/lib/auth/session-sync";
 
 export default function FrenchHomePage() {
   const router = useRouter();
@@ -31,6 +32,9 @@ export default function FrenchHomePage() {
   useEffect(() => {
     const checkAuth = async () => {
       try {
+        // Synchroniser la session entre domaines
+        await syncSessionAcrossDomains();
+        
         const supabase = supabaseBrowser();
         
         // Récupérer la session actuelle
@@ -162,6 +166,8 @@ export default function FrenchHomePage() {
                       // Déconnexion
                       const supabase = supabaseBrowser();
                       await supabase.auth.signOut();
+                      // Nettoyer la session stockée
+                      clearStoredSession();
                       // L'état sera mis à jour automatiquement via onAuthStateChange
                     }}
                     variant="ghost" 

@@ -13,7 +13,29 @@ export const supabaseBrowser = () => {
           detectSessionInUrl: true,
           persistSession: true,
           autoRefreshToken: true,
-          flowType: 'pkce'
+          flowType: 'pkce',
+          // Configuration pour partager les cookies entre domaines et sous-domaines
+          storage: {
+            getItem: (key: string) => {
+              if (typeof window !== 'undefined') {
+                return localStorage.getItem(key);
+              }
+              return null;
+            },
+            setItem: (key: string, value: string) => {
+              if (typeof window !== 'undefined') {
+                localStorage.setItem(key, value);
+                // Aussi stocker dans sessionStorage pour la persistance
+                sessionStorage.setItem(key, value);
+              }
+            },
+            removeItem: (key: string) => {
+              if (typeof window !== 'undefined') {
+                localStorage.removeItem(key);
+                sessionStorage.removeItem(key);
+              }
+            }
+          }
         }
       }
     );
