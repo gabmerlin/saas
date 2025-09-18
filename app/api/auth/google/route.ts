@@ -30,8 +30,6 @@ export async function GET(request: NextRequest) {
         redirectTo: `${request.nextUrl.origin}/auth/callback?next=${encodeURIComponent(redirectTo)}`,
         queryParams: {
           ...CUSTOM_AUTH_CONFIG.OAUTH_PARAMS,
-          // Ajouter des paramètres supplémentaires pour personnaliser l'affichage
-          login_hint: '', // Peut être utilisé pour suggérer un email
         },
       },
     });

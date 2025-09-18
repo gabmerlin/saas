@@ -16,8 +16,6 @@ export const CUSTOM_AUTH_CONFIG = {
   
   // Paramètres OAuth personnalisés
   OAUTH_PARAMS: {
-    // Forcer l'utilisation du domaine suggéré
-    hd: 'qgchatting.com',
     // Inclure les scopes accordés
     include_granted_scopes: 'true',
     // Type d'accès
@@ -38,7 +36,6 @@ export function generateCustomGoogleAuthUrl(redirectTo: string, baseUrl: string)
     scope: 'email profile',
     access_type: CUSTOM_AUTH_CONFIG.OAUTH_PARAMS.access_type,
     prompt: CUSTOM_AUTH_CONFIG.OAUTH_PARAMS.prompt,
-    hd: CUSTOM_AUTH_CONFIG.OAUTH_PARAMS.hd,
     include_granted_scopes: CUSTOM_AUTH_CONFIG.OAUTH_PARAMS.include_granted_scopes,
   });
 
