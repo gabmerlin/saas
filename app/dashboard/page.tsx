@@ -26,9 +26,42 @@ export default function DirectDashboardPage() {
         
         console.log('🔍 [DASHBOARD] Vérification du domaine:', { hostname, subdomain });
         
-        // Si on est sur le domaine principal (sans sous-domaine), afficher la page d'accueil
+        // Si on est sur le domaine principal (sans sous-domaine), vérifier l'authentification
         if (!subdomain || subdomain === 'www' || subdomain === 'qgchatting' || subdomain === 'localhost') {
-          console.log('✅ [DASHBOARD] Domaine principal détecté - Affichage de la page d\'accueil');
+          console.log('✅ [DASHBOARD] Domaine principal détecté - Vérification de l\'authentification');
+          
+          // Vérifier l'authentification sur le domaine principal
+          const supabase = supabaseBrowser();
+          const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+          
+          console.log('📋 [DASHBOARD] Session sur domaine principal:', { 
+            hasSession: !!session, 
+            hasUser: !!session?.user,
+            userEmail: session?.user?.email,
+            error: sessionError 
+          });
+          
+          if (session?.user) {
+            setUser(session.user);
+            
+            // Vérifier si l'utilisateur a une agence
+            try {
+              const agencyResponse = await fetch('/api/auth/check-existing-agency', {
+                headers: {
+                  'Authorization': `Bearer ${session.access_token}`,
+                  'x-session-token': session.access_token
+                }
+              });
+              
+              const agencyData = await agencyResponse.json();
+              if (agencyData.ok && agencyData.hasExistingAgency) {
+                setAgencyInfo(agencyData.agency);
+              }
+            } catch (agencyError) {
+              console.error('Erreur lors de la vérification de l\'agence:', agencyError);
+            }
+          }
+          
           setLoading(false);
           return;
         }
@@ -209,12 +242,62 @@ export default function DirectDashboardPage() {
               </div>
               
               <div className="flex items-center space-x-4">
-                <Button 
-                  onClick={() => window.location.href = '/sign-in'}
-                  className="bg-blue-600 hover:bg-blue-700 text-white"
-                >
-                  Se connecter
-                </Button>
+                {user ? (
+                  <div className="flex items-center space-x-4 bg-white/80 backdrop-blur-sm rounded-lg px-4 py-3 shadow-sm border border-white/20">
+                    <div className="flex flex-col items-end">
+                      <span className="text-sm text-gray-600">
+                        <strong>{user.email}</strong>
+                      </span>
+                      {agencyInfo && (
+                        <span className="text-xs text-gray-500">
+                          {agencyInfo.name}
+                        </span>
+                      )}
+                    </div>
+                    <Button 
+                      onClick={async () => {
+                        const supabase = supabaseBrowser();
+                        await supabase.auth.signOut();
+                        clearStoredSession();
+                        window.location.reload();
+                      }}
+                      variant="ghost" 
+                      size="sm"
+                      className="text-gray-500 hover:text-red-600"
+                    >
+                      Se déconnecter
+                    </Button>
+                    {agencyInfo ? (
+                      <Button 
+                        onClick={() => {
+                          // Rediriger vers l'agence
+                          const subdomain = agencyInfo.subdomain;
+                          const baseUrl = process.env.NODE_ENV === 'production' 
+                            ? `https://${subdomain}.qgchatting.com`
+                            : `http://${subdomain}.localhost:3000`;
+                          window.location.href = `${baseUrl}/dashboard`;
+                        }}
+                        className="bg-blue-600 hover:bg-blue-700 text-white"
+                      >
+                        Mon agence
+                      </Button>
+                    ) : (
+                      <Button 
+                        onClick={() => window.location.href = '/fr/owner'}
+                        className="bg-blue-600 hover:bg-blue-700 text-white"
+                      >
+                        Créer une agence
+                      </Button>
+                    )}
+                  </div>
+                ) : (
+                  <Button 
+                    onClick={() => window.location.href = '/sign-in'}
+                    className="bg-blue-600 hover:bg-blue-700 text-white"
+                  >
+                    Se connecter
+                  </Button>
+                )}
               </div>
             </div>
 
@@ -231,13 +314,40 @@ export default function DirectDashboardPage() {
               </p>
               
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                <Button 
-                  size="lg" 
-                  className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-4 text-lg"
-                  onClick={() => window.location.href = '/sign-in'}
-                >
-                  Commencer gratuitement
-                </Button>
+                {user ? (
+                  agencyInfo ? (
+                    <Button 
+                      size="lg" 
+                      className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-4 text-lg"
+                      onClick={() => {
+                        // Rediriger vers l'agence
+                        const subdomain = agencyInfo.subdomain;
+                        const baseUrl = process.env.NODE_ENV === 'production' 
+                          ? `https://${subdomain}.qgchatting.com`
+                          : `http://${subdomain}.localhost:3000`;
+                        window.location.href = `${baseUrl}/dashboard`;
+                      }}
+                    >
+                      Accéder à mon agence
+                    </Button>
+                  ) : (
+                    <Button 
+                      size="lg" 
+                      className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-4 text-lg"
+                      onClick={() => window.location.href = '/fr/owner'}
+                    >
+                      Créer une agence
+                    </Button>
+                  )
+                ) : (
+                  <Button 
+                    size="lg" 
+                    className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-4 text-lg"
+                    onClick={() => window.location.href = '/sign-in'}
+                  >
+                    Commencer gratuitement
+                  </Button>
+                )}
                 
                 <Button 
                   size="lg" 
