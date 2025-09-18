@@ -86,9 +86,8 @@ export default function AgencyDashboard() {
         const data = await response.json();
         
         if (data.ok) {
-          // Rediriger automatiquement vers le dashboard au lieu d'afficher le contenu
-          window.location.href = '/dashboard';
-          return;
+          setAgencyInfo(data.status.agency);
+          // Ne pas rediriger automatiquement - laisser l'utilisateur voir le contenu
         } else {
           setError(data.error || 'Erreur lors du chargement des informations');
         }

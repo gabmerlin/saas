@@ -46,12 +46,8 @@ export async function middleware(req: NextRequest) {
   const sub = extractSubdomain(host, root)
   
   if (sub) {
-    // Rediriger automatiquement vers le dashboard sur les sous-domaines
-    if (pathname === '/' || pathname === '/fr') {
-      const url = req.nextUrl.clone()
-      url.pathname = '/dashboard'
-      return NextResponse.redirect(url)
-    }
+    // Ne pas rediriger automatiquement - laisser les pages gérer leur propre logique
+    // Les pages peuvent décider si elles veulent rediriger ou afficher du contenu
     
     // Vérifier si l'abonnement est expiré
     try {
