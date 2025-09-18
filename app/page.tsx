@@ -34,8 +34,8 @@ export default function HomePage() {
     const isSubdomain = host.includes('.') && !host.startsWith('www.') && !host.includes('localhost');
     
     if (isSubdomain) {
-      // Si on est sur un subdomain, rediriger vers la page locale
-      window.location.href = '/fr';
+      // Si on est sur un subdomain, rester sur la page d'accueil du subdomain
+      // Ne pas rediriger pour éviter les boucles
       return;
     }
 
@@ -115,7 +115,7 @@ export default function HomePage() {
             
             <div className="flex items-center space-x-4">
               {isLoggedIn ? (
-                <div className="flex items-center space-x-4">
+              <div className="flex items-center space-x-4">
                   {userAgency && (
                     <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
                       <Building2 className="w-3 h-3 mr-1" />
@@ -143,8 +143,8 @@ export default function HomePage() {
                 </div>
               )}
             </div>
-          </div>
-        </div>
+                </div>
+              </div>
       </header>
 
       {/* Hero Section */}
@@ -225,7 +225,7 @@ export default function HomePage() {
               <CardHeader>
                 <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center mb-4">
                   <Zap className="w-6 h-6 text-purple-600" />
-                </div>
+              </div>
                 <CardTitle className="text-xl">Performance optimisée</CardTitle>
                 <CardDescription>
                   Interface rapide et intuitive pour une productivité maximale
@@ -261,7 +261,7 @@ export default function HomePage() {
               <CardHeader>
                 <div className="w-12 h-12 bg-indigo-100 rounded-lg flex items-center justify-center mb-4">
                   <Lock className="w-6 h-6 text-indigo-600" />
-                </div>
+              </div>
                 <CardTitle className="text-xl">Confidentialité totale</CardTitle>
                 <CardDescription>
                   Vos données restent privées et ne sont jamais partagées avec des tiers
@@ -291,8 +291,8 @@ export default function HomePage() {
               {isLoggedIn ? (userAgency ? 'Accéder à mon agence' : 'Créer une agence') : 'Commencer maintenant'}
               <ArrowRight className="w-5 h-5 ml-2" />
             </Button>
-          </div>
-        </div>
+                    </div>
+                  </div>
       </section>
 
       {/* Footer */}
@@ -314,6 +314,6 @@ export default function HomePage() {
           </div>
         </div>
       </footer>
-    </div>
+      </div>
   );
 }

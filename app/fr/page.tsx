@@ -34,8 +34,8 @@ export default function FrenchHomePage() {
     const isSubdomain = host.includes('.') && !host.startsWith('www.') && !host.includes('localhost');
     
     if (isSubdomain) {
-      // Si on est sur un subdomain, rediriger vers la page locale du subdomain
-      window.location.href = '/fr';
+      // Si on est sur un subdomain, rediriger vers la page d'accueil du subdomain
+      window.location.href = '/';
       return;
     }
 

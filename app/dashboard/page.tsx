@@ -7,8 +7,17 @@ export default function DashboardRedirect() {
   const router = useRouter();
 
   useEffect(() => {
-    // Rediriger vers la page locale du subdomain
-    router.replace('/fr');
+    // Vérifier si on est sur un subdomain
+    const host = window.location.host;
+    const isSubdomain = host.includes('.') && !host.startsWith('www.') && !host.includes('localhost');
+    
+    if (isSubdomain) {
+      // Sur un subdomain, rediriger vers la page d'accueil du subdomain
+      router.replace('/');
+    } else {
+      // Sur le domaine principal, rediriger vers la page d'accueil
+      router.replace('/fr');
+    }
   }, [router]);
 
   return (
