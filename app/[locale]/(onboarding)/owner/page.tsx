@@ -3239,7 +3239,7 @@ export default function OwnerOnboardingPage() {
         selectedPlan={selectedPlan}
         onPaymentSuccess={(transactionId) => {
           setShowPaymentPopup(false);
-          // Rediriger vers le dashboard après paiement réussi
+          // Rediriger vers le dashboard de l'agence après paiement réussi
           const target = `https://${basic.subdomain}.${ROOT_DOMAIN}/dashboard`;
           window.location.href = target;
         }}

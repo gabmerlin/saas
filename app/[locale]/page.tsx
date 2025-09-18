@@ -65,8 +65,8 @@ export default function AgencyDashboard() {
         const { data: { session }, error: sessionError } = await supabaseBrowser().auth.getSession();
         
         if (sessionError || !session) {
-          setError('Non authentifié');
-          setLoading(false);
+          // Rediriger vers la page de connexion au lieu d'afficher une erreur
+          window.location.href = '/sign-in';
           return;
         }
 
@@ -76,8 +76,8 @@ export default function AgencyDashboard() {
         const subdomain = hostname.split('.')[0];
         
         if (!subdomain || subdomain === 'www' || subdomain === 'qgchatting') {
-          setError('Subdomain requis pour accéder au tableau de bord');
-          setLoading(false);
+          // Rediriger vers la page d'accueil publique si pas de subdomain valide
+          window.location.href = '/';
           return;
         }
 
