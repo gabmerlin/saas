@@ -16,6 +16,13 @@ export default function DashboardPage() {
   const [user, setUser] = useState<any>(null);
   const [agencyInfo, setAgencyInfo] = useState<any>(null);
 
+  // Rediriger automatiquement vers la page de connexion si pas de session
+  useEffect(() => {
+    if (!user && !loading) {
+      window.location.href = '/sign-in?next=/dashboard';
+    }
+  }, [user, loading]);
+
   useEffect(() => {
     const checkAuth = async () => {
       try {
@@ -141,20 +148,20 @@ export default function DashboardPage() {
           <div className="w-16 h-16 bg-blue-600 rounded-full flex items-center justify-center mx-auto mb-6">
             <MessageSquare className="w-8 h-8 text-white" />
           </div>
-          <h1 className="text-2xl font-bold text-gray-900 mb-4">Connexion requise</h1>
+          <h1 className="text-2xl font-bold text-gray-900 mb-4">Redirection en cours...</h1>
           <p className="text-gray-600 mb-8">
-            Vous devez être connecté pour accéder au tableau de bord de votre agence.
+            Vous allez être redirigé vers la page de connexion.
           </p>
           <div className="space-y-3">
             <Button 
               onClick={() => window.location.href = '/sign-in?next=/dashboard'}
               className="w-full bg-blue-600 hover:bg-blue-700 text-white"
             >
-              Se connecter
+              Se connecter maintenant
             </Button>
             <Button 
               variant="outline" 
-              onClick={() => window.location.href = '/fr'}
+              onClick={() => window.location.href = '/'}
               className="w-full"
             >
               Retour à l'accueil

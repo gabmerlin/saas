@@ -147,24 +147,20 @@ export default function AgencyDashboard() {
               </div>
               <div>
                 <h1 className="text-2xl font-bold text-gray-900">QG Chatting</h1>
-                <p className="text-sm text-gray-600">{agencyInfo?.name}</p>
+                <p className="text-sm text-gray-600">{agencyInfo?.name || 'Agence'}</p>
               </div>
             </div>
             
             <div className="flex items-center space-x-4">
               <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
                 <Building2 className="w-3 h-3 mr-1" />
-                {agencyInfo?.subdomain}.qgchatting.com
+                {agencyInfo?.subdomain || 'sous-domaine'}.qgchatting.com
               </Badge>
               <Button 
-                onClick={() => {
-                  supabaseBrowser().auth.signOut().then(() => {
-                    window.location.href = 'https://qgchatting.com/fr';
-                  });
-                }}
-                variant="ghost"
+                onClick={() => window.location.href = '/sign-in?next=/dashboard'}
+                className="bg-blue-600 hover:bg-blue-700 text-white"
               >
-                Se déconnecter
+                Se connecter
               </Button>
             </div>
           </div>
@@ -197,13 +193,28 @@ export default function AgencyDashboard() {
         )}
 
         {/* Welcome Section */}
-        <div className="mb-8">
+        <div className="mb-8 text-center">
           <h2 className="text-3xl font-bold text-gray-900 mb-2">
             Bienvenue dans votre agence
           </h2>
-          <p className="text-gray-600">
+          <p className="text-gray-600 mb-6">
             Gérez votre équipe, surveillez les performances et configurez vos paramètres.
           </p>
+          <div className="flex justify-center space-x-4">
+            <Button 
+              onClick={() => window.location.href = '/sign-in?next=/dashboard'}
+              className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3"
+            >
+              Accéder au tableau de bord
+            </Button>
+            <Button 
+              onClick={() => window.location.href = '/sign-in?next=/dashboard'}
+              variant="outline"
+              className="px-8 py-3"
+            >
+              Se connecter
+            </Button>
+          </div>
         </div>
 
         {/* Dashboard Grid */}
