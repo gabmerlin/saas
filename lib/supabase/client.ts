@@ -10,12 +10,10 @@ export const supabaseBrowser = () => {
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
       {
         auth: {
-          // Permettre le partage des cookies entre domaines
           detectSessionInUrl: true,
           persistSession: true,
           autoRefreshToken: true,
-          // Utiliser l'authentification standard au lieu de PKCE
-          flowType: 'implicit'
+          flowType: 'pkce'
         }
       }
     );

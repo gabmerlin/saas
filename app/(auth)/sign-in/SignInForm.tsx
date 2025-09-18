@@ -9,6 +9,7 @@ import { Separator } from "@/components/ui/separator";
 import { Eye, EyeOff, Mail, Lock, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
 import { redirectAfterLogin } from "@/lib/auth/agency-redirect";
+import { supabaseBrowser } from "@/lib/supabase/client";
 
 type Props = { next: string; invitation?: string | null };
 
@@ -78,8 +79,17 @@ export default function SignInForm({ next, invitation }: Props) {
 
   async function handleGoogleSignIn() {
     try {
-      // Utiliser notre endpoint personnalisé pour l'authentification Google
-      window.location.href = `/api/auth/google?redirectTo=${encodeURIComponent(next || '/dashboard')}`;
+      // Utiliser l'authentification Google standard de Supabase
+      const { error } = await supabaseBrowser().auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(next || '/dashboard')}`
+        }
+      });
+      
+      if (error) {
+        throw error;
+      }
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : "Échec de connexion Google";
       setMsg(errorMessage);
