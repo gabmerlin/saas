@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, CreditCard, Loader2, CheckCircle, AlertCircle, Bitcoin, DollarSign } from "lucide-react";
+import { X, CreditCard, Loader2, CheckCircle, AlertCircle, Bitcoin } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
@@ -37,20 +37,6 @@ const paymentMethods: PaymentMethod[] = [
     name: "Bitcoin",
     icon: <Bitcoin className="w-5 h-5" />,
     description: "Paiement en Bitcoin",
-    enabled: true
-  },
-  {
-    id: "usdt",
-    name: "USDT",
-    icon: <DollarSign className="w-5 h-5" />,
-    description: "Paiement en USDT",
-    enabled: true
-  },
-  {
-    id: "usdc",
-    name: "USDC",
-    icon: <DollarSign className="w-5 h-5" />,
-    description: "Paiement en USDC",
     enabled: true
   }
 ];
@@ -175,6 +161,27 @@ export default function BTCPayPopup({
 
         if (data.status === "paid") {
           setPaymentStatus("success");
+          try {
+            const activateResponse = await fetch("/api/btcpay/check-and-activate", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                "Authorization": `Bearer ${session.access_token}`,
+                "x-session-token": session.access_token,
+              },
+              body: JSON.stringify({
+                tenantId: tenantId
+              })
+            });
+            const activateData = await activateResponse.json();
+            if (activateData.ok) {
+              console.log("Agence activée avec succès:", activateData.message);
+            } else {
+              console.error("Erreur lors de l'activation de l'agence:", activateData.error);
+            }
+          } catch (activationError) {
+            console.error("Erreur lors de l'activation de l'agence:", activationError);
+          }
           onPaymentSuccess(data.transactionId);
           return;
         }

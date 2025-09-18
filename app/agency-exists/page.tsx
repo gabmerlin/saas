@@ -17,6 +17,12 @@ export default function AgencyExistsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [countdown, setCountdown] = useState(5);
+  const [paymentStatus, setPaymentStatus] = useState<{
+    is_paid: boolean;
+    is_accessible: boolean;
+    payment_status: string;
+    ready: boolean;
+  } | null>(null);
   
   // Définir le titre de la page
   usePageTitle("Agence existante - QG Chatting");
@@ -49,6 +55,19 @@ export default function AgencyExistsPage() {
             subdomain: result.agency.subdomain,
             url: result.agency.url
           });
+
+          // Vérifier le statut de paiement de l'agence
+          const statusResponse = await fetch(`/api/agency/status?subdomain=${result.agency.subdomain}`);
+          const statusResult = await statusResponse.json();
+          
+          if (statusResult.ok) {
+            setPaymentStatus({
+              is_paid: statusResult.is_paid,
+              is_accessible: statusResult.is_accessible,
+              payment_status: statusResult.payment_status,
+              ready: statusResult.ready
+            });
+          }
         } else {
           // Pas d'agence existante, rediriger vers l'onboarding
           router.push('/fr/owner');
@@ -69,17 +88,17 @@ export default function AgencyExistsPage() {
     }
   };
 
-  // Compte à rebours pour la redirection automatique
+  // Compte à rebours pour la redirection automatique (seulement si accessible)
   useEffect(() => {
-    if (agencyInfo?.url && countdown > 0) {
+    if (agencyInfo?.url && paymentStatus?.is_accessible && countdown > 0) {
       const timer = setTimeout(() => {
         setCountdown(countdown - 1);
       }, 1000);
       return () => clearTimeout(timer);
-    } else if (agencyInfo?.url && countdown === 0) {
+    } else if (agencyInfo?.url && paymentStatus?.is_accessible && countdown === 0) {
       handleRedirectToAgency();
     }
-  }, [agencyInfo, countdown, handleRedirectToAgency]);
+  }, [agencyInfo, paymentStatus, countdown, handleRedirectToAgency]);
 
   if (loading) {
     return (
@@ -205,17 +224,34 @@ export default function AgencyExistsPage() {
                   </code>
                 </div>
 
-                <button
-                  onClick={handleRedirectToAgency}
-                  className="w-full bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg transition-colors flex items-center justify-center font-semibold"
-                >
-                  Accéder à mon agence
-                  <ArrowRight className="h-4 w-4 ml-2" />
-                </button>
-                
-                <p className="text-xs text-gray-500 mt-4">
-                  Redirection automatique dans {countdown} seconde{countdown > 1 ? 's' : ''}...
-                </p>
+                {paymentStatus?.is_accessible ? (
+                  <>
+                    <button
+                      onClick={handleRedirectToAgency}
+                      className="w-full bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg transition-colors flex items-center justify-center font-semibold"
+                    >
+                      Accéder à mon agence
+                      <ArrowRight className="h-4 w-4 ml-2" />
+                    </button>
+                    
+                    <p className="text-xs text-gray-500 mt-4">
+                      Redirection automatique dans {countdown} seconde{countdown > 1 ? 's' : ''}...
+                    </p>
+                  </>
+                ) : (
+                  <div className="text-center">
+                    <p className="text-gray-600 mb-4">
+                      Veuillez effectuer le paiement pour accéder à votre agence.
+                    </p>
+                    <button
+                      onClick={() => router.push('/fr/owner')}
+                      className="w-full bg-orange-600 hover:bg-orange-700 text-white px-6 py-3 rounded-lg transition-colors flex items-center justify-center font-semibold"
+                    >
+                      Retour à l&apos;onboarding
+                      <ArrowRight className="h-4 w-4 ml-2" />
+                    </button>
+                  </div>
+                )}
               </div>
             </motion.div>
           </div>
