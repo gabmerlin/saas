@@ -18,15 +18,22 @@ import {
   Lock
 } from "lucide-react";
 import { usePageTitle } from "@/lib/hooks/use-page-title";
+import { useSubscriptionStatus } from "@/lib/hooks/use-subscription-status";
+import SubscriptionNotification from "@/components/subscription/subscription-notification";
 
 export default function HomePage() {
   const router = useRouter();
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [userAgency, setUserAgency] = useState<{name: string; subdomain: string} | null>(null);
   const [loading, setLoading] = useState(true);
+  const [showNotification, setShowNotification] = useState(false);
+  const [isDismissed, setIsDismissed] = useState(false);
 
   // Définir le titre de la page
   usePageTitle("QG Chatting - Solution de communication d'entreprise");
+
+  // Hook pour le statut d'abonnement (seulement si on est sur un subdomain)
+  const { subscription, userRole, loading: subscriptionLoading } = useSubscriptionStatus();
 
   useEffect(() => {
     // Vérifier si on est sur un subdomain
@@ -70,6 +77,18 @@ export default function HomePage() {
     checkAuth();
   }, []);
 
+  // Gérer l'affichage de la notification d'abonnement
+  useEffect(() => {
+    if (subscription && !subscriptionLoading) {
+      const host = window.location.host;
+      const isSubdomain = host.includes('.') && !host.startsWith('www.') && !host.includes('localhost');
+      
+      if (isSubdomain && subscription.is_expiring_soon && userRole !== 'employee' && !isDismissed) {
+        setShowNotification(true);
+      }
+    }
+  }, [subscription, subscriptionLoading, userRole, isDismissed]);
+
   const handleGetStarted = () => {
     if (isLoggedIn) {
       if (userAgency) {
@@ -89,6 +108,15 @@ export default function HomePage() {
     }
   };
 
+  const handleDismissNotification = () => {
+    setShowNotification(false);
+    setIsDismissed(true);
+  };
+
+  const handleRenewSubscription = () => {
+    window.location.href = '/subscription-renewal';
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 flex items-center justify-center">
@@ -102,20 +130,30 @@ export default function HomePage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100">
-      {/* Header */}
-      <header className="bg-white/80 backdrop-blur-sm border-b border-white/20">
+      {/* Notification d'abonnement */}
+      {showNotification && subscription && (
+        <SubscriptionNotification
+          subscription={subscription}
+          userRole={userRole || 'employee'}
+          onRenew={handleRenewSubscription}
+          onDismiss={handleDismissNotification}
+        />
+      )}
+
+      {/* Navigation simple */}
+      <nav className="bg-white/80 backdrop-blur-sm border-b border-white/20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center py-6">
+          <div className="flex justify-between items-center py-4">
             <div className="flex items-center space-x-3">
-              <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
-                <MessageSquare className="w-6 h-6 text-white" />
+              <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
+                <MessageSquare className="w-5 h-5 text-white" />
               </div>
-              <h1 className="text-2xl font-bold text-gray-900">QG Chatting</h1>
+              <h1 className="text-xl font-bold text-gray-900">QG Chatting</h1>
             </div>
             
             <div className="flex items-center space-x-4">
               {isLoggedIn ? (
-              <div className="flex items-center space-x-4">
+                <div className="flex items-center space-x-4">
                   {userAgency && (
                     <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
                       <Building2 className="w-3 h-3 mr-1" />
@@ -143,9 +181,9 @@ export default function HomePage() {
                 </div>
               )}
             </div>
-                </div>
-              </div>
-      </header>
+          </div>
+        </div>
+      </nav>
 
       {/* Hero Section */}
       <section className="py-20">
