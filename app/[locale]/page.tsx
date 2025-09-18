@@ -187,44 +187,39 @@ export default function SubdomainHomePage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <div className="bg-white shadow-sm border-b">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center py-6">
-            <div className="flex items-center space-x-3">
-              <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
-                <Building2 className="w-6 h-6 text-white" />
-              </div>
-              <div>
-                <h1 className="text-2xl font-bold text-gray-900">
-                  {agencyInfo?.name || 'Tableau de bord'}
-                </h1>
-                <p className="text-sm text-gray-500">
-                  {agencyInfo?.subdomain && `${agencyInfo.subdomain}.qgchatting.com`}
-                </p>
-              </div>
-            </div>
-            
-            <div className="flex items-center space-x-4">
-              <Badge 
-                variant="outline" 
-                className={`${subscriptionStatus.color} text-white border-0`}
-              >
-                <StatusIcon className="w-3 h-3 mr-1" />
-                {subscriptionStatus.message}
-              </Badge>
-              
-              <Button variant="outline" size="sm">
-                <Settings className="w-4 h-4 mr-2" />
-                Paramètres
-              </Button>
-            </div>
-          </div>
-        </div>
-      </div>
-
       {/* Main Content */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Informations de connexion intégrées */}
+        <div className="flex justify-between items-center mb-8">
+          <div className="flex items-center space-x-3">
+            <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
+              <Building2 className="w-6 h-6 text-white" />
+            </div>
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900">
+                {agencyInfo?.name || 'Tableau de bord'}
+              </h1>
+              <p className="text-sm text-gray-500">
+                {agencyInfo?.subdomain && `${agencyInfo.subdomain}.qgchatting.com`}
+              </p>
+            </div>
+          </div>
+          
+          <div className="flex items-center space-x-4">
+            <Badge 
+              variant="outline" 
+              className={`${subscriptionStatus.color} text-white border-0`}
+            >
+              <StatusIcon className="w-3 h-3 mr-1" />
+              {subscriptionStatus.message}
+            </Badge>
+            
+            <Button variant="outline" size="sm">
+              <Settings className="w-4 h-4 mr-2" />
+              Paramètres
+            </Button>
+          </div>
+        </div>
         {/* Notifications d'abonnement */}
         {subscription && (subscription.is_expiring_soon || subscription.is_expired) && (
           <Alert className="mb-6 border-yellow-200 bg-yellow-50">
