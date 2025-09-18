@@ -36,10 +36,11 @@ export default function FrenchHomePage() {
         const hostname = window.location.hostname;
         const subdomain = hostname.split('.')[0];
         
-        // Si on est sur un sous-domaine, rediriger vers le dashboard
+        // Si on est sur un sous-domaine, ne pas rediriger automatiquement
+        // Laisser l'utilisateur naviguer manuellement vers le dashboard
         if (subdomain && subdomain !== 'www' && subdomain !== 'qgchatting' && subdomain !== 'localhost') {
-          window.location.href = '/dashboard';
-          return;
+          // Afficher un message ou laisser l'utilisateur choisir
+          console.log('Sous-domaine détecté:', subdomain);
         }
         
         // Synchroniser la session entre domaines

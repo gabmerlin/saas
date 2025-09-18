@@ -75,8 +75,9 @@ export default function SignInForm({ next, invitation }: Props) {
         const subdomain = hostname.split('.')[0];
         
         if (subdomain && subdomain !== 'www' && subdomain !== 'qgchatting' && subdomain !== 'localhost') {
-          // Si on est sur un sous-domaine, rediriger vers le dashboard
-          window.location.href = '/dashboard';
+          // Si on est sur un sous-domaine, utiliser le paramètre next ou rediriger vers la page d'accueil du sous-domaine
+          const targetUrl = next || '/';
+          window.location.href = targetUrl;
         } else {
           // Si on est sur le domaine principal, utiliser le paramètre next ou rediriger vers /fr
           const targetUrl = next && next !== '/dashboard' ? next : '/fr';
