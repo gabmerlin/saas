@@ -6,6 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { MessageSquare, Users, Settings, CreditCard, Shield, Zap } from "lucide-react";
 import { supabaseBrowser } from "@/lib/supabase/client";
 import { syncSessionAcrossDomains, clearStoredSession } from "@/lib/auth/session-sync";
+import { syncSessionToSubdomain } from "@/lib/auth/cross-domain-session";
 
 export default function HomePage() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -96,12 +97,21 @@ export default function HomePage() {
   const handleGetStarted = async () => {
     if (isLoggedIn) {
       if (userAgency) {
-        // Rediriger vers l'agence
-        const subdomain = userAgency.subdomain;
-        const baseUrl = process.env.NODE_ENV === 'production' 
-          ? `https://${subdomain}.qgchatting.com`
-          : `http://${subdomain}.localhost:3000`;
-        window.location.href = `${baseUrl}/dashboard`;
+        // Récupérer la session actuelle
+        const supabase = supabaseBrowser();
+        const { data: { session } } = await supabase.auth.getSession();
+        
+        if (session) {
+          // Synchroniser la session vers le sous-domaine
+          await syncSessionToSubdomain(userAgency.subdomain, session);
+        } else {
+          // Fallback : redirection simple
+          const subdomain = userAgency.subdomain;
+          const baseUrl = process.env.NODE_ENV === 'production' 
+            ? `https://${subdomain}.qgchatting.com`
+            : `http://${subdomain}.localhost:3000`;
+          window.location.href = `${baseUrl}/dashboard`;
+        }
       } else {
         // Rediriger vers l'onboarding
         window.location.href = '/fr/owner';

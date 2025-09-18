@@ -48,9 +48,32 @@ function AuthCallbackContent() {
           localStorage.setItem('supabase-session', JSON.stringify(sessionData));
           sessionStorage.setItem('supabase-session', JSON.stringify(sessionData));
           
-          // Redirection simple et directe
-          setTimeout(() => {
-            window.location.href = next || '/fr';
+          // Vérifier si l'utilisateur a une agence et rediriger en conséquence
+          setTimeout(async () => {
+            try {
+              const agencyResponse = await fetch('/api/auth/check-existing-agency', {
+                headers: {
+                  'Authorization': `Bearer ${session.access_token}`,
+                  'x-session-token': session.access_token
+                }
+              });
+              
+              const agencyData = await agencyResponse.json();
+              if (agencyData.ok && agencyData.hasExistingAgency) {
+                // Rediriger vers l'agence
+                const subdomain = agencyData.agency.subdomain;
+                const baseUrl = process.env.NODE_ENV === 'production' 
+                  ? `https://${subdomain}.qgchatting.com`
+                  : `http://${subdomain}.localhost:3000`;
+                window.location.href = `${baseUrl}/dashboard`;
+                return;
+              }
+            } catch (agencyError) {
+              console.error('Erreur lors de la vérification de l\'agence:', agencyError);
+            }
+            
+            // Sinon, rediriger vers la page d'accueil
+            window.location.href = next || '/home';
           }, 1500);
         } else {
           setStatus('Aucune session trouvée');

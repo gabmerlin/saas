@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { supabaseBrowser } from "@/lib/supabase/client";
 import { syncSessionAcrossDomains, hasStoredSession, clearStoredSession } from "@/lib/auth/session-sync";
 import { forceSessionSyncFromUrl } from "@/lib/auth/force-session-sync";
+import { getSessionFromUrl, getStoredSession, storeSession } from "@/lib/auth/cross-domain-session";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { MessageSquare, Users, Settings, CreditCard, Shield, Zap } from "lucide-react";
@@ -35,19 +36,47 @@ export default function DirectDashboardPage() {
         
         console.log('✅ [DASHBOARD] Sous-domaine détecté, accès au dashboard de l\'agence');
         
-        // Vérifier manuellement les tokens dans l'URL
-        const urlParams = new URLSearchParams(window.location.search);
-        const accessToken = urlParams.get('access_token');
-        const refreshToken = urlParams.get('refresh_token');
-        
-        console.log('🔍 [DIRECT DASHBOARD] Tokens détectés dans l\'URL:', { 
-          hasAccessToken: !!accessToken, 
-          hasRefreshToken: !!refreshToken 
+        // D'abord essayer de récupérer la session depuis l'URL
+        const urlSession = await getSessionFromUrl();
+        console.log('🔍 [DASHBOARD] Session depuis URL:', { 
+          hasSession: !!urlSession, 
+          hasUser: !!urlSession?.user,
+          userEmail: urlSession?.user?.email 
         });
         
-        // D'abord essayer de forcer la synchronisation depuis l'URL
+        if (urlSession) {
+          console.log('✅ [DASHBOARD] Session récupérée depuis URL avec succès');
+          setUser(urlSession.user);
+          setLoading(false);
+          
+          // Récupérer les informations de l'agence
+          const agencyHostname = window.location.hostname;
+          const agencySubdomain = agencyHostname.split('.')[0];
+          
+          if (agencySubdomain && agencySubdomain !== 'www' && agencySubdomain !== 'qgchatting') {
+            try {
+              console.log('🏢 [DASHBOARD] Récupération des informations de l\'agence pour:', agencySubdomain);
+              const agencyResponse = await fetch(`/api/agency/status?subdomain=${agencySubdomain}`, {
+                headers: {
+                  'Authorization': `Bearer ${urlSession.access_token}`,
+                }
+              });
+              
+              const agencyData = await agencyResponse.json();
+              console.log('🏢 [DASHBOARD] Données de l\'agence:', agencyData);
+              if (agencyData.ok) {
+                setAgencyInfo(agencyData.status.agency);
+              }
+            } catch (agencyError) {
+              console.error('❌ [DASHBOARD] Erreur lors de la vérification de l\'agence:', agencyError);
+            }
+          }
+          return;
+        }
+        
+        // Si pas de session dans l'URL, essayer la synchronisation normale
         const urlSyncSuccess = await forceSessionSyncFromUrl();
-        console.log('🔄 [DIRECT DASHBOARD] Résultat de la synchronisation URL:', urlSyncSuccess);
+        console.log('🔄 [DASHBOARD] Résultat de la synchronisation URL:', urlSyncSuccess);
         
         if (urlSyncSuccess) {
           // Si la synchronisation URL a réussi, récupérer la session

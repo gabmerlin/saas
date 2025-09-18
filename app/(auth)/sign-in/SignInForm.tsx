@@ -85,9 +85,34 @@ export default function SignInForm({ next, invitation }: Props) {
         sessionStorage.setItem('supabase-session', JSON.stringify(sessionData));
       }
       
-      // Redirection simple basée sur le paramètre next
-      setTimeout(() => {
-        const targetUrl = next || '/fr';
+      // Vérifier si l'utilisateur a une agence et rediriger en conséquence
+      setTimeout(async () => {
+        if (session) {
+          try {
+            const agencyResponse = await fetch('/api/auth/check-existing-agency', {
+              headers: {
+                'Authorization': `Bearer ${session.access_token}`,
+                'x-session-token': session.access_token
+              }
+            });
+            
+            const agencyData = await agencyResponse.json();
+            if (agencyData.ok && agencyData.hasExistingAgency) {
+              // Rediriger vers l'agence
+              const subdomain = agencyData.agency.subdomain;
+              const baseUrl = process.env.NODE_ENV === 'production' 
+                ? `https://${subdomain}.qgchatting.com`
+                : `http://${subdomain}.localhost:3000`;
+              window.location.href = `${baseUrl}/dashboard`;
+              return;
+            }
+          } catch (agencyError) {
+            console.error('Erreur lors de la vérification de l\'agence:', agencyError);
+          }
+        }
+        
+        // Sinon, rediriger vers la page d'accueil
+        const targetUrl = next || '/home';
         window.location.href = targetUrl;
       }, 1000);
     } catch (error) {
@@ -105,7 +130,7 @@ export default function SignInForm({ next, invitation }: Props) {
       const { error } = await supabaseBrowser().auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(next || '/fr')}`
+          redirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(next || '/home')}`
         }
       });
       
