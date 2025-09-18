@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { signInWithEmail, signInWithGoogle, resetPassword } from "@/lib/auth/actions";
+import { signInWithEmail, resetPassword } from "@/lib/auth/actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -78,8 +78,8 @@ export default function SignInForm({ next, invitation }: Props) {
 
   async function handleGoogleSignIn() {
     try {
-      await signInWithGoogle();
-      // La redirection sera gérée par le callback OAuth
+      // Utiliser notre endpoint personnalisé pour l'authentification Google
+      window.location.href = `/api/auth/google?redirectTo=${encodeURIComponent(next || '/dashboard')}`;
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : "Échec de connexion Google";
       setMsg(errorMessage);
