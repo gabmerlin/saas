@@ -50,7 +50,7 @@ export function useSubscriptionStatus() {
         const { data: userRoleData, error: roleError } = await supabaseBrowser
           .from('user_roles')
           .select(`
-            roles!inner(key),
+            roles(key),
             tenant_id
           `)
           .eq('user_id', session.user.id)
@@ -70,8 +70,8 @@ export function useSubscriptionStatus() {
         
         setUserRole(role || 'employee');
 
-        // Récupérer les détails de l'abonnement
-        const response = await fetch(`/api/subscription/status?subdomain=${subdomain}`, {
+        // Récupérer les détails de l'abonnement via l'API agency/status
+        const response = await fetch(`/api/agency/status?subdomain=${subdomain}`, {
           headers: {
             'Authorization': `Bearer ${session.access_token}`,
             'x-session-token': session.access_token,
@@ -108,12 +108,17 @@ function getSubdomainFromUrl(): string | null {
   if (typeof window === 'undefined') return null;
   
   const hostname = window.location.hostname;
-  const rootDomain = process.env.NEXT_PUBLIC_ROOT_DOMAIN;
   
-  if (!rootDomain) return null;
+  // Domaines par défaut pour la détection
+  const defaultRoots = ['qgchatting.com', 'localhost:3000', 'vercel.app'];
   
-  if (hostname.endsWith(`.${rootDomain}`)) {
-    return hostname.replace(`.${rootDomain}`, '');
+  for (const root of defaultRoots) {
+    if (hostname.endsWith(`.${root}`)) {
+      const subdomain = hostname.replace(`.${root}`, '');
+      if (subdomain && subdomain !== 'www') {
+        return subdomain;
+      }
+    }
   }
   
   return null;
