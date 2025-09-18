@@ -23,6 +23,16 @@ export default function DashboardPage() {
       try {
         console.log('🔍 Début de la vérification d\'authentification...');
         
+        // Vérifier manuellement les tokens dans l'URL
+        const urlParams = new URLSearchParams(window.location.search);
+        const accessToken = urlParams.get('access_token');
+        const refreshToken = urlParams.get('refresh_token');
+        
+        console.log('🔍 Tokens détectés dans l\'URL:', { 
+          hasAccessToken: !!accessToken, 
+          hasRefreshToken: !!refreshToken 
+        });
+        
         // D'abord essayer de forcer la synchronisation depuis l'URL
         const urlSyncSuccess = await forceSessionSyncFromUrl();
         console.log('🔄 Résultat de la synchronisation URL:', urlSyncSuccess);
@@ -73,30 +83,43 @@ export default function DashboardPage() {
         }
         
         // Si la synchronisation URL a échoué, essayer la synchronisation normale
+        console.log('🔄 Tentative de synchronisation normale...');
         await syncSessionAcrossDomains();
         
         const supabase = supabaseBrowser();
         const { data: { session }, error } = await supabase.auth.getSession();
         
+        console.log('📋 Session après synchronisation normale:', { 
+          hasSession: !!session, 
+          hasUser: !!session?.user,
+          userEmail: session?.user?.email,
+          error 
+        });
+        
         if (error || !session) {
           // Vérifier s'il y a une session stockée
           if (hasStoredSession()) {
+            console.log('💾 Session stockée trouvée, tentative de récupération...');
             // Attendre plus longtemps et réessayer plusieurs fois
             let attempts = 0;
             const maxAttempts = 3;
             
             const retryAuth = async () => {
               attempts++;
+              console.log(`🔄 Tentative ${attempts}/${maxAttempts}...`);
               const { data: { session: retrySession } } = await supabase.auth.getSession();
               
               if (retrySession?.user) {
+                console.log('✅ Session récupérée avec succès !');
                 setUser(retrySession.user);
                 setLoading(false);
               } else if (attempts < maxAttempts) {
                 // Réessayer après un délai plus long
+                console.log('⏳ Réessai dans 2 secondes...');
                 setTimeout(retryAuth, 2000);
               } else {
                 // Après plusieurs tentatives, afficher un message d'erreur au lieu de rediriger
+                console.log('❌ Échec après plusieurs tentatives');
                 setLoading(false);
                 return;
               }
@@ -105,6 +128,7 @@ export default function DashboardPage() {
             setTimeout(retryAuth, 1000);
             return;
           } else {
+            console.log('❌ Aucune session stockée trouvée');
             // Afficher un message d'erreur au lieu de rediriger
             setLoading(false);
             return;
@@ -171,7 +195,19 @@ export default function DashboardPage() {
             </Button>
             <Button 
               variant="outline" 
-              onClick={() => window.location.href = '/'}
+              onClick={() => {
+                // Rediriger vers la page d'accueil du sous-domaine ou du domaine principal
+                const hostname = window.location.hostname;
+                const subdomain = hostname.split('.')[0];
+                
+                if (subdomain && subdomain !== 'www' && subdomain !== 'qgchatting' && subdomain !== 'localhost') {
+                  // Rester sur le sous-domaine
+                  window.location.href = '/';
+                } else {
+                  // Aller au domaine principal
+                  window.location.href = 'https://qgchatting.com/fr';
+                }
+              }}
               className="w-full"
             >
               Retour à l'accueil
