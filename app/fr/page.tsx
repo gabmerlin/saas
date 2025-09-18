@@ -23,6 +23,7 @@ export default function FrenchHomePage() {
   const router = useRouter();
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [userAgency, setUserAgency] = useState<{name: string; subdomain: string} | null>(null);
+  const [userEmail, setUserEmail] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
   // Définir le titre de la page
@@ -46,6 +47,7 @@ export default function FrenchHomePage() {
         
         if (data.ok && data.user) {
           setIsLoggedIn(true);
+          setUserEmail(data.user.email);
           
           // Vérifier si l'utilisateur a une agence
           const agencyResponse = await fetch('/api/auth/check-existing-agency', {
@@ -102,10 +104,11 @@ export default function FrenchHomePage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100">
-      {/* Header */}
-      <header className="bg-white/80 backdrop-blur-sm border-b border-white/20">
+      {/* Hero Section */}
+      <section className="py-20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center py-6">
+          {/* Logo et informations de connexion intégrés */}
+          <div className="flex justify-between items-center mb-16">
             <div className="flex items-center space-x-3">
               <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
                 <MessageSquare className="w-6 h-6 text-white" />
@@ -115,13 +118,35 @@ export default function FrenchHomePage() {
             
             <div className="flex items-center space-x-4">
               {isLoggedIn ? (
-                <div className="flex items-center space-x-4">
+                <div className="flex items-center space-x-4 bg-white/80 backdrop-blur-sm rounded-lg px-4 py-3 shadow-sm border border-white/20">
                   {userAgency && (
                     <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
                       <Building2 className="w-3 h-3 mr-1" />
                       {userAgency.name}
                     </Badge>
                   )}
+                  <div className="flex flex-col items-end">
+                    <span className="text-sm text-gray-600">
+                      Connecté en tant que <strong>{userEmail}</strong>
+                    </span>
+                    {userAgency && (
+                      <span className="text-xs text-gray-500">
+                        Agence: {userAgency.name}
+                      </span>
+                    )}
+                  </div>
+                  <Button 
+                    onClick={() => {
+                      // Déconnexion
+                      fetch('/api/auth/signout', { method: 'POST' })
+                        .then(() => window.location.reload());
+                    }}
+                    variant="ghost" 
+                    size="sm"
+                    className="text-gray-500 hover:text-red-600"
+                  >
+                    Se déconnecter
+                  </Button>
                   <Button 
                     onClick={handleGetStarted}
                     className="bg-blue-600 hover:bg-blue-700 text-white"
@@ -144,12 +169,7 @@ export default function FrenchHomePage() {
               )}
             </div>
           </div>
-        </div>
-      </header>
 
-      {/* Hero Section */}
-      <section className="py-20">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center">
             <h1 className="text-4xl md:text-6xl font-bold text-gray-900 mb-6">
               La solution de communication
