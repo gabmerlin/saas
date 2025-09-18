@@ -60,8 +60,18 @@ export default function SubdomainHomePage() {
 
         setIsAuthenticated(true);
 
+        // Récupérer le subdomain depuis l'URL
+        const hostname = window.location.hostname;
+        const subdomain = hostname.split('.')[0];
+        
+        if (!subdomain || subdomain === 'www' || subdomain === 'qgchatting') {
+          setError('Subdomain requis pour accéder au tableau de bord');
+          setLoading(false);
+          return;
+        }
+
         // Récupérer les informations de l'agence
-        const response = await fetch('/api/agency/status');
+        const response = await fetch(`/api/agency/status?subdomain=${subdomain}`);
         const data = await response.json();
         
         if (data.ok) {

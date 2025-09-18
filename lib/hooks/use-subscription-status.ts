@@ -41,7 +41,7 @@ export function useSubscriptionStatus() {
         // Récupérer le subdomain depuis les headers ou l'URL
         const subdomain = getSubdomainFromUrl();
         if (!subdomain) {
-          setError('Impossible de déterminer l\'agence');
+          // Si pas de subdomain, on est sur le domaine principal - pas d'abonnement à vérifier
           setLoading(false);
           return;
         }
@@ -115,10 +115,17 @@ function getSubdomainFromUrl(): string | null {
   for (const root of defaultRoots) {
     if (hostname.endsWith(`.${root}`)) {
       const subdomain = hostname.replace(`.${root}`, '');
-      if (subdomain && subdomain !== 'www') {
+      // Ignorer 'www' et les domaines vides
+      if (subdomain && subdomain !== 'www' && subdomain !== '') {
         return subdomain;
       }
     }
+  }
+  
+  // Si on est sur le domaine principal (ex: www.qgchatting.com ou qgchatting.com)
+  if (hostname === 'qgchatting.com' || hostname === 'www.qgchatting.com' || 
+      hostname === 'localhost:3000' || hostname === 'vercel.app') {
+    return null; // Pas de subdomain sur le domaine principal
   }
   
   return null;
