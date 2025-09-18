@@ -55,8 +55,14 @@ export async function checkExistingAgency(): Promise<AgencyCheckResult> {
 export async function redirectAfterLogin(defaultRedirect: string = '/fr'): Promise<string> {
   const agencyCheck = await checkExistingAgency();
   
-  if (agencyCheck.hasExistingAgency && agencyCheck.agency?.url) {
-    return agencyCheck.agency.url;
+  if (agencyCheck.hasExistingAgency && agencyCheck.agency?.subdomain) {
+    // Construire l'URL complète avec le subdomain
+    const subdomain = agencyCheck.agency.subdomain;
+    const baseUrl = process.env.NODE_ENV === 'production' 
+      ? `https://${subdomain}.qgchatting.com`
+      : `http://${subdomain}.localhost:3000`;
+    
+    return `${baseUrl}/dashboard`;
   }
   
   return defaultRedirect;
