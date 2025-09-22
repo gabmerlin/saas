@@ -79,7 +79,7 @@ export async function isLifetimeTenant(tenantId: string): Promise<boolean> {
     return false;
   }
 
-  return data || false;
+  return data === true;
 }
 
 export async function getEmployeeLimit(tenantId: string): Promise<number> {
@@ -94,7 +94,7 @@ export async function getEmployeeLimit(tenantId: string): Promise<number> {
     return 0;
   }
 
-  return data || 0;
+  return typeof data === 'number' ? data : 0;
 }
 
 export async function getModelLimit(tenantId: string): Promise<number> {
@@ -109,5 +109,5 @@ export async function getModelLimit(tenantId: string): Promise<number> {
     return 0;
   }
 
-  return data || 0;
+  return typeof data === 'number' ? data : 0;
 }
