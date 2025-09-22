@@ -11,7 +11,7 @@ export async function syncSessionToSubdomain(subdomain: string, session: any) {
   try {
     const baseUrl = process.env.NODE_ENV === 'production' 
       ? `https://${subdomain}.qgchatting.com`
-      : `http://${subdomain}.localhost:3000`;
+      : 'http://localhost:3000'; // En local, rester sur localhost
 
     // Créer une URL avec les tokens de session
     const sessionUrl = new URL(`${baseUrl}/dashboard`);

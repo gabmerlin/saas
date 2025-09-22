@@ -100,9 +100,10 @@ export default function SignInForm({ next, invitation }: Props) {
             if (agencyData.ok && agencyData.hasExistingAgency) {
               // Rediriger vers l'agence
               const subdomain = agencyData.agency.subdomain;
-              const baseUrl = process.env.NODE_ENV === 'production' 
-                ? `https://${subdomain}.qgchatting.com`
-                : `http://${subdomain}.localhost:3000`;
+              const isLocalhost = window.location.hostname === 'localhost';
+              const baseUrl = isLocalhost 
+                ? 'http://localhost:3000' // En local, rester sur localhost
+                : `https://${subdomain}.qgchatting.com`;
               window.location.href = `${baseUrl}/dashboard`;
               return;
             }

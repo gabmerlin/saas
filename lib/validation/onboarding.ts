@@ -59,7 +59,7 @@ export const OwnerOnboardingAgencySchema = z.object({
   currencyDisplay: z.enum(["USD"]).default("USD"),
   themePreset: z.string().default("ocean"),
   themeTokens: ThemeTokenSchema,
-  planKey: z.enum(["starter","advanced","professional","on_demand"]),
+  planKey: z.enum(["starter","advanced","professional","lifetime"]),
   instagramAddon: z.boolean().default(false),
   billingEmails: z.array(z.string().email()).min(1).max(3),
   enforceVerifiedEmail: z.boolean().default(true),

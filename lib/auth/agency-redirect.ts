@@ -60,7 +60,7 @@ export async function redirectAfterLogin(defaultRedirect: string = '/fr'): Promi
     const subdomain = agencyCheck.agency.subdomain;
     const baseUrl = process.env.NODE_ENV === 'production' 
       ? `https://${subdomain}.qgchatting.com`
-      : `http://${subdomain}.localhost:3000`;
+      : 'http://localhost:3000'; // En local, rester sur localhost
     
     return `${baseUrl}/fr`;
   }

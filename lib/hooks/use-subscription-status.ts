@@ -102,9 +102,7 @@ export function useSubscriptionStatus() {
     loading,
     error
   };
-}
-
-function getSubdomainFromUrl(): string | null {
+}function getSubdomainFromUrl(): string | null {
   if (typeof window === 'undefined') return null;
   
   const hostname = window.location.hostname;
@@ -130,3 +128,5 @@ function getSubdomainFromUrl(): string | null {
   
   return null;
 }
+
+

@@ -123,7 +123,7 @@ export default function HomePage() {
           const subdomain = userAgency.subdomain;
           const baseUrl = process.env.NODE_ENV === 'production' 
             ? `https://${subdomain}.qgchatting.com`
-            : `http://${subdomain}.localhost:3000`;
+            : 'http://localhost:3000'; // En local, rester sur localhost
           window.location.href = `${baseUrl}/dashboard`;
         }
       } else {

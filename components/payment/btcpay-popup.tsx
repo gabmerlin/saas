@@ -271,7 +271,9 @@ export default function BTCPayPopup({
                     </div>
                     <div className="text-right">
                       <div className="font-semibold">{formatPrice(selectedPlan.price)}</div>
-                      <div className="text-xs text-muted-foreground">/mois</div>
+                      <div className="text-xs text-muted-foreground">
+                        {selectedPlan.name === "Lifetime" ? "à vie" : "/mois"}
+                      </div>
                     </div>
                   </div>
                 </div>

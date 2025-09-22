@@ -269,7 +269,9 @@ export default function SubscriptionRenewalPage() {
                       <p className="text-gray-600 text-sm mb-4">{plan.description}</p>
                       <div className="text-3xl font-bold text-orange-600 mb-6">
                         ${plan.price}
-                        <span className="text-sm font-normal text-gray-500">/mois</span>
+                        <span className="text-sm font-normal text-gray-500">
+                          {plan.name === "Lifetime" ? " à vie" : "/mois"}
+                        </span>
                       </div>
                       
                       <ul className="text-sm text-gray-600 space-y-2 mb-6 text-left">

@@ -1165,39 +1165,9 @@ export default function OwnerOnboardingPage() {
 
   const [deadlineDay, setDeadlineDay] = useState<typeof Days[number]["v"]>("sun");
   const [deadlineTime, setDeadlineTime] = useState(adv.deadlineSundayUTC || "16:00");
-  const [ondemandEmployees, setOndemandEmployees] = useState(75);
 
   useEffect(() => { setAdv((a) => ({ ...a, deadlineSundayUTC: deadlineTime })); }, [deadlineTime]);
 
-  /* --------- Mise à jour du prix On-Demand ---------- */
-  useEffect(() => {
-    if (selectedPlan?.name === "On-Demand" && ondemandEmployees >= 75) {
-      const calculatedPrice = calculateOnDemandPrice(ondemandEmployees);
-      setSelectedPlan(prev => prev ? {
-        ...prev,
-        price: calculatedPrice
-      } : null);
-    }
-  }, [ondemandEmployees, selectedPlan]);
-
-  // Calcul du prix On-Demand avec dégressivité employé par employé
-  function calculateOnDemandPrice(employees: number): number {
-    if (employees <= 75) return 199.99;
-    
-    let totalPrice = 199.99; // Base pour 75 employés
-    const extraEmployees = employees - 75;
-    
-    // Calcul employé par employé avec dégressivité progressive
-    for (let i = 1; i <= extraEmployees; i++) {
-      // Prix dégressif : commence à 5,00€ et diminue progressivement jusqu'à 1,75€
-      // Sur 100 employés supplémentaires (75 à 175), le prix passe de 5,00€ à 1,75€
-      const progress = Math.min(i / 100, 1); // Progression de 0 à 1 sur 100 employés
-      const priceForThisEmployee = 5.00 - (5.00 - 1.75) * progress;
-      totalPrice += priceForThisEmployee;
-    }
-    
-    return totalPrice;
-  }
 
   /* --------- Calcul pricing (USD) --------- */
 
@@ -2771,13 +2741,21 @@ export default function OwnerOnboardingPage() {
                         </h4>
                 </div>
 
-                      <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
-                        {availablePlans.map((plan) => {
+                      <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+                        {availablePlans.map((plan, index) => {
                           const isSelected = selectedPlan?.id === plan.id;
                           const planKey = plan.name.toLowerCase().replace(' ', '_').replace('-', '_');
+                          const isLifetime = plan.name === "Lifetime";
+                          const isPopular = plan.name === "Advanced";
+                          
+                          // Définir les limites selon le plan
+                          const employeeLimit = plan.max_employees || "Illimité";
+                          const modelLimit = plan.name === "Lifetime" ? "Illimité" : 
+                                           plan.name === "Professional" ? "50" :
+                                           plan.name === "Advanced" ? "7" : "4";
                           
                           return (
-                            <label key={plan.id} className="cursor-pointer">
+                            <label key={plan.id} className="cursor-pointer group relative">
                               <input
                                 type="radio"
                                 name="plan"
@@ -2787,128 +2765,137 @@ export default function OwnerOnboardingPage() {
                                   setSelectedPlan({
                                     id: plan.id,
                                     name: plan.name,
-                                    price: plan.price_usd,
+                                    price: plan.name === "Lifetime" ? 1199.00 : plan.price_usd,
                                     description: plan.description || "",
                                     features: plan.features || {}
                                   });
-                                  setAdv((a) => ({ ...a, planKey: planKey as "starter" | "advanced" | "professional" | "on_demand" }));
+                                  setAdv((a) => ({ ...a, planKey: planKey as "starter" | "advanced" | "professional" | "lifetime" }));
                                 }}
                                 className="sr-only"
                               />
-                              <div className={`p-4 rounded-lg border-2 transition-all duration-300 ${
-                                isSelected ? 'ring-2 ring-primary' : ''
+                              
+                              {/* Badge "Populaire" */}
+                              {isPopular && (
+                                <div className="absolute -top-3 left-1/2 transform -translate-x-1/2 z-10">
+                                  <span className="bg-gradient-to-r from-blue-500 to-purple-600 text-white text-xs font-semibold px-4 py-1 rounded-full shadow-lg">
+                                    Populaire
+                                  </span>
+                                </div>
+                              )}
+
+                              {/* Badge "Lifetime" */}
+                              {isLifetime && (
+                                <div className="absolute -top-3 left-1/2 transform -translate-x-1/2 z-10">
+                                  <span className="bg-gradient-to-r from-yellow-400 to-orange-500 text-yellow-900 text-xs font-semibold px-4 py-1 rounded-full shadow-lg flex items-center gap-1">
+                                    <span>👑</span>
+                                    Lifetime
+                                  </span>
+                                </div>
+                              )}
+
+                              <div className={`h-full relative overflow-hidden rounded-2xl border-2 transition-all duration-500 flex flex-col group-hover:scale-105 group-hover:shadow-2xl ${
+                                isSelected 
+                                  ? 'ring-4 ring-blue-500/50 border-blue-500 shadow-2xl scale-105' 
+                                  : 'border-gray-200 hover:border-gray-300'
                               }`}
                                    style={{
-                                     backgroundColor: isSelected ? `oklch(var(--primary) / 0.1)` : `oklch(var(--muted) / 0.3)`,
-                                     borderColor: isSelected ? `finalColors.primary` : `finalColors.border`
+                                     backgroundColor: isSelected 
+                                       ? 'linear-gradient(135deg, rgba(59, 130, 246, 0.05) 0%, rgba(147, 51, 234, 0.05) 100%)'
+                                       : 'white',
+                                     background: isSelected 
+                                       ? 'linear-gradient(135deg, rgba(59, 130, 246, 0.05) 0%, rgba(147, 51, 234, 0.05) 100%)'
+                                       : 'white'
                                    }}>
-                                <div className="text-center">
-                                  <h5 className="text-lg font-bold mb-2" style={{ color: `finalColors.foreground` }}>
-                                    {plan.name}
-                                  </h5>
-                                  <p className="text-2xl font-bold mb-3" style={{ color: `finalColors.primary` }}>
-                                    {plan.name === "On-Demand" ? "Sur devis" : `${plan.price_usd}€/mois`}
-                                  </p>
-                                  <ul className="text-sm space-y-1" style={{ color: `finalColors.mutedForeground` }}>
-                                    <li>• {plan.max_employees ? `${plan.max_employees} employés max` : "Employés illimités"}</li>
-                                    <li>• {plan.description}</li>
-                                    {plan.features && Object.keys(plan.features).length > 0 && (
-                                      <li>• {Object.keys(plan.features).join(", ")}</li>
+                                
+                                {/* Effet de brillance au survol */}
+                                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000"></div>
+
+                                {/* Header avec nom et prix */}
+                                <div className="p-8 pb-6 text-center relative">
+                                  <div className="mb-4">
+                                    <h5 className="text-2xl font-bold mb-2" style={{ color: `finalColors.foreground` }}>
+                                      {plan.name}
+                                    </h5>
+                                    <div className="flex items-baseline justify-center gap-1">
+                                      <span className="text-4xl font-bold" style={{ color: `finalColors.primary` }}>
+                                        {isLifetime ? "1199€" : `${plan.price_usd}€`}
+                                      </span>
+                                      <span className="text-sm font-medium" style={{ color: `finalColors.mutedForeground` }}>
+                                        {isLifetime ? "" : "/mois"}
+                                      </span>
+                                    </div>
+                                    {isLifetime && (
+                                      <p className="text-sm font-semibold mt-1" style={{ color: `finalColors.primary` }}>
+                                        Paiement unique
+                                      </p>
                                     )}
-                                  </ul>
+                                  </div>
                                 </div>
+
+                                {/* Description */}
+                                <div className="px-8 pb-6 flex-grow">
+                                  <p className="text-sm text-center leading-relaxed" style={{ color: `finalColors.mutedForeground` }}>
+                                    {plan.description}
+                                  </p>
+                                </div>
+
+                                {/* Limites principales */}
+                                <div className="px-8 pb-8">
+                                  <div className="space-y-4">
+                                    {/* Limite d'employés */}
+                                    <div className="text-center">
+                                      <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium"
+                                           style={{
+                                             backgroundColor: `oklch(var(--primary) / 0.1)`,
+                                             color: `finalColors.primary`
+                                           }}>
+                                        <Users className="w-4 h-4" />
+                                        <span>{employeeLimit} employés</span>
+                                      </div>
+                                    </div>
+
+                                    {/* Limite de modèles */}
+                                    <div className="text-center">
+                                      <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium"
+                                           style={{
+                                             backgroundColor: `oklch(var(--secondary) / 0.1)`,
+                                             color: `finalColors.secondary`
+                                           }}>
+                                        <ClipboardList className="w-4 h-4" />
+                                        <span>{modelLimit} modèles</span>
+                                      </div>
+                                    </div>
+
+                                    {/* Fonctionnalités incluses */}
+                                    <div className="text-center">
+                                      <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium"
+                                           style={{
+                                             backgroundColor: `oklch(var(--accent) / 0.1)`,
+                                             color: `finalColors.accent`
+                                           }}>
+                                        <CheckCircle className="w-4 h-4" />
+                                        <span>Toutes les fonctionnalités</span>
+                                      </div>
+                                    </div>
+                                  </div>
+                                </div>
+
+                                {/* Indicateur de sélection */}
+                                {isSelected && (
+                                  <div className="absolute top-4 right-4">
+                                    <div className="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center">
+                                      <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                                      </svg>
+                                    </div>
+                                  </div>
+                                )}
                               </div>
                             </label>
                           );
                         })}
                       </div>
                       
-                      {/* Simulateur On-Demand */}
-                      {adv.planKey === "on_demand" && (
-                        <div className="mt-6 p-6 rounded-xl border-2"
-                             style={{ 
-                               backgroundColor: `oklch(var(--accent) / 0.1)`,
-                               borderColor: `finalColors.accent`
-                             }}>
-                          <div className="flex items-center gap-3 mb-4">
-                            <div className="text-2xl">🧮</div>
-                            <h5 className="text-lg font-semibold" style={{ color: `finalColors.foreground` }}>
-                              Simulateur de tarification On-Demand
-                            </h5>
-                          </div>
-                          
-                          <div className="grid md:grid-cols-2 gap-6">
-                            <div>
-                              <label className="block text-sm font-semibold mb-2" style={{ color: `finalColors.foreground` }}>
-                                Nombre d&apos;employés
-                              </label>
-                              <input
-                                type="number"
-                                min="75"
-                                max="500"
-                                value={ondemandEmployees}
-                                onChange={(e) => {
-                                  const value = e.target.value;
-                                  // Permettre la saisie de n'importe quoi temporairement
-                                  if (value === '' || (!isNaN(Number(value)) && Number(value) >= 0)) {
-                                    setOndemandEmployees(Number(value) || 0);
-                                  }
-                                }}
-                                onBlur={(e) => {
-                                  const value = parseInt(e.target.value);
-                                  if (!value || value < 75) {
-                                    setOndemandEmployees(75);
-                                  }
-                                }}
-                                onWheel={(e) => e.preventDefault()}
-                                className="w-full px-4 py-3 rounded-lg border-2 text-lg font-medium"
-                                style={{
-                                  backgroundColor: `finalColors.muted`,
-                                  borderColor: `finalColors.border`,
-                                  color: `finalColors.foreground`
-                                }}
-                              />
-                              <p className="text-xs mt-1" style={{ color: `finalColors.mutedForeground` }}>
-                                Minimum : 75 employés
-                              </p>
-                              {ondemandEmployees < 75 && (
-                                <p className="text-xs mt-1 flex items-center gap-1" style={{ color: `oklch(var(--destructive))` }}>
-                                  <AlertTriangle className="w-3 h-3" />
-                                  Le minimum est de 75 employés pour le plan On-Demand
-                                </p>
-                              )}
-                            </div>
-                            
-                            <div className="space-y-3">
-                              <div className="p-4 rounded-lg" style={{ backgroundColor: `oklch(var(--background))` }}>
-                                <div className="text-sm" style={{ color: `finalColors.mutedForeground` }}>
-                                  Prix mensuel estimé
-                                </div>
-                                <div className="text-3xl font-bold" style={{ color: `finalColors.primary` }}>
-                                  ${calculateOnDemandPrice(ondemandEmployees).toFixed(2)}
-                                </div>
-                              </div>
-                              
-                              {ondemandEmployees > 75 && (
-                                <div className="text-sm" style={{ color: `finalColors.mutedForeground` }}>
-                                  <div>Base : $199.99 (75 employés)</div>
-                                  <div>Supplément : ${(calculateOnDemandPrice(ondemandEmployees) - 199.99).toFixed(2)} ({ondemandEmployees - 75} employés supplémentaires)</div>
-                                </div>
-                              )}
-                            </div>
-                          </div>
-                          
-                          <div className="mt-4 p-3 rounded-lg text-sm" style={{ backgroundColor: `oklch(var(--muted) / 0.3)` }}>
-                            <div className="font-semibold mb-1 flex items-center gap-2" style={{ color: `finalColors.foreground` }}>
-                              <Lightbulb className="w-4 h-4" />
-                              Tarification dégressif employé par employé
-                            </div>
-                            <div style={{ color: `finalColors.mutedForeground` }}>
-                              • Dégressivité progressive jusuqu&apos;à $1.75 par employé<br/>
-                            </div>
-                          </div>
-                        </div>
-                      )}
                     </div>
 
                     {/* Emails de facturation */}

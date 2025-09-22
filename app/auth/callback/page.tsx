@@ -64,7 +64,7 @@ function AuthCallbackContent() {
                 const subdomain = agencyData.agency.subdomain;
                 const baseUrl = process.env.NODE_ENV === 'production' 
                   ? `https://${subdomain}.qgchatting.com`
-                  : `http://${subdomain}.localhost:3000`;
+                  : 'http://localhost:3000'; // En local, rester sur localhost
                 window.location.href = `${baseUrl}/dashboard`;
                 return;
               }
