@@ -18,7 +18,7 @@ export async function syncSessionAcrossDomains(): Promise<boolean> {
     const supabase = supabaseBrowser();
     
     // Attendre un peu pour que Supabase traite l'URL OAuth
-    await new Promise(resolve => setTimeout(resolve, 100));
+    await new Promise(resolve => setTimeout(resolve, 200));
     
     // Vérifier s'il y a une session active
     const { data: { session }, error } = await supabase.auth.getSession();

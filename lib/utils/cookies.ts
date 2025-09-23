@@ -21,6 +21,11 @@ export function getRootDomain(): string {
   // En production, extraire le domaine racine
   const parts = hostname.split('.');
   if (parts.length >= 2) {
+    // Pour qgchatting.com et ses sous-domaines
+    if (parts[parts.length - 1] === 'com' && parts[parts.length - 2] === 'qgchatting') {
+      return '.qgchatting.com';
+    }
+    // Pour d'autres domaines
     return `.${parts.slice(-2).join('.')}`;
   }
   
@@ -37,7 +42,17 @@ export function setCookieWithDomain(name: string, value: string, days: number = 
   const expires = new Date();
   expires.setTime(expires.getTime() + (days * 24 * 60 * 60 * 1000));
   
-  document.cookie = `${name}=${value};expires=${expires.toUTCString()};domain=${domain};path=/;SameSite=Lax;Secure=${window.location.protocol === 'https:'}`;
+  // Configuration optimisée pour la production
+  const isSecure = window.location.protocol === 'https:';
+  const cookieString = `${name}=${value};expires=${expires.toUTCString()};domain=${domain};path=/;SameSite=None;Secure=${isSecure}`;
+  
+  // Essayer de définir le cookie
+  try {
+    document.cookie = cookieString;
+  } catch (error) {
+    // Fallback sans domaine si ça échoue
+    document.cookie = `${name}=${value};expires=${expires.toUTCString()};path=/;SameSite=Lax;Secure=${isSecure}`;
+  }
 }
 
 /**
@@ -46,6 +61,29 @@ export function setCookieWithDomain(name: string, value: string, days: number = 
 export function getCookieWithDomain(name: string): string | null {
   if (typeof window === 'undefined') return null;
   
+  const nameEQ = name + "=";
+  const ca = document.cookie.split(';');
+  
+  for (let i = 0; i < ca.length; i++) {
+    let c = ca[i];
+    while (c.charAt(0) === ' ') c = c.substring(1, c.length);
+    if (c.indexOf(nameEQ) === 0) return c.substring(nameEQ.length, c.length);
+  }
+  
+  return null;
+}
+
+/**
+ * Récupère un cookie avec plusieurs tentatives (avec et sans domaine)
+ */
+export function getCookieWithFallback(name: string): string | null {
+  if (typeof window === 'undefined') return null;
+  
+  // Essayer d'abord avec la fonction normale
+  const value = getCookieWithDomain(name);
+  if (value) return value;
+  
+  // Fallback: essayer de récupérer sans domaine
   const nameEQ = name + "=";
   const ca = document.cookie.split(';');
   
@@ -100,8 +138,8 @@ export function getStoredSession(): any | null {
     }
   }
   
-  // Ensuite essayer les cookies avec domaine
-  const cookieValue = getCookieWithDomain('qg-session');
+  // Ensuite essayer les cookies avec fallback
+  const cookieValue = getCookieWithFallback('qg-session');
   if (cookieValue) {
     try {
       return JSON.parse(cookieValue);

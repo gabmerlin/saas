@@ -26,11 +26,18 @@ export const supabaseBrowser = () => {
                 return localStorageValue;
               }
               
-              // Ensuite essayer les cookies avec domaine
+              // Ensuite essayer les cookies avec fallback
               const cookieValue = getCookieWithDomain(`sb-${key}`);
               if (cookieValue) {
                 return cookieValue;
               }
+              
+              // Fallback: essayer de récupérer sans préfixe sb-
+              const fallbackCookie = getCookieWithDomain(key);
+              if (fallbackCookie) {
+                return fallbackCookie;
+              }
+              
               return null;
             },
             setItem: (key: string, value: string) => {
