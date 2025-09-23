@@ -15,6 +15,7 @@ export default function DirectDashboardPage() {
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState<any>(null);
   const [agencyInfo, setAgencyInfo] = useState<any>(null);
+  const [subscriptionInfo, setSubscriptionInfo] = useState<any>(null);
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -66,6 +67,19 @@ export default function DirectDashboardPage() {
               console.log('🏢 [DASHBOARD] Données de l\'agence:', agencyData);
               if (agencyData.ok) {
                 setAgencyInfo(agencyData.status.agency);
+                setSubscriptionInfo(agencyData.subscription);
+                
+                // Vérifier si l'abonement est expiré et rediriger si nécessaire
+                if (agencyData.subscription?.is_expired) {
+                  console.log('❌ [DASHBOARD] Abonement expiré, redirection vers la page de renouvellement');
+                  window.location.href = '/subscription-expired';
+                  return;
+                }
+                
+                // Vérifier si l'abonement expire bientôt
+                if (agencyData.subscription?.is_expiring_soon) {
+                  console.log('⚠️ [DASHBOARD] Abonement expire bientôt');
+                }
               }
             } catch (agencyError) {
               console.error('❌ [DASHBOARD] Erreur lors de la vérification de l\'agence:', agencyError);
@@ -112,6 +126,19 @@ export default function DirectDashboardPage() {
                 console.log('🏢 [DIRECT DASHBOARD] Données de l\'agence:', agencyData);
                 if (agencyData.ok) {
                   setAgencyInfo(agencyData.status.agency);
+                  setSubscriptionInfo(agencyData.subscription);
+                  
+                  // Vérifier si l'abonement est expiré et rediriger si nécessaire
+                  if (agencyData.subscription?.is_expired) {
+                    console.log('❌ [DIRECT DASHBOARD] Abonement expiré, redirection vers la page de renouvellement');
+                    window.location.href = '/subscription-expired';
+                    return;
+                  }
+                  
+                  // Vérifier si l'abonement expire bientôt
+                  if (agencyData.subscription?.is_expiring_soon) {
+                    console.log('⚠️ [DIRECT DASHBOARD] Abonement expire bientôt');
+                  }
                 }
               } catch (agencyError) {
                 console.error('❌ [DIRECT DASHBOARD] Erreur lors de la vérification de l\'agence:', agencyError);
@@ -192,6 +219,19 @@ export default function DirectDashboardPage() {
           const data = await response.json();
           if (data.ok) {
             setAgencyInfo(data.status.agency);
+            setSubscriptionInfo(data.subscription);
+            
+            // Vérifier si l'abonement est expiré et rediriger si nécessaire
+            if (data.subscription?.is_expired) {
+              console.log('❌ [DASHBOARD] Abonement expiré, redirection vers la page de renouvellement');
+              window.location.href = '/subscription-expired';
+              return;
+            }
+            
+            // Vérifier si l'abonement expire bientôt
+            if (data.subscription?.is_expiring_soon) {
+              console.log('⚠️ [DASHBOARD] Abonement expire bientôt');
+            }
           }
         }
       } catch (error) {
@@ -340,13 +380,56 @@ export default function DirectDashboardPage() {
               <CreditCard className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">Actif</div>
+              <div className={`text-2xl font-bold ${
+                subscriptionInfo?.is_expired 
+                  ? 'text-red-600' 
+                  : subscriptionInfo?.is_expiring_soon 
+                    ? 'text-yellow-600' 
+                    : 'text-green-600'
+              }`}>
+                {subscriptionInfo?.is_expired 
+                  ? 'Expiré' 
+                  : subscriptionInfo?.is_expiring_soon 
+                    ? 'Expire bientôt' 
+                    : subscriptionInfo?.status === 'active' 
+                      ? 'Actif' 
+                      : subscriptionInfo?.status || 'Inconnu'
+                }
+              </div>
               <p className="text-xs text-muted-foreground">
-                Paiement effectué
+                {subscriptionInfo?.is_expired 
+                  ? 'Renouvellement requis' 
+                  : subscriptionInfo?.is_expiring_soon 
+                    ? `${subscriptionInfo?.days_remaining} jours restants` 
+                    : subscriptionInfo?.plan_name || 'Aucun abonnement'
+                }
               </p>
             </CardContent>
           </Card>
         </div>
+
+        {/* Subscription Alert */}
+        {subscriptionInfo?.is_expiring_soon && !subscriptionInfo?.is_expired && (
+          <Card className="mt-8 border-yellow-200 bg-yellow-50">
+            <CardHeader>
+              <CardTitle className="text-yellow-800 flex items-center gap-2">
+                <Shield className="h-5 w-5" />
+                Abonnement expire bientôt
+              </CardTitle>
+              <CardDescription className="text-yellow-700">
+                Votre abonement expire dans {subscriptionInfo.days_remaining} jours. 
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="ml-2"
+                  onClick={() => window.location.href = '/subscription-renewal'}
+                >
+                  Renouveler maintenant
+                </Button>
+              </CardDescription>
+            </CardHeader>
+          </Card>
+        )}
 
         {/* Welcome Message */}
         <Card className="mt-8">
