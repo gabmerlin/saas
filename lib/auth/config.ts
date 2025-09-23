@@ -29,7 +29,9 @@ export const AUTH_CONFIG = {
 
 export const GOOGLE_OAUTH_CONFIG = {
   SCOPES: ['email', 'profile'],
-  REDIRECT_URL: '/auth/callback',
+  REDIRECT_URL: process.env.NODE_ENV === 'production' 
+    ? 'https://qgchatting.com/auth/callback'
+    : '/auth/callback',
   // Configuration pour un affichage plus professionnel
   APP_NAME: 'QG Chatting',
   APP_DOMAIN: 'qgchatting.com',

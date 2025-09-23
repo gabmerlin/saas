@@ -41,6 +41,8 @@ function AuthCallbackContent() {
           console.log('🔍 [PROD DEBUG] Session trouvée:', !!session);
           console.log('🔍 [PROD DEBUG] User:', session?.user?.email);
           console.log('🔍 [PROD DEBUG] Cookies:', document.cookie);
+          console.log('🔍 [PROD DEBUG] URL actuelle:', window.location.href);
+          console.log('🔍 [PROD DEBUG] Hostname:', window.location.hostname);
         }
 
         if (session) {

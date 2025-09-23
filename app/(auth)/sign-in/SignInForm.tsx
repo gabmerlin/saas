@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { signInWithEmail, resetPassword } from "@/lib/auth/actions";
+import { GOOGLE_OAUTH_CONFIG } from "@/lib/auth/config";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -131,8 +132,8 @@ export default function SignInForm({ next, invitation }: Props) {
       const { data, error } = await supabaseBrowser().auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(next || '/home')}`,
-          scopes: 'email profile',
+          redirectTo: `${GOOGLE_OAUTH_CONFIG.REDIRECT_URL}?next=${encodeURIComponent(next || '/home')}`,
+          scopes: GOOGLE_OAUTH_CONFIG.SCOPES.join(' '),
           queryParams: {
             access_type: 'offline',
             prompt: 'consent',

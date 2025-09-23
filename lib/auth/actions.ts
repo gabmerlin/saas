@@ -88,7 +88,7 @@ export async function signInWithGoogle() {
       provider: 'google',
       options: {
         scopes: GOOGLE_OAUTH_CONFIG.SCOPES.join(' '),
-        redirectTo: `${window.location.origin}${GOOGLE_OAUTH_CONFIG.REDIRECT_URL}`,
+        redirectTo: GOOGLE_OAUTH_CONFIG.REDIRECT_URL,
         queryParams: {
           access_type: 'offline',
           prompt: 'consent',
