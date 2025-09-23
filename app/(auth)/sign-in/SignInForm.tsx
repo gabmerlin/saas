@@ -108,7 +108,7 @@ export default function SignInForm({ next, invitation }: Props) {
               return;
             }
           } catch (agencyError) {
-            console.error('Erreur lors de la vérification de l\'agence:', agencyError);
+            // Erreur silencieuse
           }
         }
         

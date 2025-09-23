@@ -121,7 +121,6 @@ export async function middleware(req: NextRequest) {
         }
       }
     } catch (error) {
-      console.error('Erreur lors de la vérification de l\'abonnement:', error)
       // En cas d'erreur, laisser passer mais ajouter le subdomain
     }
   }

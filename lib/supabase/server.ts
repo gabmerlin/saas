@@ -20,62 +20,9 @@ export function createClient(opts?: Opts): SupabaseClient {
   });
 }
 
-// Fonction pour créer un client avec les cookies de session (méthode Supabase recommandée)
-export async function createClientWithSession(): Promise<SupabaseClient> {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
-  
-  const cookieStore = await cookies();
-  
-  
-  // Récupération des cookies de session Supabase
-  const accessToken = cookieStore.get('sb-ndlmzwwfwugtwpmebdog-auth-token')?.value;
-  const refreshToken = cookieStore.get('sb-ndlmzwwfwugtwpmebdog-auth-token.1')?.value;
-  
-  
-  const supabase = createSupabaseClient(url, key, {
-    auth: { 
-      persistSession: false, 
-      autoRefreshToken: false,
-      detectSessionInUrl: false,
-      flowType: 'pkce'
-    },
-    global: { 
-      headers: { 'x-application-name': 'qgchatting-saas' } 
-    }
-  });
-
-  // Si on a un access token, on l'utilise
-  if (accessToken) {
-    try {
-      // Parser le token si c'est du JSON
-      let parsedAccessToken = accessToken;
-      let parsedRefreshToken = refreshToken || accessToken;
-      
-      try {
-        const tokenArray = JSON.parse(accessToken);
-        if (Array.isArray(tokenArray) && tokenArray.length > 0) {
-          parsedAccessToken = tokenArray[0];
-          parsedRefreshToken = tokenArray[1] || tokenArray[0];
-        }
-      } catch {
-        // Utiliser directement si ce n'est pas du JSON
-      }
-      
-      await supabase.auth.setSession({
-        access_token: parsedAccessToken,
-        refresh_token: parsedRefreshToken
-      });
-    } catch {
-      // Ignore session setup errors
-    }
-  }
-
-  return supabase;
-}
 
 // Fonction pour créer un client avec les cookies de session
-export async function createClientWithCookies(): Promise<SupabaseClient> {
+export async function createClientWithSession(): Promise<SupabaseClient> {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL!;
   const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
   

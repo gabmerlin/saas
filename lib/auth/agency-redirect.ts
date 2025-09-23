@@ -7,11 +7,9 @@ import { redirectToSubdomain } from './cross-domain-auth';
  */
 export async function redirectToAgencyDashboard(subdomain: string): Promise<void> {
   if (!subdomain) {
-    console.error('❌ Aucun sous-domaine fourni pour la redirection');
     return;
   }
 
-  console.log(`🔄 Redirection vers le dashboard de l'agence: ${subdomain}`);
   await redirectToSubdomain(subdomain);
 }
 
@@ -25,6 +23,5 @@ export function redirectToMainDomain(path: string = '/home'): void {
     ? 'https://qgchatting.com'
     : 'http://localhost:3000';
   
-  console.log(`🔄 Redirection vers le domaine principal: ${mainDomain}${path}`);
   window.location.href = `${mainDomain}${path}`;
 }

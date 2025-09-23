@@ -23,22 +23,15 @@ export default function DirectDashboardPage() {
       }
 
       try {
-        console.log('🔍 [DASHBOARD] Vérification du domaine...');
-        
         // Vérifier le domaine
         const hostname = window.location.hostname;
         const subdomain = hostname.split('.')[0];
         
-        console.log('🔍 [DASHBOARD] Vérification du domaine:', { hostname, subdomain });
-        
         // Si on est sur le domaine principal (sans sous-domaine), rediriger vers la page d'accueil
         if (!subdomain || subdomain === 'www' || subdomain === 'qgchatting' || subdomain === 'localhost') {
-          console.log('❌ [DASHBOARD] Accès au dashboard depuis le domaine principal - Redirection vers la page d\'accueil');
           window.location.href = '/home';
           return;
         }
-        
-        console.log('✅ [DASHBOARD] Sous-domaine détecté, accès au dashboard de l\'agence');
 
         // Récupérer les informations de l'agence
         const agencyHostname = window.location.hostname;
@@ -46,8 +39,6 @@ export default function DirectDashboardPage() {
         
         if (agencySubdomain && agencySubdomain !== 'www' && agencySubdomain !== 'qgchatting') {
           try {
-            console.log('🏢 [DASHBOARD] Récupération des informations de l\'agence pour:', agencySubdomain);
-            
             // Récupérer la session pour le token
             const supabase = supabaseBrowser();
             const { data: { session } } = await supabase.auth.getSession();
@@ -60,7 +51,6 @@ export default function DirectDashboardPage() {
               });
               
               const data = await response.json();
-              console.log('🏢 [DASHBOARD] Données de l\'agence:', data);
               
               if (data.ok) {
                 setAgencyInfo(data.status.agency);
@@ -68,23 +58,17 @@ export default function DirectDashboardPage() {
                 
                 // Vérifier si l'abonement est expiré et rediriger si nécessaire
                 if (data.subscription?.is_expired) {
-                  console.log('❌ [DASHBOARD] Abonement expiré, redirection vers la page de renouvellement');
                   window.location.href = '/subscription-expired';
                   return;
-                }
-                
-                // Vérifier si l'abonement expire bientôt
-                if (data.subscription?.is_expiring_soon) {
-                  console.log('⚠️ [DASHBOARD] Abonement expire bientôt');
                 }
               }
             }
           } catch (agencyError) {
-            console.error('❌ [DASHBOARD] Erreur lors de la vérification de l\'agence:', agencyError);
+            // Erreur silencieuse
           }
         }
       } catch (error) {
-        console.error('❌ [DASHBOARD] Erreur lors de la vérification de l\'agence:', error);
+        // Erreur silencieuse
       } finally {
         setLoading(false);
       }

@@ -31,7 +31,6 @@ function AuthCallbackContent() {
         const { data: { session }, error } = await supabaseBrowser().auth.getSession();
         
         if (error) {
-          console.error('Erreur de session:', error);
           setStatus('Erreur lors de l\'authentification');
           setTimeout(() => router.push('/sign-in?error=auth_failed'), 2000);
           return;
@@ -73,7 +72,6 @@ function AuthCallbackContent() {
           setTimeout(() => router.push('/sign-in?error=no_session'), 2000);
         }
       } catch (error) {
-        console.error('Erreur lors de l\'authentification:', error);
         setStatus('Erreur lors de l\'authentification');
         setTimeout(() => router.push('/sign-in?error=auth_failed'), 2000);
       }

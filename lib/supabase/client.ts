@@ -1,60 +1,8 @@
 'use client';
 import { createClient as createSupabaseClient } from '@supabase/supabase-js';
+import { getCookieWithDomain, setCookieWithDomain, removeCookieWithDomain } from '@/lib/utils/cookies';
 
 let supabaseInstance: ReturnType<typeof createSupabaseClient> | null = null;
-
-// Fonction pour obtenir le domaine racine
-function getRootDomain(): string {
-  if (typeof window === 'undefined') return '.qgchatting.com';
-  
-  const hostname = window.location.hostname;
-  
-  // En développement
-  if (hostname === 'localhost' || hostname.includes('localhost')) {
-    return 'localhost';
-  }
-  
-  // En production, extraire le domaine racine
-  const parts = hostname.split('.');
-  if (parts.length >= 2) {
-    return `.${parts.slice(-2).join('.')}`;
-  }
-  
-  return '.qgchatting.com';
-}
-
-// Fonction pour configurer les cookies avec le bon domaine
-function setCookieWithDomain(name: string, value: string, days: number = 30) {
-  if (typeof window === 'undefined') return;
-  
-  const domain = getRootDomain();
-  const expires = new Date();
-  expires.setTime(expires.getTime() + (days * 24 * 60 * 60 * 1000));
-  
-  document.cookie = `${name}=${value};expires=${expires.toUTCString()};domain=${domain};path=/;SameSite=Lax;Secure=${window.location.protocol === 'https:'}`;
-}
-
-function getCookieWithDomain(name: string): string | null {
-  if (typeof window === 'undefined') return null;
-  
-  const nameEQ = name + "=";
-  const ca = document.cookie.split(';');
-  
-  for (let i = 0; i < ca.length; i++) {
-    let c = ca[i];
-    while (c.charAt(0) === ' ') c = c.substring(1, c.length);
-    if (c.indexOf(nameEQ) === 0) return c.substring(nameEQ.length, c.length);
-  }
-  
-  return null;
-}
-
-function removeCookieWithDomain(name: string) {
-  if (typeof window === 'undefined') return;
-  
-  const domain = getRootDomain();
-  document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;domain=${domain};path=/`;
-}
 
 export const supabaseBrowser = () => {
   if (!supabaseInstance) {

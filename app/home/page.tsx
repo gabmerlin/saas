@@ -63,6 +63,7 @@ export default function HomePage() {
       }
     };
 
+    // Attendre que le chargement de session soit terminé
     if (!sessionLoading) {
       checkAgencyInfo();
     }
