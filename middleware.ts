@@ -38,6 +38,12 @@ export async function middleware(req: NextRequest) {
     return NextResponse.next()
   }
 
+  // Ajouter des headers pour la synchronisation cross-domain
+  const res = NextResponse.next()
+  res.headers.set('x-frame-options', 'SAMEORIGIN')
+  res.headers.set('x-content-type-options', 'nosniff')
+  res.headers.set('referrer-policy', 'strict-origin-when-cross-origin')
+
   // Pas de redirection automatique - laisser Next.js gérer le routage
 
   // Vérifier l'abonnement pour les sous-domaines
@@ -120,7 +126,6 @@ export async function middleware(req: NextRequest) {
     }
   }
 
-  const res = NextResponse.next()
   if (sub) res.headers.set('x-tenant-subdomain', sub)
   return res
 }

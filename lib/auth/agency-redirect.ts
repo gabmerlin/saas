@@ -1,69 +1,30 @@
-import { supabaseBrowser } from '@/lib/supabase/client';
+'use client';
 
-export interface AgencyInfo {
-  id: string;
-  name: string;
-  subdomain: string;
-  locale: string;
-  url: string;
-}
+import { redirectToSubdomain } from './cross-domain-auth';
 
-export interface AgencyCheckResult {
-  hasExistingAgency: boolean;
-  agency?: AgencyInfo;
+/**
+ * Redirige vers le dashboard d'une agence avec la session synchronisée
+ */
+export async function redirectToAgencyDashboard(subdomain: string): Promise<void> {
+  if (!subdomain) {
+    console.error('❌ Aucun sous-domaine fourni pour la redirection');
+    return;
+  }
+
+  console.log(`🔄 Redirection vers le dashboard de l'agence: ${subdomain}`);
+  await redirectToSubdomain(subdomain);
 }
 
 /**
- * Vérifie si l'utilisateur connecté a une agence existante
+ * Redirige vers le domaine principal
  */
-export async function checkExistingAgency(): Promise<AgencyCheckResult> {
-  try {
-    const { data: { session }, error: sessionError } = await supabaseBrowser().auth.getSession();
-    
-    if (sessionError || !session) {
-      return { hasExistingAgency: false };
-    }
-    
-    const authToken = session.access_token;
-    
-    const response = await fetch("/api/auth/check-existing-agency", {
-      method: "GET",
-      headers: { 
-        "authorization": `Bearer ${authToken}`,
-        "x-session-token": authToken
-      }
-    });
-    
-    const result = await response.json();
-    
-    if (result.ok && result.hasExistingAgency) {
-      return {
-        hasExistingAgency: true,
-        agency: result.agency
-      };
-    }
-    
-    return { hasExistingAgency: false };
-  } catch (error) {
-    return { hasExistingAgency: false };
-  }
-}
+export function redirectToMainDomain(path: string = '/home'): void {
+  if (typeof window === 'undefined') return;
 
-/**
- * Redirige l'utilisateur vers son agence existante ou vers la page par défaut
- */
-export async function redirectAfterLogin(defaultRedirect: string = '/fr'): Promise<string> {
-  const agencyCheck = await checkExistingAgency();
+  const mainDomain = process.env.NODE_ENV === 'production' 
+    ? 'https://qgchatting.com'
+    : 'http://localhost:3000';
   
-  if (agencyCheck.hasExistingAgency && agencyCheck.agency?.subdomain) {
-    // Construire l'URL complète avec le subdomain
-    const subdomain = agencyCheck.agency.subdomain;
-    const baseUrl = process.env.NODE_ENV === 'production' 
-      ? `https://${subdomain}.qgchatting.com`
-      : 'http://localhost:3000'; // En local, rester sur localhost
-    
-    return `${baseUrl}/fr`;
-  }
-  
-  return defaultRedirect;
+  console.log(`🔄 Redirection vers le domaine principal: ${mainDomain}${path}`);
+  window.location.href = `${mainDomain}${path}`;
 }

@@ -9,7 +9,7 @@ import { Separator } from "@/components/ui/separator";
 import { Eye, EyeOff, Mail, Lock, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
 import { supabaseBrowser } from "@/lib/supabase/client";
-import { syncSessionAcrossDomains } from "@/lib/auth/session-sync";
+import { syncSessionAcrossDomains } from "@/lib/auth/cross-domain-auth";
 
 type Props = { next?: string; invitation?: string | null };
 
@@ -128,10 +128,16 @@ export default function SignInForm({ next, invitation }: Props) {
   async function handleGoogleSignIn() {
     try {
       // Utiliser l'authentification Google standard de Supabase
-      const { error } = await supabaseBrowser().auth.signInWithOAuth({
+      const { data, error } = await supabaseBrowser().auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(next || '/home')}`
+          redirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(next || '/home')}`,
+          scopes: 'email profile',
+          queryParams: {
+            access_type: 'offline',
+            prompt: 'consent',
+            include_granted_scopes: 'true',
+          },
         }
       });
       
@@ -286,6 +292,7 @@ export default function SignInForm({ next, invitation }: Props) {
           </svg>
           Google
         </Button>
+        
       </div>
   );
 }

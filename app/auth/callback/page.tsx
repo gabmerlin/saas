@@ -21,6 +21,9 @@ function AuthCallbackContent() {
       try {
         setStatus('Traitement de l\'authentification...');
 
+        // Nettoyer l'URL immédiatement pour éviter l'affichage du code
+        window.history.replaceState({}, document.title, '/auth/callback');
+
         // Attendre un peu pour que Supabase traite l'URL
         await new Promise(resolve => setTimeout(resolve, 1000));
 
@@ -37,17 +40,6 @@ function AuthCallbackContent() {
         if (session) {
           setStatus('Connexion réussie !');
           
-          // Stocker la session dans localStorage pour la synchronisation
-          const sessionData = {
-            access_token: session.access_token,
-            refresh_token: session.refresh_token,
-            expires_at: session.expires_at,
-            user: session.user
-          };
-          
-          localStorage.setItem('supabase-session', JSON.stringify(sessionData));
-          sessionStorage.setItem('supabase-session', JSON.stringify(sessionData));
-          
           // Vérifier si l'utilisateur a une agence et rediriger en conséquence
           setTimeout(async () => {
             try {
@@ -59,22 +51,23 @@ function AuthCallbackContent() {
               });
               
               const agencyData = await agencyResponse.json();
+              
               if (agencyData.ok && agencyData.hasExistingAgency) {
                 // Rediriger vers l'agence
                 const subdomain = agencyData.agency.subdomain;
                 const baseUrl = process.env.NODE_ENV === 'production' 
                   ? `https://${subdomain}.qgchatting.com`
-                  : 'http://localhost:3000'; // En local, rester sur localhost
+                  : 'http://localhost:3000';
                 window.location.href = `${baseUrl}/dashboard`;
                 return;
               }
             } catch (agencyError) {
-              console.error('Erreur lors de la vérification de l\'agence:', agencyError);
+              // Erreur silencieuse
             }
             
             // Sinon, rediriger vers la page d'accueil
             window.location.href = next || '/home';
-          }, 1500);
+          }, 1000);
         } else {
           setStatus('Aucune session trouvée');
           setTimeout(() => router.push('/sign-in?error=no_session'), 2000);

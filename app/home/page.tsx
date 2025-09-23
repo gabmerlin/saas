@@ -5,17 +5,21 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { MessageSquare, Users, Settings, CreditCard, Shield, Zap } from "lucide-react";
 import { supabaseBrowser } from "@/lib/supabase/client";
-import { syncSessionAcrossDomains, clearStoredSession } from "@/lib/auth/session-sync";
-import { syncSessionToSubdomain } from "@/lib/auth/cross-domain-session";
+import { useSessionSync } from "@/lib/hooks/use-session-sync";
+import { redirectToAgencyDashboard } from "@/lib/auth/agency-redirect";
 
 export default function HomePage() {
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const { isLoading: sessionLoading, user, isAuthenticated, signOut } = useSessionSync();
   const [userAgency, setUserAgency] = useState<{name: string; subdomain: string} | null>(null);
-  const [userEmail, setUserEmail] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const checkAuth = async () => {
+    const checkAgencyInfo = async () => {
+      if (!isAuthenticated || !user) {
+        setLoading(false);
+        return;
+      }
+
       try {
         // Vérifier si on est sur le domaine principal
         const hostname = window.location.hostname;
@@ -23,7 +27,6 @@ export default function HomePage() {
         
         // Si on est sur un sous-domaine, rediriger vers le domaine principal
         if (subdomain && subdomain !== 'www' && subdomain !== 'qgchatting' && subdomain !== 'localhost') {
-          console.log('🔄 [HOME] Sous-domaine détecté, redirection vers le domaine principal');
           const mainDomain = process.env.NODE_ENV === 'production' 
             ? 'https://qgchatting.com'
             : 'http://localhost:3000';
@@ -31,24 +34,11 @@ export default function HomePage() {
           return;
         }
         
-        // Synchroniser la session entre domaines
-        await syncSessionAcrossDomains();
-        
+        // Récupérer la session pour le token
         const supabase = supabaseBrowser();
+        const { data: { session } } = await supabase.auth.getSession();
         
-        // Récupérer la session actuelle
-        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-        
-        if (sessionError) {
-          console.error('Erreur de session:', sessionError);
-          setLoading(false);
-          return;
-        }
-
-        if (session?.user) {
-          setIsLoggedIn(true);
-          setUserEmail(session.user.email || null);
-          
+        if (session?.access_token) {
           // Vérifier si l'utilisateur a une agence
           try {
             const agencyResponse = await fetch('/api/auth/check-existing-agency', {
@@ -63,69 +53,26 @@ export default function HomePage() {
               setUserAgency(agencyData.agency);
             }
           } catch (agencyError) {
-            console.error('Erreur lors de la vérification de l\'agence:', agencyError);
+            // Erreur silencieuse
           }
         }
       } catch (error) {
-        console.error('Erreur lors de la vérification de l\'authentification:', error);
+        // Erreur silencieuse
       } finally {
         setLoading(false);
       }
     };
 
-    checkAuth();
-
-    // Écouter les changements d'état d'authentification
-    const supabase = supabaseBrowser();
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      if (event === 'SIGNED_IN' && session?.user) {
-        setIsLoggedIn(true);
-        setUserEmail(session.user.email || null);
-        
-        // Vérifier l'agence après connexion
-        if (session.access_token) {
-          fetch('/api/auth/check-existing-agency', {
-            headers: {
-              'Authorization': `Bearer ${session.access_token}`,
-              'x-session-token': session.access_token
-            }
-          })
-          .then(res => res.json())
-          .then(data => {
-            if (data.ok && data.hasExistingAgency) {
-              setUserAgency(data.agency);
-            }
-          })
-          .catch(console.error);
-        }
-      } else if (event === 'SIGNED_OUT') {
-        setIsLoggedIn(false);
-        setUserEmail(null);
-        setUserAgency(null);
-      }
-    });
-
-    return () => subscription.unsubscribe();
-  }, []);
+    if (!sessionLoading) {
+      checkAgencyInfo();
+    }
+  }, [isAuthenticated, user, sessionLoading]);
 
   const handleGetStarted = async () => {
-    if (isLoggedIn) {
+    if (isAuthenticated) {
       if (userAgency) {
-        // Récupérer la session actuelle
-        const supabase = supabaseBrowser();
-        const { data: { session } } = await supabase.auth.getSession();
-        
-        if (session) {
-          // Synchroniser la session vers le sous-domaine
-          await syncSessionToSubdomain(userAgency.subdomain, session);
-        } else {
-          // Fallback : redirection simple
-          const subdomain = userAgency.subdomain;
-          const baseUrl = process.env.NODE_ENV === 'production' 
-            ? `https://${subdomain}.qgchatting.com`
-            : 'http://localhost:3000'; // En local, rester sur localhost
-          window.location.href = `${baseUrl}/dashboard`;
-        }
+        // Rediriger vers le dashboard de l'agence avec la session synchronisée
+        await redirectToAgencyDashboard(userAgency.subdomain);
       } else {
         // Rediriger vers l'onboarding
         window.location.href = '/fr/owner';
@@ -136,7 +83,7 @@ export default function HomePage() {
     }
   };
 
-  if (loading) {
+  if (loading || sessionLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 flex items-center justify-center">
         <div className="text-center">
@@ -162,11 +109,11 @@ export default function HomePage() {
             </div>
             
             <div className="flex items-center space-x-4">
-              {isLoggedIn ? (
+              {isAuthenticated ? (
                 <div className="flex items-center space-x-4 bg-white/80 backdrop-blur-sm rounded-lg px-4 py-3 shadow-sm border border-white/20">
                   <div className="flex flex-col items-end">
                     <span className="text-sm text-gray-600">
-                      <strong>{userEmail}</strong>
+                      <strong>{user?.email}</strong>
                     </span>
                     {userAgency && (
                       <span className="text-xs text-gray-500">
@@ -176,9 +123,7 @@ export default function HomePage() {
                   </div>
                   <Button 
                     onClick={async () => {
-                      const supabase = supabaseBrowser();
-                      await supabase.auth.signOut();
-                      clearStoredSession();
+                      await signOut();
                       
                       // Rediriger vers la page d'accueil du domaine principal
                       const mainDomain = process.env.NODE_ENV === 'production' 
@@ -236,7 +181,7 @@ export default function HomePage() {
                 className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-4 text-lg"
                 onClick={handleGetStarted}
               >
-                {isLoggedIn ? (userAgency ? 'Accéder à mon agence' : 'Créer une agence') : 'Commencer gratuitement'}
+                {isAuthenticated ? (userAgency ? 'Accéder à mon agence' : 'Créer une agence') : 'Commencer gratuitement'}
               </Button>
               
               <Button 
@@ -302,6 +247,7 @@ export default function HomePage() {
           </div>
         </div>
       </section>
+      
     </div>
   );
 }
