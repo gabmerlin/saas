@@ -4,6 +4,8 @@ import React, { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { CreditCard, Clock, Building2, ArrowRight, CheckCircle, AlertTriangle } from "lucide-react";
 import { usePageTitle } from "@/lib/hooks/use-page-title";
+import { useSessionSync } from "@/lib/hooks/use-session-sync";
+import { supabaseBrowser } from "@/lib/supabase/client";
 import BTCPayPopup from "@/components/payment/btcpay-popup";
 
 interface SubscriptionDetails {
@@ -27,6 +29,7 @@ interface Plan {
 }
 
 export default function SubscriptionRenewalPage() {
+  const { user, isAuthenticated } = useSessionSync();
   const [subscriptionDetails, setSubscriptionDetails] = useState<SubscriptionDetails | null>(null);
   const [tenantId, setTenantId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -77,17 +80,33 @@ export default function SubscriptionRenewalPage() {
   useEffect(() => {
     const fetchSubscriptionDetails = async () => {
       try {
-        // Récupérer le subdomain depuis les headers
-        const subdomain = document.querySelector('meta[name="tenant-subdomain"]')?.getAttribute('content');
+        // Récupérer le subdomain depuis l'URL
+        const hostname = window.location.hostname;
+        const subdomain = hostname.split('.')[0];
         
-        if (!subdomain) {
-          setError("Impossible de déterminer l'agence");
+        // Vérifier si on est sur le domaine principal
+        if (!subdomain || subdomain === 'www' || subdomain === 'qgchatting' || subdomain === 'localhost') {
+          setError("Impossible de déterminer l'agence - accès depuis le domaine principal");
+          setLoading(false);
+          return;
+        }
+
+        // Récupérer la session pour le token
+        const supabase = supabaseBrowser();
+        const { data: { session } } = await supabase.auth.getSession();
+        
+        if (!session) {
+          setError("Session non trouvée - veuillez vous reconnecter");
           setLoading(false);
           return;
         }
 
         // Récupérer les détails de l'abonnement
-        const response = await fetch(`/api/subscription/status?subdomain=${subdomain}`);
+        const response = await fetch(`/api/subscription/status?subdomain=${subdomain}`, {
+          headers: {
+            'Authorization': `Bearer ${session.access_token}`,
+          }
+        });
         const data = await response.json();
 
         if (data.ok) {

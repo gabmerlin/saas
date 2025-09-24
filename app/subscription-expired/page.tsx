@@ -4,8 +4,10 @@ import React, { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { AlertTriangle, Clock, Building2, ArrowRight } from "lucide-react";
 import { usePageTitle } from "@/lib/hooks/use-page-title";
+import { useSessionSync } from "@/lib/hooks/use-session-sync";
 
 export default function SubscriptionExpiredPage() {
+  const { user, isAuthenticated } = useSessionSync();
   const [subscriptionDetails, setSubscriptionDetails] = useState<{
     plan_name: string;
     current_period_end: string;
@@ -16,6 +18,32 @@ export default function SubscriptionExpiredPage() {
   usePageTitle("Abonnement expiré - QG Chatting");
 
   useEffect(() => {
+    // Vérifier si l'utilisateur est un owner et rediriger vers subscription-renewal
+    if (isAuthenticated && user) {
+      // Vérifier le rôle de l'utilisateur
+      const checkUserRole = async () => {
+        try {
+          const hostname = window.location.hostname;
+          const subdomain = hostname.split('.')[0];
+          
+          if (subdomain && subdomain !== 'www' && subdomain !== 'qgchatting' && subdomain !== 'localhost') {
+            const response = await fetch(`/api/agency/status?subdomain=${subdomain}`);
+            const data = await response.json();
+            
+            if (data.ok && data.status?.user_roles?.includes('owner')) {
+              // Rediriger vers subscription-renewal si c'est un owner
+              window.location.href = '/subscription-renewal';
+              return;
+            }
+          }
+        } catch (error) {
+          // Erreur silencieuse
+        }
+      };
+      
+      checkUserRole();
+    }
+
     // Récupérer les détails de l'abonnement depuis les headers
     const subscriptionExpires = document.querySelector('meta[name="subscription-expires"]')?.getAttribute('content');
     
@@ -30,7 +58,7 @@ export default function SubscriptionExpiredPage() {
         days_remaining: daysRemaining
       });
     }
-  }, []);
+  }, [isAuthenticated, user]);
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('fr-FR', {
