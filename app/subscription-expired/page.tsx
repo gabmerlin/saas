@@ -43,8 +43,15 @@ export default function SubscriptionExpiredPage() {
             });
             const data = await response.json();
             
+            console.log('🔍 DEBUG SUBSCRIPTION-EXPIRED:');
+            console.log('- Data ok:', data.ok);
+            console.log('- User roles:', data.status?.user_roles);
+            console.log('- Is owner:', data.status?.user_roles?.includes('owner'));
+            console.log('- Full data:', data);
+            
             if (data.ok && data.status?.user_roles?.includes('owner')) {
               // Rediriger vers subscription-renewal si c'est un owner
+              console.log('✅ Redirecting owner to /subscription-renewal');
               window.location.href = '/subscription-renewal';
               return;
             }

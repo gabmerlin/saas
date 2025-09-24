@@ -63,9 +63,17 @@ export default function DirectDashboardPage() {
                   const userRoles = data.status?.user_roles || [];
                   const isOwner = userRoles.includes('owner');
                   
+                  console.log('🔍 DEBUG DASHBOARD REDIRECTION:');
+                  console.log('- Subscription expired:', data.subscription?.is_expired);
+                  console.log('- User roles:', userRoles);
+                  console.log('- Is owner:', isOwner);
+                  console.log('- Full data:', data);
+                  
                   if (isOwner) {
+                    console.log('✅ Dashboard: Redirecting owner to /subscription-renewal');
                     window.location.href = '/subscription-renewal';
                   } else {
+                    console.log('✅ Dashboard: Redirecting employee to /subscription-expired');
                     window.location.href = '/subscription-expired';
                   }
                   return;
