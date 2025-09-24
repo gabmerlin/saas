@@ -33,7 +33,7 @@ export async function POST(req: Request) {
     const authHeader = req.headers.get('authorization');
     const sessionToken = req.headers.get('x-session-token');
     
-    let user: { id: string; email?: string } | null = null;
+    let user: any = null;
     
     if (authHeader && authHeader.startsWith('Bearer ')) {
       // Utilisation du token Bearer
