@@ -1,6 +1,5 @@
 'use client';
 import { createClient as createSupabaseClient } from '@supabase/supabase-js';
-import { getCookieWithDomain, setCookieWithDomain, removeCookieWithDomain } from '@/lib/utils/cookies';
 
 let supabaseInstance: ReturnType<typeof createSupabaseClient> | null = null;
 
@@ -14,8 +13,22 @@ export const supabaseBrowser = () => {
           detectSessionInUrl: true,
           persistSession: true,
           autoRefreshToken: true,
-          flowType: 'pkce'
-          // Configuration simplifiée pour éviter les conflits
+          flowType: 'pkce',
+          // Configuration de storage pour la persistance des sessions
+          storage: {
+            getItem: (key: string) => {
+              if (typeof window === 'undefined') return null;
+              return localStorage.getItem(key);
+            },
+            setItem: (key: string, value: string) => {
+              if (typeof window === 'undefined') return;
+              localStorage.setItem(key, value);
+            },
+            removeItem: (key: string) => {
+              if (typeof window === 'undefined') return;
+              localStorage.removeItem(key);
+            }
+          }
         }
       }
     );

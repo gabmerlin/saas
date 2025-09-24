@@ -29,11 +29,11 @@ export const AUTH_CONFIG = {
 
 export const GOOGLE_OAUTH_CONFIG = {
   SCOPES: ['email', 'profile'],
-  REDIRECT_URL: typeof window !== 'undefined' && window.location.hostname === 'qgchatting.com'
-    ? 'https://qgchatting.com/auth/callback'
+  REDIRECT_URL: typeof window !== 'undefined' 
+    ? `${window.location.origin}/auth/callback`
     : process.env.NODE_ENV === 'production' 
       ? 'https://qgchatting.com/auth/callback'
-      : '/auth/callback',
+      : 'http://localhost:3000/auth/callback',
   // Configuration pour un affichage plus professionnel
   APP_NAME: 'QG Chatting',
   APP_DOMAIN: 'qgchatting.com',

@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect } from 'react';
+import { sessionSync } from '@/lib/auth/session-sync';
 
 interface SessionSyncProviderProps {
   children: React.ReactNode;
@@ -8,7 +9,8 @@ interface SessionSyncProviderProps {
 
 export function SessionSyncProvider({ children }: SessionSyncProviderProps) {
   useEffect(() => {
-    // Initialisation simple sans dépendances complexes
+    // Initialiser la synchronisation de session
+    sessionSync.initialize();
   }, []);
 
   return <>{children}</>;

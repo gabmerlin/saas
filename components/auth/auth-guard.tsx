@@ -27,16 +27,8 @@ export default function AuthGuard({
   useEffect(() => {
     const checkAuth = async () => {
       try {
-        // Utiliser getSession() qui est plus fiable pour la détection initiale
-        const { data: { session }, error: sessionError } = await supabaseBrowser().auth.getSession();
-
-        if (sessionError) {
-          setIsAuthenticated(false);
-        } else if (session?.user) {
-          setIsAuthenticated(true);
-        } else {
-          setIsAuthenticated(false);
-        }
+        const { data: { session } } = await supabaseBrowser().auth.getSession();
+        setIsAuthenticated(!!session?.user);
       } catch {
         setIsAuthenticated(false);
       } finally {

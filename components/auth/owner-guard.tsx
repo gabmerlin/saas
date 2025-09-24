@@ -17,19 +17,9 @@ export default function OwnerGuard({ children }: OwnerGuardProps) {
   useEffect(() => {
     const checkAgencyStatus = async () => {
       try {
-        // Utiliser getUser() au lieu de getSession() pour une meilleure fiabilité
-        const { data: { user }, error: userError } = await supabaseBrowser().auth.getUser();
+        const { data: { session } } = await supabaseBrowser().auth.getSession();
         
-        if (userError || !user) {
-          router.push('/sign-in');
-          return;
-        }
-
-        
-        // Récupérer la session pour obtenir le token d'accès
-        const { data: { session }, error: sessionError } = await supabaseBrowser().auth.getSession();
-        
-        if (sessionError || !session) {
+        if (!session?.user) {
           router.push('/sign-in');
           return;
         }
@@ -43,7 +33,6 @@ export default function OwnerGuard({ children }: OwnerGuardProps) {
         });
         
         const result = await response.json();
-        
         
         if (result.ok && result.hasExistingAgency && result.agency?.url) {
           // Redirection directe vers le subdomain de l'agence

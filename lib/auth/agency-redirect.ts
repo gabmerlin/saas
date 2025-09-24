@@ -1,16 +1,20 @@
 'use client';
 
-import { redirectToSubdomain } from './cross-domain-auth';
-
 /**
- * Redirige vers le dashboard d'une agence avec la session synchronisée
+ * Redirige vers le dashboard d'une agence
  */
 export async function redirectToAgencyDashboard(subdomain: string): Promise<void> {
-  if (!subdomain) {
+  if (!subdomain || typeof window === 'undefined') {
     return;
   }
 
-  await redirectToSubdomain(subdomain);
+  // Construire l'URL du sous-domaine
+  const baseUrl = process.env.NODE_ENV === 'production' 
+    ? `https://${subdomain}.qgchatting.com`
+    : `http://${subdomain}.localhost:3000`;
+
+  // Rediriger vers le sous-domaine
+  window.location.href = `${baseUrl}/dashboard`;
 }
 
 /**

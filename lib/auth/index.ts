@@ -16,21 +16,6 @@ export {
   resetPassword 
 } from './actions';
 
-// Synchronisation cross-domain (NOUVEAU SYSTÈME UNIFIÉ)
-export {
-  syncSessionAcrossDomains,
-  redirectToSubdomain,
-  initializeSessionSync
-} from './cross-domain-auth';
-
-// Utilitaires de cookies (NOUVEAU SYSTÈME UNIFIÉ)
-export {
-  clearStoredSession,
-  hasStoredSession,
-  storeSession,
-  getStoredSession
-} from '../utils/cookies';
-
 // Redirection d'agence
 export { redirectToAgencyDashboard } from './agency-redirect';
 
