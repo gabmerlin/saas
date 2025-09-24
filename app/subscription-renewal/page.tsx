@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { CreditCard, Clock, Building2, ArrowRight, CheckCircle, AlertTriangle } from "lucide-react";
+import { CreditCard, Clock, Building2, ArrowRight, CheckCircle, AlertTriangle, Users, ClipboardList } from "lucide-react";
 import { usePageTitle } from "@/lib/hooks/use-page-title";
 import { useSessionSync } from "@/lib/hooks/use-session-sync";
 import { supabaseBrowser } from "@/lib/supabase/client";
@@ -263,42 +263,119 @@ export default function SubscriptionRenewalPage() {
               </div>
 
               {/* Plans disponibles */}
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-                {availablePlans.map((plan) => (
-                  <motion.div
-                    key={plan.id}
-                    whileHover={{ scale: 1.02 }}
-                    className="bg-white border-2 border-gray-200 rounded-xl p-6 hover:border-orange-300 transition-all duration-200"
-                  >
-                    <div className="text-center">
-                      <h3 className="text-xl font-bold text-gray-900 mb-2">{plan.name}</h3>
-                      <p className="text-gray-600 text-sm mb-4">{plan.description}</p>
-                      <div className="text-3xl font-bold text-orange-600 mb-6">
-                        ${plan.price}
-                        <span className="text-sm font-normal text-gray-500">
-                          {plan.name === "Lifetime" ? " à vie" : "/mois"}
-                        </span>
+              <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                {availablePlans.map((plan) => {
+                  const isLifetime = plan.name === "Lifetime";
+                  const isPopular = plan.name === "Advanced";
+                  
+                  // Définir les limites selon le plan
+                  const employeeLimit = (plan as any).max_employees || "Illimité";
+                  const modelLimit = plan.name === "Lifetime" ? "Illimité" : 
+                                   plan.name === "Professional" ? "25" :
+                                   plan.name === "Advanced" ? "7" : "4";
+                  
+                  return (
+                    <motion.div
+                      key={plan.id}
+                      whileHover={{ scale: 1.05 }}
+                      className="cursor-pointer group relative h-full"
+                    >
+                      {/* Badge "Populaire" */}
+                      {isPopular && (
+                        <div className="absolute -top-3 left-1/2 transform -translate-x-1/2 z-10">
+                          <span className="bg-gradient-to-r from-blue-500 to-purple-600 text-white text-xs font-semibold px-4 py-1 rounded-full shadow-lg">
+                            Populaire
+                          </span>
+                        </div>
+                      )}
+
+                      {/* Badge "Lifetime" */}
+                      {isLifetime && (
+                        <div className="absolute -top-3 left-1/2 transform -translate-x-1/2 z-10">
+                          <span className="bg-gradient-to-r from-yellow-400 to-orange-500 text-yellow-900 text-xs font-semibold px-4 py-1 rounded-full shadow-lg flex items-center gap-1">
+                            <span>👑</span>
+                            Lifetime
+                          </span>
+                        </div>
+                      )}
+
+                      <div className="h-full relative overflow-hidden rounded-2xl border-2 transition-all duration-500 flex flex-col group-hover:scale-105 group-hover:shadow-2xl border-gray-200 hover:border-gray-300 bg-white">
+                        
+                        {/* Effet de brillance au survol */}
+                        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000"></div>
+
+                        {/* Header avec nom et prix */}
+                        <div className="p-8 pb-6 text-center relative">
+                          <div className="mb-4">
+                            <h5 className="text-2xl font-bold mb-2 text-gray-900">
+                              {plan.name}
+                            </h5>
+                            <div className="flex items-baseline justify-center gap-1">
+                              <span className="text-4xl font-bold text-orange-600">
+                                {isLifetime ? "1199€" : `${plan.price}€`}
+                              </span>
+                              <span className="text-sm font-medium text-gray-500">
+                                {isLifetime ? "" : "/mois"}
+                              </span>
+                            </div>
+                            {isLifetime && (
+                              <p className="text-sm font-semibold mt-1 text-orange-600">
+                                Paiement unique
+                              </p>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Description */}
+                        <div className="px-8 pb-6 flex-grow">
+                          <p className="text-sm text-center leading-relaxed text-gray-600">
+                            {plan.description}
+                          </p>
+                        </div>
+
+                        {/* Limites principales */}
+                        <div className="px-8 pb-8">
+                          <div className="space-y-4">
+                            {/* Limite d'employés */}
+                            <div className="text-center">
+                              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium bg-blue-50 text-blue-600">
+                                <Users className="w-4 h-4" />
+                                <span>{employeeLimit} employés</span>
+                              </div>
+                            </div>
+
+                            {/* Limite de modèles */}
+                            <div className="text-center">
+                              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium bg-purple-50 text-purple-600">
+                                <ClipboardList className="w-4 h-4" />
+                                <span>{modelLimit} modèles</span>
+                              </div>
+                            </div>
+
+                            {/* Fonctionnalités incluses */}
+                            <div className="text-center">
+                              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium bg-green-50 text-green-600">
+                                <CheckCircle className="w-4 h-4" />
+                                <span>Toutes les fonctionnalités</span>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Bouton d'action */}
+                        <div className="p-8 pt-0">
+                          <button
+                            onClick={() => handleRenewal(plan)}
+                            className="w-full bg-orange-600 hover:bg-orange-700 text-white px-6 py-3 rounded-lg transition-colors flex items-center justify-center font-semibold"
+                          >
+                            Choisir ce plan
+                            <ArrowRight className="h-4 w-4 ml-2" />
+                          </button>
+                        </div>
                       </div>
-                      
-                      <ul className="text-sm text-gray-600 space-y-2 mb-6 text-left">
-                        {Object.entries(plan.features).map(([feature]) => (
-                          <li key={feature} className="flex items-center">
-                            <CheckCircle className="w-4 h-4 text-green-500 mr-2 flex-shrink-0" />
-                            {feature.replace('_', ' ')}
-                          </li>
-                        ))}
-                      </ul>
-                      
-                      <button
-                        onClick={() => handleRenewal(plan)}
-                        className="w-full bg-orange-600 hover:bg-orange-700 text-white px-6 py-3 rounded-lg transition-colors flex items-center justify-center font-semibold"
-                      >
-                        Choisir ce plan
-                        <ArrowRight className="h-4 w-4 ml-2" />
-                      </button>
-                    </div>
-                  </motion.div>
-                ))}
+                    </motion.div>
+                  );
+                })}
               </div>
 
               <div className="text-center">
