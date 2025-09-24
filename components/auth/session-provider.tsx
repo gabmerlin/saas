@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect } from 'react';
-import { simpleSessionSync } from '@/lib/auth/simple-session-sync';
+import { crossDomainCookies } from '@/lib/auth/cross-domain-cookies';
 
 interface SessionProviderProps {
   children: React.ReactNode;
@@ -9,8 +9,8 @@ interface SessionProviderProps {
 
 export function SessionProvider({ children }: SessionProviderProps) {
   useEffect(() => {
-    console.log('SessionProvider initialisé (simple session sync)');
-    simpleSessionSync.initialize();
+    console.log('SessionProvider initialisé (cross-domain cookies)');
+    crossDomainCookies.initialize();
   }, []);
 
   return <>{children}</>;
