@@ -42,12 +42,19 @@ export async function GET(request: NextRequest) {
     const authHeader = request.headers.get('authorization');
     if (authHeader && authHeader.startsWith('Bearer ')) {
       try {
+        const token = authHeader.replace('Bearer ', '');
         const { createClient } = await import('@/lib/supabase/server');
         const supabase = createClient();
-        const { data: { user } } = await supabase.auth.getUser();
         
-        if (user) {
-          const { data: rolesData } = await dbClient
+        // Utiliser le token pour récupérer l'utilisateur
+        const { data: { user }, error: userError } = await supabase.auth.getUser(token);
+        
+        if (userError) {
+          console.log('❌ Error getting user:', userError);
+        } else if (user) {
+          console.log('✅ User found:', user.id);
+          
+          const { data: rolesData, error: rolesError } = await dbClient
             .from('user_roles')
             .select(`
               roles!inner(key)
@@ -55,11 +62,19 @@ export async function GET(request: NextRequest) {
             .eq('user_id', user.id)
             .eq('tenant_id', agency.id);
           
-          userRoles = rolesData?.map(ur => ur.roles[0]?.key).filter(Boolean) || [];
+          if (rolesError) {
+            console.log('❌ Error getting roles:', rolesError);
+          } else {
+            console.log('✅ Roles data:', rolesData);
+            userRoles = rolesData?.map(ur => ur.roles[0]?.key).filter(Boolean) || [];
+            console.log('✅ User roles:', userRoles);
+          }
         }
       } catch (error) {
-        // Erreur silencieuse
+        console.log('❌ Error in user roles retrieval:', error);
       }
+    } else {
+      console.log('❌ No auth header found');
     }
 
     // Vérifier le statut de l'abonnement
