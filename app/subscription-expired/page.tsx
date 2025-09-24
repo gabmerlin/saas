@@ -32,7 +32,6 @@ export default function SubscriptionExpiredPage() {
             
             if (data.ok && data.status?.user_roles?.includes('owner')) {
               // Rediriger vers subscription-renewal si c'est un owner
-              console.log('Owner détecté sur subscription-expired, redirection vers renewal');
               window.location.href = '/subscription-renewal';
               return;
             }

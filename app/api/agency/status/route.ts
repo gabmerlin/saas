@@ -37,6 +37,31 @@ export async function GET(request: NextRequest) {
       );
     }
 
+    // Récupérer les rôles de l'utilisateur connecté
+    let userRoles: string[] = [];
+    const authHeader = request.headers.get('authorization');
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      try {
+        const { createClient } = await import('@/lib/supabase/server');
+        const supabase = createClient();
+        const { data: { user } } = await supabase.auth.getUser();
+        
+        if (user) {
+          const { data: rolesData } = await dbClient
+            .from('user_roles')
+            .select(`
+              roles!inner(key)
+            `)
+            .eq('user_id', user.id)
+            .eq('tenant_id', agency.id);
+          
+          userRoles = rolesData?.map(ur => ur.roles[0]?.key).filter(Boolean) || [];
+        }
+      } catch (error) {
+        // Erreur silencieuse
+      }
+    }
+
     // Vérifier le statut de l'abonnement
     const { data: subscriptionDetails } = await dbClient
       .rpc('get_subscription_details', { p_tenant_id: agency.id })
@@ -137,7 +162,8 @@ export async function GET(request: NextRequest) {
           name: agency.name,
           subdomain: agency.subdomain,
           url: agencyUrl
-        }
+        },
+        user_roles: userRoles
       },
       message: !isAccessible 
         ? subscription?.is_expired 
