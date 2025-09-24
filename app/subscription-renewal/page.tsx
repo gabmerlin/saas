@@ -78,7 +78,7 @@ export default function SubscriptionRenewalPage() {
 
           if (tenantData) {
             // Vérifier les rôles de l'utilisateur
-            const { data: userRolesData } = await supabase
+            const { data: userRolesData, error: userRolesError } = await supabase
               .from('user_roles')
               .select(`
                 roles!inner(key)
@@ -86,14 +86,30 @@ export default function SubscriptionRenewalPage() {
               .eq('user_id', session.user.id)
               .eq('tenant_id', (tenantData as any).id);
 
+            // Vérifier aussi user_tenants
+            const { data: userTenantData, error: userTenantError } = await supabase
+              .from('user_tenants')
+              .select('is_owner')
+              .eq('user_id', session.user.id)
+              .eq('tenant_id', (tenantData as any).id)
+              .single();
+
             const userRoles = userRolesData?.map((ur: any) => ur.roles[0]?.key).filter(Boolean) || [];
-            const isOwner = userRoles.includes('owner');
+            const isOwnerFromRoles = userRoles.includes('owner');
+            const isOwnerFromTenants = (userTenantData as any)?.is_owner || false;
+            const isOwner = isOwnerFromRoles || isOwnerFromTenants;
             
             console.log('🔍 SUBSCRIPTION-RENEWAL DEBUG (Direct DB):');
             console.log('- User ID:', session.user.id);
             console.log('- Tenant ID:', (tenantData as any).id);
+            console.log('- User roles data:', userRolesData);
+            console.log('- User roles error:', userRolesError);
+            console.log('- User tenant data:', userTenantData);
+            console.log('- User tenant error:', userTenantError);
             console.log('- User roles:', userRoles);
-            console.log('- Is owner:', isOwner);
+            console.log('- Is owner from roles:', isOwnerFromRoles);
+            console.log('- Is owner from tenants:', isOwnerFromTenants);
+            console.log('- Final is owner:', isOwner);
             
             if (!isOwner) {
               // Rediriger vers subscription-expired si ce n'est pas un owner
