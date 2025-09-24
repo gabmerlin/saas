@@ -18,6 +18,11 @@ export const supabaseBrowser = () => {
             getItem: (key: string) => {
               if (typeof window === 'undefined') return null;
               try {
+                // Essayer d'abord sessionStorage pour le PKCE
+                const sessionValue = sessionStorage.getItem(key);
+                if (sessionValue) return sessionValue;
+                
+                // Fallback vers localStorage
                 return localStorage.getItem(key);
               } catch {
                 return null;
@@ -26,6 +31,9 @@ export const supabaseBrowser = () => {
             setItem: (key: string, value: string) => {
               if (typeof window === 'undefined') return;
               try {
+                // Stocker dans sessionStorage pour le PKCE (plus sûr)
+                sessionStorage.setItem(key, value);
+                // Aussi dans localStorage pour la persistance
                 localStorage.setItem(key, value);
               } catch {
                 // Ignore storage errors
@@ -34,6 +42,8 @@ export const supabaseBrowser = () => {
             removeItem: (key: string) => {
               if (typeof window === 'undefined') return;
               try {
+                // Supprimer des deux
+                sessionStorage.removeItem(key);
                 localStorage.removeItem(key);
               } catch {
                 // Ignore storage errors

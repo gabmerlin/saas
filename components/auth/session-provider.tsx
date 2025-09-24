@@ -1,7 +1,6 @@
 'use client';
 
 import { useEffect } from 'react';
-import { sessionSync } from '@/lib/auth/session-sync';
 
 interface SessionProviderProps {
   children: React.ReactNode;
@@ -9,8 +8,8 @@ interface SessionProviderProps {
 
 export function SessionProvider({ children }: SessionProviderProps) {
   useEffect(() => {
-    // Initialiser la synchronisation de session locale
-    sessionSync.initialize();
+    // Temporairement désactivé pour isoler le problème OAuth
+    console.log('SessionProvider initialisé (cross-domain désactivé)');
   }, []);
 
   return <>{children}</>;

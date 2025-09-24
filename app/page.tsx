@@ -17,66 +17,13 @@ function RootRedirectContent() {
       if (code) {
         console.log('=== CODE OAUTH REÇU SUR PAGE RACINE ===');
         console.log('Code:', code.substring(0, 20) + '...');
-        setStatus('Traitement du code OAuth...');
+        setStatus('Redirection vers le gestionnaire OAuth...');
         
-        try {
-          const supabase = supabaseBrowser();
-          
-          // Échanger le code contre une session
-          const { data, error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
-          
-          if (exchangeError) {
-            console.error('Erreur exchangeCodeForSession:', exchangeError);
-            console.log('Tentative de récupération de la session existante...');
-            
-            // Si l'échange échoue, essayer de récupérer la session existante
-            const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-            
-            if (sessionError) {
-              console.error('Erreur getSession:', sessionError);
-              setStatus('Erreur lors de l\'authentification');
-              setTimeout(() => {
-                window.location.href = '/sign-in?error=auth_failed';
-              }, 2000);
-              return;
-            }
-            
-            if (session) {
-              console.log('Session récupérée avec succès:', session.user?.email);
-              setStatus('Connexion réussie !');
-              setTimeout(() => {
-                window.location.href = '/home';
-              }, 1000);
-            } else {
-              console.log('Aucune session trouvée');
-              setStatus('Aucune session trouvée');
-              setTimeout(() => {
-                window.location.href = '/sign-in?error=no_session';
-              }, 2000);
-            }
-            return;
-          }
-          
-          if (data.session) {
-            console.log('Session créée avec succès:', data.session.user?.email);
-            setStatus('Connexion réussie !');
-            setTimeout(() => {
-              window.location.href = '/home';
-            }, 1000);
-          } else {
-            console.log('Aucune session après échange du code');
-            setStatus('Aucune session créée');
-            setTimeout(() => {
-              window.location.href = '/sign-in?error=no_session';
-            }, 2000);
-          }
-        } catch (error) {
-          console.error('Erreur lors du traitement OAuth:', error);
-          setStatus('Erreur lors de l\'authentification');
-          setTimeout(() => {
-            window.location.href = '/sign-in?error=auth_failed';
-          }, 2000);
-        }
+        // Rediriger vers /auth/callback qui gère correctement l'OAuth
+        const currentUrl = new URL(window.location.href);
+        const callbackUrl = `/auth/callback${currentUrl.search}`;
+        window.location.href = callbackUrl;
+        return;
       } else if (error) {
         console.log('Erreur OAuth reçue:', error);
         setStatus(`Erreur: ${error}`);

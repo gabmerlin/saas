@@ -46,9 +46,33 @@ function AuthCallbackContent() {
           
           if (exchangeError) {
             console.error('Erreur exchangeCodeForSession:', exchangeError);
-            setStatus(`Erreur échange: ${exchangeError.message}`);
-            setTimeout(() => router.push('/sign-in?error=auth_failed'), 2000);
-            return;
+            console.log('Tentative de récupération de la session existante...');
+            
+            // Si l'échange échoue, essayer de récupérer la session existante
+            const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+            
+            if (sessionError) {
+              console.error('Erreur getSession:', sessionError);
+              setStatus(`Erreur échange: ${exchangeError.message}`);
+              setTimeout(() => router.push('/sign-in?error=auth_failed'), 2000);
+              return;
+            }
+            
+            if (session) {
+              console.log('Session récupérée avec succès:', session.user?.email);
+              setStatus('Connexion réussie !');
+              setTimeout(() => {
+                const next = searchParams.get('next') || '/home';
+                console.log('Redirection vers:', next);
+                window.location.href = next;
+              }, 1000);
+              return;
+            } else {
+              console.log('Aucune session trouvée');
+              setStatus(`Erreur échange: ${exchangeError.message}`);
+              setTimeout(() => router.push('/sign-in?error=auth_failed'), 2000);
+              return;
+            }
           }
           
           if (data.session) {

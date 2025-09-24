@@ -19,5 +19,5 @@ export {
 // Redirection d'agence
 export { redirectToAgencyDashboard } from './agency-redirect';
 
-// Middleware d'authentification
-export { requireAuth as requireAuthMiddleware, requireRole as requireRoleMiddleware, requirePermission as requirePermissionMiddleware, createRouteHandler } from './middleware';
+// Route guards d'authentification
+export { requireAuth as requireAuthMiddleware, requireRole as requireRoleMiddleware, requirePermission as requirePermissionMiddleware, createRouteHandler } from './route-guards';
