@@ -2751,7 +2751,7 @@ export default function OwnerOnboardingPage() {
                           // Définir les limites selon le plan
                           const employeeLimit = plan.max_employees || "Illimité";
                           const modelLimit = plan.name === "Lifetime" ? "Illimité" : 
-                                           plan.name === "Professional" ? "50" :
+                                           plan.name === "Professional" ? "25" :
                                            plan.name === "Advanced" ? "7" : "4";
                           
                           return (

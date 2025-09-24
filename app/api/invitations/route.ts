@@ -68,11 +68,16 @@ export async function POST(request: NextRequest) {
 
     // Envoyer l'email d'invitation
     try {
+      // Récupérer le prénom de l'utilisateur
+      const inviterName = session.user.full_name?.split(' ')[0] || 
+                         session.user.email?.split('@')[0]?.replace(/[._-]/g, ' ')?.split(' ')[0] || 
+                         'Un administrateur';
+
       await sendInvitationEmail({
         email,
         tenantName: session.tenant?.name || 'Votre agence',
         tenantSubdomain: session.tenant?.subdomain || '',
-        inviterName: session.user.full_name || 'Un administrateur',
+        inviterName: inviterName,
         roleName: role,
         invitationUrl: `${process.env.APP_BASE_URL}/invitations/accept?token=${invitation.token}`,
         expiresAt: new Date(invitation.expires_at),

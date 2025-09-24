@@ -7,6 +7,7 @@ import { MessageSquare, Users, Settings, CreditCard, Shield, Zap } from "lucide-
 import { supabaseBrowser } from "@/lib/supabase/client";
 import { useSessionSync } from "@/lib/hooks/use-session-sync";
 import { redirectToAgencyDashboard } from "@/lib/auth/agency-redirect";
+import { getUserFirstName } from "@/lib/utils/user";
 
 export default function HomePage() {
   const { isLoading: sessionLoading, user, isAuthenticated, signOut } = useSessionSync();
@@ -114,7 +115,7 @@ export default function HomePage() {
                 <div className="flex items-center space-x-4 bg-white/80 backdrop-blur-sm rounded-lg px-4 py-3 shadow-sm border border-white/20">
                   <div className="flex flex-col items-end">
                     <span className="text-sm text-gray-600">
-                      <strong>{user?.email}</strong>
+                      <strong>{getUserFirstName(user)}</strong>
                     </span>
                     {userAgency && (
                       <span className="text-xs text-gray-500">

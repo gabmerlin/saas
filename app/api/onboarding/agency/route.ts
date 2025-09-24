@@ -263,11 +263,17 @@ export async function POST(req: Request) {
         for (const invitation of insertedInvitations) {
           if (invitation.email) {
             try {
+              // Récupérer le prénom de l'utilisateur
+              const inviterName = user.user_metadata?.full_name?.split(' ')[0] || 
+                                 user.user_metadata?.name?.split(' ')[0] || 
+                                 user.email?.split('@')[0]?.replace(/[._-]/g, ' ')?.split(' ')[0] || 
+                                 'Un administrateur';
+
               await sendInvitationEmail({
                 email: invitation.email,
                 tenantName: input.agencyName,
                 tenantSubdomain: input.subdomain,
-                inviterName: user.email || 'Un administrateur',
+                inviterName: inviterName,
                 roleName: invitation.role_key,
                 invitationUrl: `${process.env.APP_BASE_URL || 'http://localhost:3000'}/invitations/accept?token=${invitation.token}`,
                 expiresAt: new Date(invitation.expires_at),

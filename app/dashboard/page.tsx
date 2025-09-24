@@ -7,6 +7,7 @@ import { useSessionSync } from "@/lib/hooks/use-session-sync";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { MessageSquare, Users, Settings, CreditCard, Shield, Zap } from "lucide-react";
+import { getUserFirstName } from "@/lib/utils/user";
 
 export default function DirectDashboardPage() {
   const router = useRouter();
@@ -143,7 +144,7 @@ export default function DirectDashboardPage() {
               {agencyInfo?.name || 'Tableau de bord'}
             </h1>
             <p className="text-gray-600 mt-2">
-              Bienvenue, {user?.email}
+              Bienvenue, {getUserFirstName(user)}
             </p>
           </div>
           
