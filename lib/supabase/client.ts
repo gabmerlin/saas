@@ -31,7 +31,14 @@ const removeCookie = (name: string) => {
     ? 'localhost' 
     : '.qgchatting.com';
     
+  // Supprimer le cookie pour le domaine actuel
+  document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/`;
+  
+  // Supprimer le cookie pour le domaine parent (cross-domain)
   document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/;domain=${domain}`;
+  
+  // Supprimer aussi sans domaine spécifique
+  document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/;domain=.${domain}`;
 };
 
 export const supabaseBrowser = () => {

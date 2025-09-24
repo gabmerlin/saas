@@ -62,10 +62,34 @@ export function useSessionSync() {
     try {
       const supabase = supabaseBrowser();
       await supabase.auth.signOut();
+      
+      // Nettoyer manuellement tous les cookies de session
+      if (typeof document !== 'undefined') {
+        // Nettoyer les cookies Supabase
+        const cookies = document.cookie.split(';');
+        cookies.forEach(cookie => {
+          const [name] = cookie.trim().split('=');
+          if (name.includes('supabase') || name.includes('session')) {
+            // Supprimer pour le domaine actuel
+            document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/`;
+            // Supprimer pour le domaine parent
+            document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/;domain=.qgchatting.com`;
+            document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/;domain=localhost`;
+          }
+        });
+        
+        // Nettoyer localStorage
+        Object.keys(localStorage).forEach(key => {
+          if (key.includes('supabase') || key.includes('session')) {
+            localStorage.removeItem(key);
+          }
+        });
+      }
+      
       setSession(null);
       setUser(null);
     } catch (error) {
-      // Erreur silencieuse
+      console.error('Erreur lors de la déconnexion:', error);
     }
   };
 
