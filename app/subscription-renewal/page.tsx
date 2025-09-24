@@ -120,7 +120,9 @@ export default function SubscriptionRenewalPage() {
   const handlePaymentSuccess = (transactionId: string) => {
     console.log("Paiement réussi:", transactionId);
     // Rediriger vers l'agence après paiement réussi
-    window.location.href = `https://${document.querySelector('meta[name="tenant-subdomain"]')?.getAttribute('content')}.qgchatting.com`;
+    const hostname = window.location.hostname;
+    const subdomain = hostname.split('.')[0];
+    window.location.href = `https://${subdomain}.qgchatting.com`;
   };
 
   const handlePaymentError = (error: string) => {

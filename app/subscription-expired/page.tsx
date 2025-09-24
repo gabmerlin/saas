@@ -5,6 +5,7 @@ import { motion } from "framer-motion";
 import { AlertTriangle, Clock, Building2, ArrowRight } from "lucide-react";
 import { usePageTitle } from "@/lib/hooks/use-page-title";
 import { useSessionSync } from "@/lib/hooks/use-session-sync";
+import { supabaseBrowser } from "@/lib/supabase/client";
 
 export default function SubscriptionExpiredPage() {
   const { user, isAuthenticated } = useSessionSync();
@@ -27,7 +28,19 @@ export default function SubscriptionExpiredPage() {
           const subdomain = hostname.split('.')[0];
           
           if (subdomain && subdomain !== 'www' && subdomain !== 'qgchatting' && subdomain !== 'localhost') {
-            const response = await fetch(`/api/agency/status?subdomain=${subdomain}`);
+            // Récupérer la session pour le token
+            const supabase = supabaseBrowser();
+            const { data: { session } } = await supabase.auth.getSession();
+            
+            if (!session) {
+              return;
+            }
+            
+            const response = await fetch(`/api/agency/status?subdomain=${subdomain}`, {
+              headers: {
+                'Authorization': `Bearer ${session.access_token}`,
+              }
+            });
             const data = await response.json();
             
             if (data.ok && data.status?.user_roles?.includes('owner')) {
