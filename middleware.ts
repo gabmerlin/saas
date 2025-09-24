@@ -101,11 +101,11 @@ export async function middleware(req: NextRequest) {
             if (pathname === '/subscription-expired' || pathname === '/subscription-renewal') {
               // Laisser passer sans redirection
             } else {
-              // Vérifier les rôles utilisateur pour rediriger vers la bonne page
-              // Pour l'instant, rediriger vers subscription-expired par défaut
-              // La logique de redirection vers subscription-renewal sera gérée dans les pages client
+              // Rediriger vers subscription-renewal par défaut
+              // La page subscription-renewal vérifiera si l'utilisateur est owner
+              // et redirigera vers subscription-expired si ce n'est pas le cas
               const url = req.nextUrl.clone()
-              url.pathname = '/subscription-expired'
+              url.pathname = '/subscription-renewal'
               return NextResponse.redirect(url)
             }
           }

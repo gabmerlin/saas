@@ -67,6 +67,35 @@ export default function SubscriptionRenewalPage() {
           return;
         }
 
+        // Vérifier si l'utilisateur est owner
+        const agencyResponse = await fetch(`/api/agency/status?subdomain=${subdomain}`, {
+          headers: {
+            'Authorization': `Bearer ${session.access_token}`,
+          }
+        });
+        const agencyData = await agencyResponse.json();
+
+        if (agencyData.ok) {
+          const userRoles = agencyData.status?.user_roles || [];
+          const isOwner = userRoles.includes('owner');
+          
+          console.log('🔍 SUBSCRIPTION-RENEWAL DEBUG:');
+          console.log('- User roles:', userRoles);
+          console.log('- Is owner:', isOwner);
+          
+          if (!isOwner) {
+            // Rediriger vers subscription-expired si ce n'est pas un owner
+            console.log('❌ Not an owner, redirecting to subscription-expired');
+            window.location.href = '/subscription-expired';
+            return;
+          }
+        } else {
+          // En cas d'erreur, rediriger vers subscription-expired
+          console.log('❌ Error checking user role, redirecting to subscription-expired');
+          window.location.href = '/subscription-expired';
+          return;
+        }
+
         // Charger les plans d'abonnement depuis la base de données
         const { data: plansData, error: plansError } = await supabase
           .from("subscription_plan")
