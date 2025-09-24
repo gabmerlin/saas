@@ -67,31 +67,47 @@ export default function SubscriptionRenewalPage() {
           return;
         }
 
-        // Vérifier si l'utilisateur est owner
-        const agencyResponse = await fetch(`/api/agency/status?subdomain=${subdomain}`, {
-          headers: {
-            'Authorization': `Bearer ${session.access_token}`,
-          }
-        });
-        const agencyData = await agencyResponse.json();
+        // Vérifier si l'utilisateur est owner directement via Supabase
+        try {
+          // Récupérer l'ID du tenant
+          const { data: tenantData } = await supabase
+            .from('tenants')
+            .select('id')
+            .eq('subdomain', subdomain)
+            .single();
 
-        if (agencyData.ok) {
-          const userRoles = agencyData.status?.user_roles || [];
-          const isOwner = userRoles.includes('owner');
-          
-          console.log('🔍 SUBSCRIPTION-RENEWAL DEBUG:');
-          console.log('- User roles:', userRoles);
-          console.log('- Is owner:', isOwner);
-          
-          if (!isOwner) {
-            // Rediriger vers subscription-expired si ce n'est pas un owner
-            console.log('❌ Not an owner, redirecting to subscription-expired');
+          if (tenantData) {
+            // Vérifier les rôles de l'utilisateur
+            const { data: userRolesData } = await supabase
+              .from('user_roles')
+              .select(`
+                roles!inner(key)
+              `)
+              .eq('user_id', session.user.id)
+              .eq('tenant_id', (tenantData as any).id);
+
+            const userRoles = userRolesData?.map((ur: any) => ur.roles[0]?.key).filter(Boolean) || [];
+            const isOwner = userRoles.includes('owner');
+            
+            console.log('🔍 SUBSCRIPTION-RENEWAL DEBUG (Direct DB):');
+            console.log('- User ID:', session.user.id);
+            console.log('- Tenant ID:', (tenantData as any).id);
+            console.log('- User roles:', userRoles);
+            console.log('- Is owner:', isOwner);
+            
+            if (!isOwner) {
+              // Rediriger vers subscription-expired si ce n'est pas un owner
+              console.log('❌ Not an owner, redirecting to subscription-expired');
+              window.location.href = '/subscription-expired';
+              return;
+            }
+          } else {
+            console.log('❌ Tenant not found, redirecting to subscription-expired');
             window.location.href = '/subscription-expired';
             return;
           }
-        } else {
-          // En cas d'erreur, rediriger vers subscription-expired
-          console.log('❌ Error checking user role, redirecting to subscription-expired');
+        } catch (error) {
+          console.log('❌ Error checking user role directly:', error);
           window.location.href = '/subscription-expired';
           return;
         }
