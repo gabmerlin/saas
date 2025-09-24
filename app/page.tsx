@@ -20,34 +20,9 @@ export default function RootRedirect() {
           // Nettoyer l'URL IMMÉDIATEMENT
           window.history.replaceState({}, document.title, '/');
           
-          // Traiter le code OAuth directement
-          const { supabaseBrowser } = await import('@/lib/supabase/client');
-          const supabase = supabaseBrowser();
-          
-          const { data, error } = await supabase.auth.exchangeCodeForSession(code);
-          
-          if (error) {
-            setStatus("Erreur de connexion");
-            setTimeout(() => window.location.href = '/sign-in', 2000);
-            return;
-          }
-          
-          if (data.session) {
-            // Stocker la session
-            const sessionData = {
-              access_token: data.session.access_token,
-              refresh_token: data.session.refresh_token,
-              expires_at: data.session.expires_at,
-              user: data.session.user
-            };
-            
-            localStorage.setItem('supabase-session', JSON.stringify(sessionData));
-            sessionStorage.setItem('supabase-session', JSON.stringify(sessionData));
-            
-            setStatus("Connexion réussie !");
-            setTimeout(() => window.location.href = '/home', 1000);
-            return;
-          }
+          // Rediriger vers le callback standard pour éviter les conflits
+          window.location.href = '/auth/callback';
+          return;
         }
         
         // Si pas de code OAuth, rediriger vers /home
