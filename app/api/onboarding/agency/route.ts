@@ -290,37 +290,21 @@ export async function POST(req: Request) {
       }
     }
 
-    // 11) Créer l'abonnement
-    try {
-      const { createSubscription } = await import('@/lib/subscription');
-      
-      // Déterminer le prix selon le plan
-      let priceUsd: number;
-      switch (input.planKey) {
-        case 'starter':
-          priceUsd = 17.00;
-          break;
-        case 'advanced':
-          priceUsd = 35.00;
-          break;
-        case 'professional':
-          priceUsd = 75.00;
-          break;
-        case 'lifetime':
-          priceUsd = 1199.00;
-          break;
-        default:
-          priceUsd = 17.00; // Fallback
+    // 11) Créer l'abonnement (seulement pour 'lifetime')
+    // Les autres plans seront créés par le webhook BTCPay après paiement
+    if (input.planKey === 'lifetime') {
+      try {
+        const { createSubscription } = await import('@/lib/subscription');
+        
+        await createSubscription({
+          tenantId,
+          planKey: input.planKey,
+          priceUsd: 1199.00
+        });
+      } catch (subscriptionError) {
+        console.error('Failed to create subscription:', subscriptionError);
+        // Ne pas faire échouer l'onboarding si l'abonnement échoue
       }
-      
-      await createSubscription({
-        tenantId,
-        planKey: input.planKey,
-        priceUsd
-      });
-    } catch (subscriptionError) {
-      console.error('Failed to create subscription:', subscriptionError);
-      // Ne pas faire échouer l'onboarding si l'abonnement échoue
     }
 
     // 12) audit_log

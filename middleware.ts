@@ -97,17 +97,22 @@ export async function middleware(req: NextRequest) {
 
           // Si l'abonnement est expiré, rediriger vers la page appropriée
           if (subscription.is_expired) {
-            // Vérifier le rôle de l'utilisateur pour rediriger vers la bonne page
-            const userRole = req.headers.get('x-user-role') // Sera défini par l'auth
-            
-            if (userRole === 'owner') {
-              const url = req.nextUrl.clone()
-              url.pathname = '/subscription-renewal'
-              return NextResponse.redirect(url)
+            // Ne pas rediriger si on est déjà sur une page d'expiration
+            if (pathname === '/subscription-expired' || pathname === '/subscription-renewal') {
+              // Laisser passer sans redirection
             } else {
-              const url = req.nextUrl.clone()
-              url.pathname = '/subscription-expired'
-              return NextResponse.redirect(url)
+              // Vérifier le rôle de l'utilisateur pour rediriger vers la bonne page
+              const userRole = req.headers.get('x-user-role') // Sera défini par l'auth
+              
+              if (userRole === 'owner') {
+                const url = req.nextUrl.clone()
+                url.pathname = '/subscription-renewal'
+                return NextResponse.redirect(url)
+              } else {
+                const url = req.nextUrl.clone()
+                url.pathname = '/subscription-expired'
+                return NextResponse.redirect(url)
+              }
             }
           }
           
