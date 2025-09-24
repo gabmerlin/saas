@@ -175,7 +175,6 @@ export default function BTCPayPopup({
             });
             const activateData = await activateResponse.json();
             if (activateData.ok) {
-              console.log("Agence activée avec succès:", activateData.message);
             } else {
               console.error("Erreur lors de l'activation de l'agence:", activateData.error);
             }

@@ -41,12 +41,10 @@ export async function GET(request: NextRequest) {
     let userRoles: string[] = [];
     const authHeader = request.headers.get('authorization');
     
-    console.log('🔍 API DEBUG - Auth header:', authHeader ? 'Present' : 'Missing');
     
     if (authHeader && authHeader.startsWith('Bearer ')) {
       try {
         const token = authHeader.replace('Bearer ', '');
-        console.log('🔍 API DEBUG - Token length:', token.length);
         
         const { createClient } = await import('@/lib/supabase/server');
         const supabase = createClient();
@@ -55,9 +53,8 @@ export async function GET(request: NextRequest) {
         const { data: { user }, error: userError } = await supabase.auth.getUser(token);
         
         if (userError) {
-          console.log('❌ API Error getting user:', userError);
+          // Erreur silencieuse
         } else if (user) {
-          console.log('✅ API User found:', user.id);
           
           const { data: rolesData, error: rolesError } = await dbClient
             .from('user_roles')
@@ -68,20 +65,14 @@ export async function GET(request: NextRequest) {
             .eq('tenant_id', agency.id);
           
           if (rolesError) {
-            console.log('❌ API Error getting roles:', rolesError);
+            // Erreur silencieuse
           } else {
-            console.log('✅ API Roles data:', rolesData);
             userRoles = rolesData?.map(ur => ur.roles[0]?.key).filter(Boolean) || [];
-            console.log('✅ API User roles:', userRoles);
           }
-        } else {
-          console.log('❌ API No user found');
         }
       } catch (error) {
-        console.log('❌ API Error in user roles retrieval:', error);
+        // Erreur silencieuse
       }
-    } else {
-      console.log('❌ API No auth header found');
     }
 
     // Vérifier le statut de l'abonnement

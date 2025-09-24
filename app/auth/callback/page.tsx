@@ -37,13 +37,6 @@ function AuthCallbackContent() {
         }
 
         // Debug temporaire pour la production
-        if (process.env.NODE_ENV === 'production') {
-          console.log('🔍 [PROD DEBUG] Session trouvée:', !!session);
-          console.log('🔍 [PROD DEBUG] User:', session?.user?.email);
-          console.log('🔍 [PROD DEBUG] Cookies:', document.cookie);
-          console.log('🔍 [PROD DEBUG] URL actuelle:', window.location.href);
-          console.log('🔍 [PROD DEBUG] Hostname:', window.location.hostname);
-        }
 
         if (session) {
           setStatus('Connexion réussie !');

@@ -4,7 +4,6 @@ import React, { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { CreditCard, Clock, Building2, ArrowRight, CheckCircle, AlertTriangle, Users, ClipboardList } from "lucide-react";
 import { usePageTitle } from "@/lib/hooks/use-page-title";
-import { useSessionSync } from "@/lib/hooks/use-session-sync";
 import { supabaseBrowser } from "@/lib/supabase/client";
 import BTCPayPopup from "@/components/payment/btcpay-popup";
 
@@ -29,7 +28,6 @@ interface Plan {
 }
 
 export default function SubscriptionRenewalPage() {
-  const { user, isAuthenticated } = useSessionSync();
   const [subscriptionDetails, setSubscriptionDetails] = useState<SubscriptionDetails | null>(null);
   const [tenantId, setTenantId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -99,31 +97,17 @@ export default function SubscriptionRenewalPage() {
             const isOwnerFromTenants = (userTenantData as any)?.is_owner || false;
             const isOwner = isOwnerFromRoles || isOwnerFromTenants;
             
-            console.log('🔍 SUBSCRIPTION-RENEWAL DEBUG (Direct DB):');
-            console.log('- User ID:', session.user.id);
-            console.log('- Tenant ID:', (tenantData as any).id);
-            console.log('- User roles data:', userRolesData);
-            console.log('- User roles error:', userRolesError);
-            console.log('- User tenant data:', userTenantData);
-            console.log('- User tenant error:', userTenantError);
-            console.log('- User roles:', userRoles);
-            console.log('- Is owner from roles:', isOwnerFromRoles);
-            console.log('- Is owner from tenants:', isOwnerFromTenants);
-            console.log('- Final is owner:', isOwner);
             
             if (!isOwner) {
               // Rediriger vers subscription-expired si ce n'est pas un owner
-              console.log('❌ Not an owner, redirecting to subscription-expired');
               window.location.href = '/subscription-expired';
               return;
             }
           } else {
-            console.log('❌ Tenant not found, redirecting to subscription-expired');
             window.location.href = '/subscription-expired';
             return;
           }
         } catch (error) {
-          console.log('❌ Error checking user role directly:', error);
           window.location.href = '/subscription-expired';
           return;
         }
@@ -179,7 +163,6 @@ export default function SubscriptionRenewalPage() {
   };
 
   const handlePaymentSuccess = (transactionId: string) => {
-    console.log("Paiement réussi:", transactionId);
     // Rediriger vers l'agence après paiement réussi
     const hostname = window.location.hostname;
     const subdomain = hostname.split('.')[0];
