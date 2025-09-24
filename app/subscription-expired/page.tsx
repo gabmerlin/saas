@@ -4,11 +4,11 @@ import React, { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { AlertTriangle, Clock, Building2, ArrowRight } from "lucide-react";
 import { usePageTitle } from "@/lib/hooks/use-page-title";
-import { useSessionSync } from "@/lib/hooks/use-session-sync";
+import { useAuth } from "@/lib/hooks/use-auth";
 import { supabaseBrowser } from "@/lib/supabase/client";
 
 export default function SubscriptionExpiredPage() {
-  const { user, isAuthenticated } = useSessionSync();
+  const { user, isAuthenticated } = useAuth();
   const [subscriptionDetails, setSubscriptionDetails] = useState<{
     plan_name: string;
     current_period_end: string;

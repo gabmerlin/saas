@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
+import { createClient, createClientWithSession } from '@/lib/supabase/server';
 import { getServiceClient } from '@/lib/tenants';
 
 export const runtime = 'nodejs';
@@ -28,7 +28,8 @@ export async function GET(req: Request) {
         user = sessionUser;
       }
     } else {
-      const supabase = await createClient();
+      // Fallback vers createClientWithSession
+      const supabase = await createClientWithSession();
       const { data: { user: cookieUser }, error: userErr } = await supabase.auth.getUser();
       
       if (!userErr && cookieUser) {

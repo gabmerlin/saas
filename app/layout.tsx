@@ -1,9 +1,9 @@
-// app/app/layout.tsx
+// app/layout.tsx
 
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
-import { SessionSyncProvider } from "@/components/auth/session-sync-provider";
+import { SessionProvider } from "@/components/auth/session-provider";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -32,9 +32,9 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
         style={{ fontFamily: 'Manrope, Inter, sans-serif' }}
       >
-        <SessionSyncProvider>
+        <SessionProvider>
           {children}
-        </SessionSyncProvider>
+        </SessionProvider>
       </body>
     </html>
   );

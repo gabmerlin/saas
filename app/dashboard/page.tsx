@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabaseBrowser } from "@/lib/supabase/client";
-import { useSessionSync } from "@/lib/hooks/use-session-sync";
+import { useAuth } from "@/lib/hooks/use-auth";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { MessageSquare, Users, Settings, CreditCard, Shield, Zap } from "lucide-react";
@@ -11,7 +11,7 @@ import { getUserFirstName } from "@/lib/utils/user";
 
 export default function DirectDashboardPage() {
   const router = useRouter();
-  const { isLoading: sessionLoading, user, isAuthenticated, signOut } = useSessionSync();
+  const { isLoading: sessionLoading, user, isAuthenticated, signOut } = useAuth();
   const [loading, setLoading] = useState(true);
   const [agencyInfo, setAgencyInfo] = useState<any>(null);
   const [subscriptionInfo, setSubscriptionInfo] = useState<any>(null);

@@ -8,18 +8,6 @@ function AuthCallbackContent() {
   const searchParams = useSearchParams();
   const [status, setStatus] = useState('Connexion en cours...');
   const [isClient, setIsClient] = useState(false);
-  
-  // Récupérer la redirection depuis localStorage ou les paramètres URL
-  const getRedirectUrl = () => {
-    if (typeof window !== 'undefined') {
-      const storedRedirect = localStorage.getItem('oauth_redirect_after_login');
-      if (storedRedirect) {
-        localStorage.removeItem('oauth_redirect_after_login'); // Nettoyer
-        return storedRedirect;
-      }
-    }
-    return searchParams.get('next') || '/home';
-  };
 
   useEffect(() => {
     setIsClient(true);
@@ -30,40 +18,88 @@ function AuthCallbackContent() {
 
     const handleAuthCallback = async () => {
       try {
-        setStatus('Traitement de l\'authentification...');
-
-        // Attendre un peu que Supabase traite l'URL
-        await new Promise(resolve => setTimeout(resolve, 2000));
-
-        // Récupérer la session
-        const { data: { session }, error } = await supabaseBrowser().auth.getSession();
+        console.log('=== DÉBUT CALLBACK OAuth ===');
+        console.log('URL complète:', window.location.href);
+        console.log('Search params:', Object.fromEntries(searchParams.entries()));
         
+        setStatus('Traitement de l\'authentification...');
+        
+        const supabase = supabaseBrowser();
+        
+        // Vérifier s'il y a un code d'erreur dans l'URL
+        const error = searchParams.get('error');
         if (error) {
-          console.error('Erreur getSession:', error);
-          setStatus('Erreur lors de l\'authentification');
+          console.error('Erreur OAuth dans URL:', error);
+          setStatus(`Erreur: ${error}`);
+          setTimeout(() => router.push('/sign-in?error=auth_failed'), 2000);
+          return;
+        }
+
+        // Vérifier s'il y a un code d'autorisation
+        const code = searchParams.get('code');
+        if (code) {
+          console.log('Code OAuth reçu:', code.substring(0, 20) + '...');
+          setStatus('Échange du code d\'autorisation...');
+          
+          // Échanger le code contre une session
+          const { data, error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
+          
+          if (exchangeError) {
+            console.error('Erreur exchangeCodeForSession:', exchangeError);
+            setStatus(`Erreur échange: ${exchangeError.message}`);
+            setTimeout(() => router.push('/sign-in?error=auth_failed'), 2000);
+            return;
+          }
+          
+          if (data.session) {
+            console.log('Session créée avec succès:', data.session.user?.email);
+            setStatus('Connexion réussie !');
+            setTimeout(() => {
+              const next = searchParams.get('next') || '/home';
+              console.log('Redirection vers:', next);
+              window.location.href = next;
+            }, 1000);
+            return;
+          } else {
+            console.log('Aucune session après échange du code');
+            setStatus('Aucune session créée');
+            setTimeout(() => router.push('/sign-in?error=no_session'), 2000);
+            return;
+          }
+        }
+
+        // Si pas de code, essayer de récupérer la session existante
+        console.log('Pas de code OAuth, vérification session existante...');
+        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+        
+        if (sessionError) {
+          console.error('Erreur getSession:', sessionError);
+          setStatus(`Erreur session: ${sessionError.message}`);
           setTimeout(() => router.push('/sign-in?error=auth_failed'), 2000);
           return;
         }
 
         if (session) {
+          console.log('Session existante trouvée:', session.user?.email);
           setStatus('Connexion réussie !');
           setTimeout(() => {
-            const redirectUrl = getRedirectUrl();
-            window.location.href = redirectUrl;
+            const next = searchParams.get('next') || '/home';
+            window.location.href = next;
           }, 1000);
         } else {
+          console.log('Aucune session trouvée');
           setStatus('Aucune session trouvée');
           setTimeout(() => router.push('/sign-in?error=no_session'), 2000);
         }
       } catch (error) {
         console.error('Erreur callback:', error);
-        setStatus('Erreur lors de l\'authentification');
+        setStatus(`Erreur: ${error}`);
         setTimeout(() => router.push('/sign-in?error=auth_failed'), 2000);
       }
     };
 
     handleAuthCallback();
-  }, [isClient, router]);
+  }, [isClient, router, searchParams]);
 
   return (
     <div className="min-h-screen flex items-center justify-center">

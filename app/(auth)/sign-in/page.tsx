@@ -59,7 +59,7 @@ function SignInContent() {
   }, [next]);
 
   // Connexion par email
-  async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
+  async function handleEmailSignIn(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     if (submitting) return;
     setSubmitting(true);
@@ -84,7 +84,11 @@ function SignInContent() {
             toast.success("Invitation acceptée avec succès !");
             const data = await response.json();
             if (data.tenant?.subdomain) {
-              window.location.href = `https://${data.tenant.subdomain}.qgchatting.com/dashboard`;
+              const isLocalhost = window.location.hostname === 'localhost';
+              const baseUrl = isLocalhost 
+                ? `http://${data.tenant.subdomain}.localhost:3000`
+                : `https://${data.tenant.subdomain}.qgchatting.com`;
+              window.location.href = `${baseUrl}/dashboard`;
               return;
             }
           } else {
@@ -111,21 +115,32 @@ function SignInContent() {
   // Connexion Google
   async function handleGoogleSignIn() {
     try {
-      // Stocker la redirection dans localStorage pour la récupérer après callback
-      localStorage.setItem('oauth_redirect_after_login', next || '/home');
+      console.log('=== DÉBUT GOOGLE OAUTH ===');
+      console.log('URL de redirection:', `${window.location.origin}/auth/callback?next=${encodeURIComponent(next || '/home')}`);
       
-      const { error } = await supabaseBrowser().auth.signInWithOAuth({
+      const { data, error } = await supabaseBrowser().auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${window.location.origin}/auth/callback`,
+          redirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(next || '/home')}`,
           scopes: 'email profile',
+          queryParams: {
+            access_type: 'offline',
+            prompt: 'consent',
+          }
         }
       });
       
       if (error) {
-        throw error;
+        console.error('Erreur OAuth Google:', error);
+        setMsg(`Erreur OAuth: ${error.message}`);
+        toast.error(`Erreur OAuth: ${error.message}`);
+        return;
       }
+      
+      console.log('Redirection OAuth initiée:', data);
+      console.log('=== FIN GOOGLE OAUTH ===');
     } catch (error) {
+      console.error('Erreur lors de la connexion Google:', error);
       const errorMessage = error instanceof Error ? error.message : "Échec de connexion Google";
       setMsg(errorMessage);
       toast.error(errorMessage);
@@ -243,7 +258,7 @@ function SignInContent() {
               
               {/* Formulaire de connexion */}
               <div className="space-y-6">
-                <form onSubmit={onSubmit} className="space-y-5" autoComplete="off">
+                <form onSubmit={handleEmailSignIn} className="space-y-5" autoComplete="off">
                   <div className="space-y-2">
                     <Label htmlFor="email" className="text-sm font-medium text-gray-700">Email</Label>
                     <div className="relative">

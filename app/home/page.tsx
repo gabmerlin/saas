@@ -5,12 +5,12 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { MessageSquare, Users, Settings, CreditCard, Shield, Zap } from "lucide-react";
 import { supabaseBrowser } from "@/lib/supabase/client";
-import { useSessionSync } from "@/lib/hooks/use-session-sync";
+import { useAuth } from "@/lib/hooks/use-auth";
 import { redirectToAgencyDashboard } from "@/lib/auth/agency-redirect";
 import { getUserFirstName } from "@/lib/utils/user";
 
 export default function HomePage() {
-  const { isLoading: sessionLoading, user, isAuthenticated, signOut } = useSessionSync();
+  const { isLoading: sessionLoading, user, isAuthenticated, signOut } = useAuth();
   const [userAgency, setUserAgency] = useState<{name: string; subdomain: string} | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -125,13 +125,20 @@ export default function HomePage() {
                   </div>
                   <Button 
                     onClick={async () => {
-                      await signOut();
-                      
-                      // Rediriger vers la page d'accueil du domaine principal
-                      const mainDomain = process.env.NODE_ENV === 'production' 
-                        ? 'https://qgchatting.com'
-                        : 'http://localhost:3000';
-                      window.location.href = `${mainDomain}/home`;
+                      try {
+                        console.log('Début de la déconnexion...');
+                        await signOut();
+                        
+                        // Attendre un peu pour que la déconnexion se termine
+                        await new Promise(resolve => setTimeout(resolve, 500));
+                        
+                        // Forcer la redirection vers la page de connexion
+                        window.location.href = '/sign-in';
+                      } catch (error) {
+                        console.error('Erreur lors de la déconnexion:', error);
+                        // Forcer la redirection même en cas d'erreur
+                        window.location.href = '/sign-in';
+                      }
                     }}
                     variant="ghost" 
                     size="sm"
