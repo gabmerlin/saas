@@ -64,64 +64,64 @@ export async function middleware(req: NextRequest) {
     // Ne pas rediriger automatiquement - laisser les pages gérer leur propre logique
     // Les pages peuvent décider si elles veulent rediriger ou afficher du contenu
     
-    // Vérifier si l'abonnement est expiré
-    try {
-      const dbClient = getServiceClient()
-      
-      // D'abord récupérer l'ID du tenant par subdomain
-      const { data: tenant } = await dbClient
-        .from('tenants')
-        .select('id')
-        .eq('subdomain', sub)
-        .single()
+    // Vérifier si l'abonnement est expiré (temporairement désactivé pour debug)
+    // try {
+    //   const dbClient = getServiceClient()
+    //   
+    //   // D'abord récupérer l'ID du tenant par subdomain
+    //   const { data: tenant } = await dbClient
+    //     .from('tenants')
+    //     .select('id')
+    //     .eq('subdomain', sub)
+    //     .single()
 
-      if (tenant) {
-        // Récupérer les détails de l'abonnement
-        const { data: subscriptionDetails } = await dbClient
-          .rpc('get_subscription_details', { p_tenant_id: tenant.id })
-          .single()
+    //   if (tenant) {
+    //     // Récupérer les détails de l'abonnement
+    //     const { data: subscriptionDetails } = await dbClient
+    //       .rpc('get_subscription_details', { p_tenant_id: tenant.id })
+    //       .single()
 
-        if (subscriptionDetails) {
-          // Type assertion pour les détails de l'abonnement
-          const subscription = subscriptionDetails as {
-            subscription_id: string;
-            plan_name: string;
-            status: string;
-            current_period_start: string;
-            current_period_end: string;
-            days_remaining: number;
-            is_active: boolean;
-            is_expiring_soon: boolean;
-            is_expired: boolean;
-          };
+    //     if (subscriptionDetails) {
+    //       // Type assertion pour les détails de l'abonnement
+    //       const subscription = subscriptionDetails as {
+    //         subscription_id: string;
+    //         plan_name: string;
+    //         status: string;
+    //         current_period_start: string;
+    //         current_period_end: string;
+    //         days_remaining: number;
+    //         is_active: boolean;
+    //         is_expiring_soon: boolean;
+    //         is_expired: boolean;
+    //       };
 
-          // Si l'abonnement est expiré, rediriger vers la page appropriée
-          if (subscription.is_expired) {
-            // Ne pas rediriger si on est déjà sur une page d'expiration
-            if (pathname === '/subscription-expired' || pathname === '/subscription-renewal') {
-              // Laisser passer sans redirection
-            } else {
-              // Rediriger vers subscription-renewal par défaut
-              // La page subscription-renewal vérifiera si l'utilisateur est owner
-              // et redirigera vers subscription-expired si ce n'est pas le cas
-              const url = req.nextUrl.clone()
-              url.pathname = '/subscription-renewal'
-              return NextResponse.redirect(url)
-            }
-          }
-          
-          // Ajouter les informations d'abonnement aux headers
-          const res = NextResponse.next()
-          res.headers.set('x-tenant-subdomain', sub)
-          res.headers.set('x-subscription-status', subscription.status)
-          res.headers.set('x-subscription-expires', subscription.current_period_end)
-          res.headers.set('x-subscription-expiring-soon', subscription.is_expiring_soon.toString())
-          return res
-        }
-      }
-    } catch (error) {
-      // En cas d'erreur, laisser passer mais ajouter le subdomain
-    }
+    //       // Si l'abonnement est expiré, rediriger vers la page appropriée
+    //       if (subscription.is_expired) {
+    //         // Ne pas rediriger si on est déjà sur une page d'expiration
+    //         if (pathname === '/subscription-expired' || pathname === '/subscription-renewal') {
+    //           // Laisser passer sans redirection
+    //         } else {
+    //           // Rediriger vers subscription-renewal par défaut
+    //           // La page subscription-renewal vérifiera si l'utilisateur est owner
+    //           // et redirigera vers subscription-expired si ce n'est pas le cas
+    //           const url = req.nextUrl.clone()
+    //           url.pathname = '/subscription-renewal'
+    //           return NextResponse.redirect(url)
+    //         }
+    //       }
+    //       
+    //       // Ajouter les informations d'abonnement aux headers
+    //       const res = NextResponse.next()
+    //       res.headers.set('x-tenant-subdomain', sub)
+    //       res.headers.set('x-subscription-status', subscription.status)
+    //       res.headers.set('x-subscription-expires', subscription.current_period_end)
+    //       res.headers.set('x-subscription-expiring-soon', subscription.is_expiring_soon.toString())
+    //       return res
+    //     }
+    //   }
+    // } catch (error) {
+    //   // En cas d'erreur, laisser passer mais ajouter le subdomain
+    // }
   }
 
   if (sub) res.headers.set('x-tenant-subdomain', sub)
