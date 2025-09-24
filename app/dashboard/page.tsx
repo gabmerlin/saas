@@ -59,13 +59,19 @@ export default function DirectDashboardPage() {
                 
                 // Vérifier si l'abonement est expiré et rediriger si nécessaire
                 if (data.subscription?.is_expired) {
+                  console.log('Abonnement expiré détecté, redirection en cours...');
+                  
                   // Vérifier le rôle de l'utilisateur pour rediriger vers la bonne page
                   const userRoles = data.status?.user_roles || [];
                   const isOwner = userRoles.includes('owner');
                   
+                  console.log('Rôles utilisateur:', userRoles, 'Is Owner:', isOwner);
+                  
                   if (isOwner) {
+                    console.log('Redirection vers /subscription-renewal');
                     window.location.href = '/subscription-renewal';
                   } else {
+                    console.log('Redirection vers /subscription-expired');
                     window.location.href = '/subscription-expired';
                   }
                   return;

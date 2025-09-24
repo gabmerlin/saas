@@ -40,45 +40,11 @@ export default function SubscriptionRenewalPage() {
   // Définir le titre de la page
   usePageTitle("Renouveler l'abonnement - QG Chatting");
 
-  // Plans disponibles
-  const availablePlans: Plan[] = [
-    {
-      id: "starter-plan",
-      name: "Starter",
-      price: 17.00,
-      description: "Plan de base pour petites agences",
-      features: {
-        "shifts": true,
-        "basic_reporting": true
-      }
-    },
-    {
-      id: "advanced-plan",
-      name: "Advanced",
-      price: 35.00,
-      description: "Plan avancé pour agences moyennes",
-      features: {
-        "shifts": true,
-        "advanced_reporting": true,
-        "instagram_basic": true
-      }
-    },
-    {
-      id: "professional-plan",
-      name: "Professional",
-      price: 75.00,
-      description: "Plan professionnel illimité",
-      features: {
-        "shifts": true,
-        "advanced_reporting": true,
-        "instagram_full": true,
-        "competition": true
-      }
-    }
-  ];
+  // Plans disponibles (chargés depuis la base de données)
+  const [availablePlans, setAvailablePlans] = useState<Plan[]>([]);
 
   useEffect(() => {
-    const fetchSubscriptionDetails = async () => {
+    const fetchData = async () => {
       try {
         // Récupérer le subdomain depuis l'URL
         const hostname = window.location.hostname;
@@ -99,6 +65,27 @@ export default function SubscriptionRenewalPage() {
           setError("Session non trouvée - veuillez vous reconnecter");
           setLoading(false);
           return;
+        }
+
+        // Charger les plans d'abonnement depuis la base de données
+        const { data: plansData, error: plansError } = await supabase
+          .from("subscription_plan")
+          .select("id, name, price_usd, description, features, max_employees")
+          .eq("is_active", true)
+          .order("price_usd", { ascending: true });
+        
+        if (plansError) {
+          console.error("Erreur lors du chargement des plans:", plansError);
+        } else {
+          // Transformer les données pour correspondre à l'interface Plan
+          const transformedPlans: Plan[] = (plansData as any[] || []).map((plan: any) => ({
+            id: plan.id,
+            name: plan.name,
+            price: plan.price_usd,
+            description: plan.description || "",
+            features: plan.features || {}
+          }));
+          setAvailablePlans(transformedPlans);
         }
 
         // Récupérer les détails de l'abonnement
@@ -122,7 +109,7 @@ export default function SubscriptionRenewalPage() {
       }
     };
 
-    fetchSubscriptionDetails();
+    fetchData();
   }, []);
 
   const handleRenewal = (plan: Plan) => {
