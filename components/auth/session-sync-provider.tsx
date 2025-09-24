@@ -9,7 +9,7 @@ interface SessionSyncProviderProps {
 
 export function SessionSyncProvider({ children }: SessionSyncProviderProps) {
   useEffect(() => {
-    // Initialiser la synchronisation de session
+    // Initialiser la synchronisation de session locale
     sessionSync.initialize();
   }, []);
 
