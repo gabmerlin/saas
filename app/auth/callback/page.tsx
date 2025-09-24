@@ -41,32 +41,8 @@ function AuthCallbackContent() {
         if (session) {
           setStatus('Connexion réussie !');
           
-          // Vérifier si l'utilisateur a une agence et rediriger en conséquence
-          setTimeout(async () => {
-            try {
-              const agencyResponse = await fetch('/api/auth/check-existing-agency', {
-                headers: {
-                  'Authorization': `Bearer ${session.access_token}`,
-                  'x-session-token': session.access_token
-                }
-              });
-              
-              const agencyData = await agencyResponse.json();
-              
-              if (agencyData.ok && agencyData.hasExistingAgency) {
-                // Rediriger vers l'agence
-                const subdomain = agencyData.agency.subdomain;
-                const baseUrl = process.env.NODE_ENV === 'production' 
-                  ? `https://${subdomain}.qgchatting.com`
-                  : 'http://localhost:3000';
-                window.location.href = `${baseUrl}/dashboard`;
-                return;
-              }
-            } catch (agencyError) {
-              // Erreur silencieuse
-            }
-            
-            // Sinon, rediriger vers la page d'accueil
+          // Redirection simple sans vérification d'agence pour éviter les erreurs
+          setTimeout(() => {
             window.location.href = next || '/home';
           }, 1000);
         } else {
