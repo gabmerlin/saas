@@ -24,11 +24,26 @@ function AuthCallbackContent() {
         // Nettoyer l'URL immédiatement pour éviter l'affichage du code
         window.history.replaceState({}, document.title, '/auth/callback');
 
-        // Attendre un peu pour que Supabase traite l'URL
-        await new Promise(resolve => setTimeout(resolve, 1000));
-
-        // Attendre que Supabase traite l'authentification
-        const { data: { session }, error } = await supabaseBrowser().auth.getSession();
+        // Attendre que Supabase traite l'authentification avec plusieurs tentatives
+        let session = null;
+        let error = null;
+        
+        // Essayer plusieurs fois de récupérer la session
+        for (let i = 0; i < 3; i++) {
+          await new Promise(resolve => setTimeout(resolve, 1000));
+          
+          const { data: { session: currentSession }, error: currentError } = await supabaseBrowser().auth.getSession();
+          
+          if (currentSession) {
+            session = currentSession;
+            break;
+          }
+          
+          if (currentError && !currentError.message.includes('session_not_found')) {
+            error = currentError;
+            break;
+          }
+        }
         
         if (error) {
           setStatus('Erreur lors de l\'authentification');
