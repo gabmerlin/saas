@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect } from 'react';
+import { crossDomainSession } from '@/lib/auth/cross-domain-session';
 
 interface SessionProviderProps {
   children: React.ReactNode;
@@ -8,8 +9,8 @@ interface SessionProviderProps {
 
 export function SessionProvider({ children }: SessionProviderProps) {
   useEffect(() => {
-    // Temporairement désactivé pour isoler le problème OAuth
-    console.log('SessionProvider initialisé (cross-domain désactivé)');
+    console.log('SessionProvider initialisé (cross-domain activé)');
+    crossDomainSession.initialize();
   }, []);
 
   return <>{children}</>;
