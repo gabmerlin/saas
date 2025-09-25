@@ -92,6 +92,19 @@ export async function middleware(req: NextRequest) {
       return NextResponse.redirect(url);
     }
     
+    // Rediriger /access-denied vers le domaine principal si accédé depuis un sous-domaine
+    if (pathname === '/access-denied') {
+      const mainDomain = process.env.NODE_ENV === 'production' 
+        ? 'https://qgchatting.com'
+        : 'http://localhost:3000';
+      const url = new URL(`${mainDomain}/access-denied?subdomain=${sub}`);
+      return NextResponse.redirect(url);
+    }
+    
+    // Vérifier l'authentification et l'appartenance à l'agence
+    // Cette vérification se fait côté client dans le layout, mais on peut ajouter une vérification basique ici
+    // pour éviter les accès non autorisés au niveau du serveur
+    
     // Ne pas rediriger automatiquement - laisser les pages gérer leur propre logique
     // Les pages peuvent décider si elles veulent rediriger ou afficher du contenu
     

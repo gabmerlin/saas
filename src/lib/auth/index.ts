@@ -14,6 +14,8 @@ export { getServerSession, requireAuth, requireRole, requirePermission } from '.
 export { AuthGuard } from '@/components/auth/auth-guard';
 export { OwnerGuard } from '@/components/auth/owner-guard';
 export { OnboardingGuard } from '@/components/auth/onboarding-guard';
+export { AgencyMemberGuard } from '@/components/auth/agency-member-guard';
+export { AgencyOwnerGuard } from '@/components/auth/agency-owner-guard';
 export { SessionProvider } from '@/components/auth/session-provider';
 export { CrossDomainSessionProvider } from '@/components/auth/cross-domain-session-provider';
 

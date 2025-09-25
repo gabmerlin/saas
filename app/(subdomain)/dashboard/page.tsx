@@ -11,13 +11,14 @@ import { crossDomainSessionSync } from "@/lib/auth/client/cross-domain-session-s
 import { localhostSessionSync } from "@/lib/auth/client/localhost-session-sync";
 import { UnifiedLogoutButton } from "@/components/auth/unified-logout-button";
 import { LoadingScreen } from "@/components/ui/loading-screen";
-import { isMainDomain, redirectToMainDomain } from "@/lib/utils/cross-domain-redirect";
+import { isMainDomain, redirectToMainDomain, getCurrentSubdomain } from "@/lib/utils/cross-domain-redirect";
 
-export default function DirectDashboardPage() {
+function DashboardContent() {
   const { isLoading: sessionLoading, user, isAuthenticated } = useAuth();
   const [loading, setLoading] = useState(true);
   const [agencyInfo, setAgencyInfo] = useState<{ name: string; subdomain: string; url: string } | null>(null);
   const [subscriptionInfo, setSubscriptionInfo] = useState<{ is_expired: boolean; days_until_expiration: number; is_expiring_soon?: boolean; status?: string; days_remaining?: number; plan_name?: string } | null>(null);
+  const [isOwner, setIsOwner] = useState<boolean | null>(null);
 
   useEffect(() => {
     const checkAgencyInfo = async () => {
@@ -51,8 +52,6 @@ export default function DirectDashboardPage() {
 
       try {
         // Vérifier le domaine
-        const hostname = window.location.hostname;
-        const subdomain = hostname.split('.')[0];
         
         // Si on est sur le domaine principal (sans sous-domaine), rediriger vers la page d'accueil
         if (isMainDomain()) {
@@ -83,10 +82,29 @@ export default function DirectDashboardPage() {
                 setAgencyInfo(data.status.agency);
                 setSubscriptionInfo(data.subscription);
                 
+                // Vérifier le statut de propriétaire
+                const userRoles = data.status?.user_roles || [];
+                const isOwnerStatus = userRoles.includes('owner');
+                setIsOwner(isOwnerStatus);
+                
+                // Si l'utilisateur n'est pas propriétaire, rediriger
+                if (!isOwnerStatus) {
+                  const subdomain = getCurrentSubdomain();
+                  const mainDomainUrl = window.location.hostname.includes('localhost') 
+                    ? 'http://localhost:3000' 
+                    : 'https://qgchatting.com';
+                  
+                  const redirectUrl = subdomain 
+                    ? `${mainDomainUrl}/access-denied?subdomain=${subdomain}`
+                    : `${mainDomainUrl}/access-denied`;
+                  
+                  window.location.href = redirectUrl;
+                  return;
+                }
+                
                 // Vérifier si l'abonement est expiré et rediriger si nécessaire
                 if (data.subscription?.is_expired) {
                   // Vérifier le rôle de l'utilisateur pour rediriger vers la bonne page
-                  const userRoles = data.status?.user_roles || [];
                   const isOwner = userRoles.includes('owner');
                   
                   
@@ -272,4 +290,8 @@ export default function DirectDashboardPage() {
       </div>
     </div>
   );
+}
+
+export default function DirectDashboardPage() {
+  return <DashboardContent />;
 }

@@ -59,15 +59,20 @@ export async function GET(request: NextRequest) {
           const { data: rolesData, error: rolesError } = await dbClient
             .from('user_roles')
             .select(`
+              role_id,
               roles!inner(key)
             `)
             .eq('user_id', user.id)
             .eq('tenant_id', agency.id);
           
+          console.log('🔍 Données brutes user_roles:', { rolesData, rolesError });
+          
           if (rolesError) {
-            // Erreur silencieuse
+            console.log('❌ Erreur user_roles:', rolesError);
           } else {
-            userRoles = rolesData?.map(ur => ur.roles[0]?.key).filter(Boolean) || [];
+            console.log('🔍 Structure des données:', rolesData);
+            userRoles = rolesData?.map(ur => ur.roles?.key).filter(Boolean) || [];
+            console.log('✅ Rôles extraits:', userRoles);
           }
         }
       } catch {
