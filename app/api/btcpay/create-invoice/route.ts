@@ -8,12 +8,13 @@ const CreateInvoiceSchema = z.object({
   amount: z.number().positive(),
   currency: z.enum(["BTC", "USDT", "USDC"]),
   tenantId: z.string().uuid(),
+  instagramAddon: z.boolean().optional().default(false),
 });
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { planId, planName, amount, currency, tenantId } = CreateInvoiceSchema.parse(body);
+    const { planId, planName, amount, currency, tenantId, instagramAddon } = CreateInvoiceSchema.parse(body);
 
     // Vérifier l'authentification via les headers
     const authHeader = request.headers.get("authorization");

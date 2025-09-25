@@ -21,6 +21,7 @@ interface BTCPayPopupProps {
   selectedPlan: Plan;
   onPaymentSuccess: (transactionId: string) => void;
   onPaymentError: (error: string) => void;
+  instagramAddon?: boolean;
 }
 
 interface PaymentMethod {
@@ -47,7 +48,8 @@ export default function BTCPayPopup({
   tenantId,
   selectedPlan,
   onPaymentSuccess,
-  onPaymentError
+  onPaymentError,
+  instagramAddon = false
 }: BTCPayPopupProps) {
   const [selectedMethod, setSelectedMethod] = useState<string>("bitcoin");
   const [isProcessing, setIsProcessing] = useState(false);
@@ -98,6 +100,7 @@ export default function BTCPayPopup({
           amount: selectedPlan.price,
           currency: selectedMethod === "bitcoin" ? "BTC" : selectedMethod === "usdt" ? "USDT" : "USDC",
           tenantId,
+          instagramAddon: instagramAddon,
         }),
       });
 

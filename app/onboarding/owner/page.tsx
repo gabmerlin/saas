@@ -644,6 +644,21 @@ export default function OwnerOnboardingPage() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }, [currentStep]);
 
+  // Recalculer le prix quand l'add-on Instagram change
+  useEffect(() => {
+    if (selectedPlan && availablePlans.length > 0) {
+      const basePrice = selectedPlan.name === "Lifetime" ? 1199.00 : 
+                       availablePlans.find(p => p.id === selectedPlan.id)?.price_usd || 0;
+      const instagramAddonPrice = adv.instagramAddon ? 15.00 : 0;
+      const totalPrice = basePrice + instagramAddonPrice;
+      
+      // Éviter la boucle infinie en vérifiant si le prix a vraiment changé
+      if (Math.abs(selectedPlan.price - totalPrice) > 0.01) {
+        setSelectedPlan(prev => prev ? { ...prev, price: totalPrice } : null);
+      }
+    }
+  }, [adv.instagramAddon, selectedPlan?.id]); // Dépendre aussi de l'ID du plan sélectionné
+
   const fqdn = useMemo(() => (basic.subdomain ? `${basic.subdomain}.${ROOT_DOMAIN}` : ""), [basic.subdomain]);
 
   /* --------- Submit ---------- */
@@ -2703,10 +2718,15 @@ export default function OwnerOnboardingPage() {
                                 value={plan.id}
                                 checked={isSelected}
                                 onChange={() => {
+                                  // Calculer le prix total incluant l'add-on Instagram
+                                  const basePrice = plan.name === "Lifetime" ? 1199.00 : plan.price_usd;
+                                  const instagramAddonPrice = adv.instagramAddon ? 15.00 : 0;
+                                  const totalPrice = basePrice + instagramAddonPrice;
+                                  
                                   setSelectedPlan({
                                     id: plan.id,
                                     name: plan.name,
-                                    price: plan.name === "Lifetime" ? 1199.00 : plan.price_usd,
+                                    price: totalPrice,
                                     description: plan.description || "",
                                     features: plan.features || {}
                                   });
@@ -2837,6 +2857,88 @@ export default function OwnerOnboardingPage() {
                         })}
                       </div>
                       
+                    </div>
+
+                    {/* Add-ons Instagram */}
+                    <div className="p-6 rounded-xl border-2 transition-all duration-300 hover:scale-105"
+                         style={{ 
+                           backgroundColor: `oklch(var(--muted) / 0.3)`,
+                           borderColor: `finalColors.border`
+                         }}>
+                      <div className="flex items-center gap-3 mb-4">
+                        <div className="w-8 h-8 rounded-lg flex items-center justify-center text-lg"
+                             style={{ 
+                               backgroundColor: `finalColors.accent`,
+                               color: `finalColors.accentForeground`
+                             }}>
+                          <Smartphone className="w-4 h-4" />
+                        </div>
+                        <h4 className="text-lg font-semibold" style={{ color: `finalColors.foreground` }}>
+                          Add-on Instagram Marketing
+                        </h4>
+                      </div>
+                      
+                      <div className="space-y-4">
+                        <div className="flex items-center justify-between p-4 rounded-lg border-2"
+                             style={{ 
+                               backgroundColor: `oklch(var(--muted) / 0.1)`,
+                               borderColor: `finalColors.border`
+                             }}>
+                          <div className="flex items-center gap-4">
+                            <div className="relative">
+                              <input 
+                                type="checkbox" 
+                                checked={adv.instagramAddon}
+                                onChange={(e) => setAdv((a) => ({ ...a, instagramAddon: e.target.checked }))}
+                                className="w-6 h-6 rounded-lg border-2 cursor-pointer"
+                                style={{
+                                  backgroundColor: adv.instagramAddon ? `finalColors.primary` : 'transparent',
+                                  borderColor: `finalColors.primary`
+                                }}
+                              />
+                              {adv.instagramAddon && (
+                                <div className="absolute inset-0 flex items-center justify-center text-white text-sm font-bold">
+                                  ✓
+                                </div>
+                              )}
+                            </div>
+                            <div>
+                              <div className="text-lg font-semibold" style={{ color: `finalColors.foreground` }}>
+                                Instagram Marketing
+                              </div>
+                              <div className="text-sm" style={{ color: `finalColors.mutedForeground` }}>
+                                Outils de marketing Instagram pour vos modèles
+                              </div>
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <div className="text-2xl font-bold" style={{ color: `finalColors.primary` }}>
+                              +15$/mois
+                            </div>
+                            <div className="text-sm" style={{ color: `finalColors.mutedForeground` }}>
+                              Facturé mensuellement
+                            </div>
+                          </div>
+                        </div>
+                        
+                        {adv.instagramAddon && (
+                          <div className="p-4 rounded-lg"
+                               style={{ 
+                                 backgroundColor: `oklch(var(--primary) / 0.1)`,
+                                 border: `2px solid finalColors.primary`
+                               }}>
+                            <div className="text-sm font-medium mb-2" style={{ color: `finalColors.primary` }}>
+                              Fonctionnalités incluses :
+                            </div>
+                            <ul className="text-sm space-y-1" style={{ color: `finalColors.mutedForeground` }}>
+                              <li>• Connexion des comptes Instagram des modèles</li>
+                              <li>• Synchronisation automatique des posts</li>
+                              <li>• Métriques de performance détaillées</li>
+                              <li>• Tableau de bord marketing intégré</li>
+                            </ul>
+                          </div>
+                        )}
+                      </div>
                     </div>
 
                     {/* Emails de facturation */}
@@ -3165,6 +3267,7 @@ export default function OwnerOnboardingPage() {
         }}
         tenantId={currentTenantId}
         selectedPlan={selectedPlan}
+        instagramAddon={adv.instagramAddon}
                 onPaymentSuccess={async () => {
           setShowPaymentPopup(false);
           
