@@ -10,6 +10,7 @@ import { getUserFirstName } from "@/lib/utils/user";
 import { crossDomainSessionSync } from "@/lib/auth/client/cross-domain-session-sync";
 import { localhostSessionSync } from "@/lib/auth/client/localhost-session-sync";
 import { UnifiedLogoutButton } from "@/components/auth/unified-logout-button";
+import { LoadingScreen } from "@/components/ui/loading-screen";
 
 export default function DirectDashboardPage() {
   const { isLoading: sessionLoading, user, isAuthenticated } = useAuth();
@@ -115,56 +116,20 @@ export default function DirectDashboardPage() {
 
   if (loading || sessionLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Chargement...</p>
-        </div>
-      </div>
+      <LoadingScreen 
+        message="Chargement de votre tableau de bord"
+        submessage="Récupération de vos données d'agence..."
+        variant="default"
+      />
     );
   }
 
   if (!isAuthenticated || !user) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 flex items-center justify-center">
-        <div className="max-w-md mx-auto text-center">
-          <div className="w-16 h-16 bg-blue-600 rounded-full flex items-center justify-center mx-auto mb-6">
-            <MessageSquare className="w-8 h-8 text-white" />
-          </div>
-          <h1 className="text-2xl font-bold text-gray-900 mb-4">Connexion requise</h1>
-          <p className="text-gray-600 mb-8">
-            Vous devez vous connecter pour accéder au tableau de bord.
-          </p>
-          <div className="space-y-3">
-            <Button 
-              onClick={() => window.location.href = '/auth/sign-in?next=/dashboard'}
-              className="w-full bg-blue-600 hover:bg-blue-700 text-white"
-            >
-              Se connecter maintenant
-            </Button>
-            <Button 
-              variant="outline" 
-              onClick={() => {
-                // Rediriger vers la page d'accueil du sous-domaine ou du domaine principal
-                const hostname = window.location.hostname;
-                const subdomain = hostname.split('.')[0];
-                
-                if (subdomain && subdomain !== 'www' && subdomain !== 'qgchatting' && subdomain !== 'localhost') {
-                  // Rester sur le sous-domaine
-                  window.location.href = '/';
-                } else {
-                  // Aller au domaine principal
-                  window.location.href = 'https://qgchatting.com/fr';
-                }
-              }}
-              className="w-full"
-            >
-              Retour à l'accueil
-            </Button>
-          </div>
-        </div>
-      </div>
-    );
+    // Rediriger directement vers la page de connexion
+    if (typeof window !== 'undefined') {
+      window.location.href = '/auth/sign-in?next=/dashboard';
+    }
+    return null;
   }
 
   return (

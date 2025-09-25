@@ -5,6 +5,7 @@
 
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/lib/hooks/use-auth';
+import { LoadingSpinner } from '@/components/ui/loading-screen';
 
 interface UnifiedLogoutButtonProps {
   variant?: 'default' | 'destructive' | 'outline' | 'secondary' | 'ghost' | 'link';
@@ -41,7 +42,14 @@ export function UnifiedLogoutButton({
       disabled={isSigningOut || disabled}
       className={`${className} ${(isSigningOut || disabled) ? 'opacity-50' : ''}`}
     >
-      {isSigningOut ? 'Déconnexion...' : children}
+      {isSigningOut ? (
+        <div className="flex items-center space-x-2">
+          <LoadingSpinner size="sm" />
+          <span>Déconnexion...</span>
+        </div>
+      ) : (
+        children
+      )}
     </Button>
   );
 }

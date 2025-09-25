@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { supabaseBrowser } from '@/lib/supabase/client';
 import { crossDomainSync } from '@/lib/auth/cross-domain-sync';
+import { LoadingScreen } from '@/components/ui/loading-screen';
 
 interface CrossDomainSessionProviderProps {
   children: React.ReactNode;
@@ -71,10 +72,11 @@ export function CrossDomainSessionProvider({ children }: CrossDomainSessionProvi
 
   if (isSyncing) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-        <p className="ml-2">Synchronisation cross-domain...</p>
-      </div>
+      <LoadingScreen 
+        message="Synchronisation des sessions"
+        submessage="Synchronisation cross-domain en cours..."
+        variant="default"
+      />
     );
   }
 

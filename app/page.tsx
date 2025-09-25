@@ -2,6 +2,7 @@
 
 import { useEffect, useState, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
+import { LoadingScreen } from "@/components/ui/loading-screen";
 
 function RootRedirectContent() {
   const searchParams = useSearchParams();
@@ -27,10 +28,12 @@ function RootRedirectContent() {
           window.location.href = '/auth/sign-in?error=auth_failed';
         }, 2000);
       } else {
-        
-        // Redirection normale vers /home
+        // Redirection normale vers /home avec router pour éviter les redirections forcées
         setStatus('Redirection vers /home...');
-        window.location.href = '/home';
+        // Utiliser une redirection côté serveur ou client-side navigation
+        if (typeof window !== 'undefined') {
+          window.location.replace('/home');
+        }
       }
     };
 
@@ -38,24 +41,21 @@ function RootRedirectContent() {
   }, [searchParams]);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 flex items-center justify-center">
-      <div className="text-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
-        <p className="text-gray-600">{status}</p>
-      </div>
-    </div>
+    <LoadingScreen 
+      message={status}
+      submessage="Redirection en cours..."
+      variant="default"
+    />
   );
 }
 
 export default function RootRedirect() {
   return (
     <Suspense fallback={
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Chargement...</p>
-        </div>
-      </div>
+      <LoadingScreen 
+        message="Chargement..."
+        variant="default"
+      />
     }>
       <RootRedirectContent />
     </Suspense>

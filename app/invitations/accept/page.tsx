@@ -7,6 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { CheckCircle, XCircle, Loader2 } from 'lucide-react';
+import { LoadingScreen } from '@/components/ui/loading-screen';
 import { toast } from 'sonner';
 
 function AcceptInvitationPageContent() {
@@ -209,7 +210,12 @@ function AcceptInvitationPageContent() {
 
 export default function AcceptInvitationPage() {
   return (
-    <Suspense fallback={<div>Chargement...</div>}>
+    <Suspense fallback={
+      <LoadingScreen 
+        message="Chargement..."
+        variant="default"
+      />
+    }>
       <AcceptInvitationPageContent />
     </Suspense>
   );

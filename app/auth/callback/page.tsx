@@ -3,6 +3,7 @@ import { useEffect, useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { supabaseBrowser } from '@/lib/supabase/client';
 import { crossDomainSessionSync } from '@/lib/auth/client/cross-domain-session-sync';
+import { LoadingScreen } from '@/components/ui/loading-screen';
 
 function AuthCallbackContent() {
   const router = useRouter();
@@ -66,7 +67,7 @@ function AuthCallbackContent() {
               
               setTimeout(() => {
                 const next = searchParams.get('next') || '/home';
-                window.location.href = next;
+                router.push(next);
               }, 1000);
               return;
             } else {
@@ -98,7 +99,7 @@ function AuthCallbackContent() {
           
           setTimeout(() => {
             const next = searchParams.get('next') || '/home';
-            window.location.href = next;
+            router.push(next);
           }, 1000);
         } else {
           setStatus('Aucune session trouvée');
@@ -114,24 +115,21 @@ function AuthCallbackContent() {
   }, [isClient, router, searchParams]);
 
   return (
-    <div className="min-h-screen flex items-center justify-center">
-      <div className="text-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
-        <p className="text-gray-600">{status}</p>
-      </div>
-    </div>
+    <LoadingScreen 
+      message={status}
+      submessage="Veuillez patienter pendant la connexion..."
+      variant="default"
+    />
   );
 }
 
 export default function AuthCallbackPage() {
   return (
     <Suspense fallback={
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Chargement...</p>
-        </div>
-      </div>
+      <LoadingScreen 
+        message="Chargement..."
+        variant="default"
+      />
     }>
       <AuthCallbackContent />
     </Suspense>

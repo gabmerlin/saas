@@ -3,6 +3,7 @@
 
 import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { LoadingScreen } from "@/components/ui/loading-screen";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -208,7 +209,12 @@ function ResetPasswordPageContent() {
 
 export default function ResetPasswordPage() {
   return (
-    <Suspense fallback={<div>Chargement...</div>}>
+    <Suspense fallback={
+      <LoadingScreen 
+        message="Chargement..."
+        variant="default"
+      />
+    }>
       <ResetPasswordPageContent />
     </Suspense>
   );

@@ -1,6 +1,7 @@
 'use client';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { LoadingScreen } from "@/components/ui/loading-screen";
 import { motion } from 'framer-motion';
 import { CheckCircle, Clock, AlertCircle, Loader2, Building2, Globe, Server, Shield } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -174,12 +175,11 @@ export default function AgencyInitializingPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="text-center">
-          <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4 text-blue-500" />
-          <p className="text-gray-600">Chargement des informations de l&apos;agence...</p>
-        </div>
-      </div>
+      <LoadingScreen 
+        message="Chargement des informations de l'agence"
+        submessage="Récupération des détails de votre agence..."
+        variant="default"
+      />
     );
   }
 
@@ -194,7 +194,7 @@ export default function AgencyInitializingPage() {
           <AlertCircle className="h-16 w-16 text-red-500 mx-auto mb-6" />
           <h1 className="text-2xl font-bold text-gray-800 mb-4">Erreur</h1>
           <p className="text-gray-600 mb-6">{error}</p>
-          <Button onClick={() => router.push('/sign-in')} className="w-full">
+          <Button onClick={() => router.push('/auth/sign-in')} className="w-full">
             Retour à la connexion
           </Button>
         </motion.div>

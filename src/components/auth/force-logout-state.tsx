@@ -71,13 +71,17 @@ export function ForceLogoutState() {
     }
   }, [searchParams, isLogoutDetected]);
 
-  // Si une déconnexion est détectée, ne rien rendre
+  // Si une déconnexion est détectée, afficher l'écran de déconnexion
   if (isLogoutDetected) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Déconnexion en cours...</p>
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100">
+        <div className="text-center animate-fade-in">
+          <div className="h-12 w-12 mx-auto mb-6 relative animate-spin">
+            <div className="absolute inset-0 rounded-full border-4 border-blue-200"></div>
+            <div className="absolute inset-0 rounded-full border-4 border-transparent border-t-blue-600"></div>
+          </div>
+          <h2 className="text-xl font-semibold text-gray-800 mb-2">Déconnexion en cours...</h2>
+          <p className="text-gray-600 text-sm">Nettoyage de votre session</p>
         </div>
       </div>
     );

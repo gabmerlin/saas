@@ -6,6 +6,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/hooks/use-auth';
+import { LoadingScreen } from '@/components/ui/loading-screen';
 import { supabaseBrowser } from '@/lib/supabase/client';
 
 interface OnboardingGuardProps {
@@ -18,9 +19,11 @@ export function OnboardingGuard({
   children, 
   redirectTo = '/home',
   fallback = (
-    <div className="min-h-screen flex items-center justify-center">
-      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-    </div>
+    <LoadingScreen 
+      message="Vérification de l'onboarding"
+      submessage="Contrôle de votre statut d'agence..."
+      variant="minimal"
+    />
   )
 }: OnboardingGuardProps) {
   const { user, isAuthenticated, isLoading } = useAuth();

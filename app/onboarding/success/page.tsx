@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { LoadingScreen } from "@/components/ui/loading-screen";
 import { motion } from "framer-motion";
 import { CheckCircle, Loader2, AlertCircle, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -214,7 +215,12 @@ export default function OnboardingSuccessPage() {
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-green-50 to-blue-50">
         <div className="text-center">
           <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4 text-primary" />
-          <p className="text-muted-foreground">Chargement...</p>
+          <LoadingScreen 
+            message="Chargement..."
+            variant="minimal"
+            showLogo={false}
+            size="sm"
+          />
         </div>
       </div>
     }>

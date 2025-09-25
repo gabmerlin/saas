@@ -11,6 +11,7 @@ import { redirectToAgencyDashboard } from "@/lib/auth/client/agency-redirect";
 import { getUserFirstName } from "@/lib/utils/user";
 import { UnifiedLogoutButton } from "@/components/auth/unified-logout-button";
 import { ForceLogoutState } from "@/components/auth/force-logout-state";
+import { LoadingScreen } from "@/components/ui/loading-screen";
 
 export default function HomePage() {
   const searchParams = useSearchParams();
@@ -99,12 +100,11 @@ export default function HomePage() {
 
   if (loading || sessionLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Chargement...</p>
-        </div>
-      </div>
+      <LoadingScreen 
+        message="Chargement de votre espace"
+        submessage="Préparation de votre tableau de bord..."
+        variant="default"
+      />
     );
   }
 

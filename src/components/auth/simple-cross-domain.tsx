@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { supabaseBrowser } from '@/lib/supabase/client';
+import { LoadingScreen } from '@/components/ui/loading-screen';
 
 interface SimpleCrossDomainProviderProps {
   children: React.ReactNode;
@@ -33,9 +34,10 @@ export function SimpleCrossDomainProvider({ children }: SimpleCrossDomainProvide
 
   if (!isReady) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-      </div>
+      <LoadingScreen 
+        message="Chargement..."
+        variant="default"
+      />
     );
   }
 

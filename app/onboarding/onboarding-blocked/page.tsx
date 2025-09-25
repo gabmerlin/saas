@@ -111,7 +111,7 @@ export default function OnboardingBlockedPage() {
                   </button>
                   
                   <button
-                    onClick={() => router.push('/sign-in')}
+                    onClick={() => router.push('/auth/sign-in')}
                     className="w-full bg-gray-200 hover:bg-gray-300 text-gray-800 px-6 py-3 rounded-lg transition-colors flex items-center justify-center font-medium"
                   >
                     <ArrowLeft className="h-4 w-4 mr-2" />

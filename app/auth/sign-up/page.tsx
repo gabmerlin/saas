@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { usePageTitle } from "@/lib/hooks/use-page-title";
 import { MessageSquare, Shield, Users, Zap, CheckCircle, AlertCircle } from "lucide-react";
+import { LoadingScreen } from "@/components/ui/loading-screen";
 
 const SignupSchema = z.object({
   email: z.string().email("Adresse email invalide"),
@@ -318,8 +319,13 @@ function SignUpContent() {
         
               {loadingInvitation && (
                 <div className="text-center py-8">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
-                  <p className="text-sm text-gray-600">Vérification de l&apos;invitation...</p>
+                  <LoadingScreen 
+                    message="Vérification de l'invitation"
+                    submessage="Contrôle de votre invitation..."
+                    variant="minimal"
+                    showLogo={false}
+                    size="sm"
+                  />
                 </div>
               )}
               
@@ -521,9 +527,10 @@ function SignUpContent() {
 export default function SignUpPage() {
   return (
     <Suspense fallback={
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-      </div>
+      <LoadingScreen 
+        message="Chargement..."
+        variant="default"
+      />
     }>
       <SignUpContent />
     </Suspense>

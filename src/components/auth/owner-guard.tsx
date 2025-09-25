@@ -6,6 +6,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/hooks/use-auth';
+import { LoadingScreen } from '@/components/ui/loading-screen';
 import { supabaseBrowser } from '@/lib/supabase/client';
 
 interface OwnerGuardProps {
@@ -18,9 +19,11 @@ export function OwnerGuard({
   children, 
   redirectTo = '/home',
   fallback = (
-    <div className="min-h-screen flex items-center justify-center">
-      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-    </div>
+    <LoadingScreen 
+      message="Vérification des permissions"
+      submessage="Contrôle de votre statut de propriétaire..."
+      variant="minimal"
+    />
   )
 }: OwnerGuardProps) {
   const { user, isAuthenticated, isLoading } = useAuth();
