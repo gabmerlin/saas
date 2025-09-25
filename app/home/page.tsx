@@ -12,6 +12,7 @@ import { getUserFirstName } from "@/lib/utils/user";
 import { UnifiedLogoutButton } from "@/components/auth/unified-logout-button";
 import { ForceLogoutState } from "@/components/auth/force-logout-state";
 import { LoadingScreen } from "@/components/ui/loading-screen";
+import { isMainDomain, redirectToMainDomain } from "@/lib/utils/cross-domain-redirect";
 
 export default function HomePage() {
   const searchParams = useSearchParams();
@@ -22,6 +23,13 @@ export default function HomePage() {
 
   useEffect(() => {
     const checkAgencyInfo = async () => {
+      // Vérifier si on est sur le domaine principal
+      if (!isMainDomain()) {
+        // Si on est sur un sous-domaine, rediriger vers le domaine principal
+        redirectToMainDomain('/home');
+        return;
+      }
+
       if (!isAuthenticated || !user) {
         setLoading(false);
         return;
@@ -35,18 +43,6 @@ export default function HomePage() {
       }
 
       try {
-        // Vérifier si on est sur le domaine principal
-        const hostname = window.location.hostname;
-        const subdomain = hostname.split('.')[0];
-        
-        // Si on est sur un sous-domaine, rediriger vers le domaine principal
-        if (subdomain && subdomain !== 'www' && subdomain !== 'qgchatting' && subdomain !== 'localhost') {
-          const mainDomain = process.env.NODE_ENV === 'production' 
-            ? 'https://qgchatting.com'
-            : 'http://localhost:3000';
-          window.location.href = `${mainDomain}/home`;
-          return;
-        }
         
         // Récupérer la session pour le token
         const supabase = supabaseBrowser();

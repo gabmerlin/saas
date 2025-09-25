@@ -11,6 +11,7 @@ import { crossDomainSessionSync } from "@/lib/auth/client/cross-domain-session-s
 import { localhostSessionSync } from "@/lib/auth/client/localhost-session-sync";
 import { UnifiedLogoutButton } from "@/components/auth/unified-logout-button";
 import { LoadingScreen } from "@/components/ui/loading-screen";
+import { isMainDomain, redirectToMainDomain } from "@/lib/utils/cross-domain-redirect";
 
 export default function DirectDashboardPage() {
   const { isLoading: sessionLoading, user, isAuthenticated } = useAuth();
@@ -54,8 +55,8 @@ export default function DirectDashboardPage() {
         const subdomain = hostname.split('.')[0];
         
         // Si on est sur le domaine principal (sans sous-domaine), rediriger vers la page d'accueil
-        if (!subdomain || subdomain === 'www' || subdomain === 'qgchatting' || subdomain === 'localhost') {
-          window.location.href = '/home';
+        if (isMainDomain()) {
+          redirectToMainDomain('/home');
           return;
         }
 

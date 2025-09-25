@@ -4,6 +4,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { supabaseBrowser } from '@/lib/supabase/client';
 import { crossDomainSessionSync } from '@/lib/auth/client/cross-domain-session-sync';
 import { LoadingScreen } from '@/components/ui/loading-screen';
+import { getAppropriateRedirectUrl } from '@/lib/utils/cross-domain-redirect';
 
 function AuthCallbackContent() {
   const router = useRouter();
@@ -67,7 +68,12 @@ function AuthCallbackContent() {
               
               setTimeout(() => {
                 const next = searchParams.get('next') || '/home';
-                router.push(next);
+                const redirectUrl = getAppropriateRedirectUrl(next);
+                if (redirectUrl.startsWith('http')) {
+                  window.location.href = redirectUrl;
+                } else {
+                  router.push(redirectUrl);
+                }
               }, 1000);
               return;
             } else {
@@ -99,7 +105,12 @@ function AuthCallbackContent() {
           
           setTimeout(() => {
             const next = searchParams.get('next') || '/home';
-            router.push(next);
+            const redirectUrl = getAppropriateRedirectUrl(next);
+            if (redirectUrl.startsWith('http')) {
+              window.location.href = redirectUrl;
+            } else {
+              router.push(redirectUrl);
+            }
           }, 1000);
         } else {
           setStatus('Aucune session trouvée');

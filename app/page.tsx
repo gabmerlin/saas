@@ -3,6 +3,7 @@
 import { useEffect, useState, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { LoadingScreen } from "@/components/ui/loading-screen";
+import { getAppropriateRedirectUrl } from "@/lib/utils/cross-domain-redirect";
 
 function RootRedirectContent() {
   const searchParams = useSearchParams();
@@ -28,11 +29,11 @@ function RootRedirectContent() {
           window.location.href = '/auth/sign-in?error=auth_failed';
         }, 2000);
       } else {
-        // Redirection normale vers /home avec router pour éviter les redirections forcées
+        // Redirection normale vers /home avec gestion cross-domain
         setStatus('Redirection vers /home...');
-        // Utiliser une redirection côté serveur ou client-side navigation
         if (typeof window !== 'undefined') {
-          window.location.replace('/home');
+          const redirectUrl = getAppropriateRedirectUrl('/home');
+          window.location.replace(redirectUrl);
         }
       }
     };
