@@ -10,7 +10,7 @@ import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Eye, EyeOff, Lock, CheckCircle, AlertCircle, RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
-import { updatePassword } from '@/lib/auth/actions';
+import { updatePassword } from '@/lib/auth/client/auth-actions';
 
 function ResetPasswordPageContent() {
   const router = useRouter();

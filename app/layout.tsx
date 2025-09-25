@@ -2,8 +2,11 @@
 
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
-import "./globals.css";
+import "@/styles/globals.css";
+import "@/lib/supabase/init"; // Initialiser la suppression des logs GoTrueClient
 import { SessionProvider } from "@/components/auth/session-provider";
+import { SimpleCrossDomainProvider } from "@/components/auth/simple-cross-domain";
+import { CrossDomainSessionInitializer } from "@/components/auth/cross-domain-session-initializer";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -33,7 +36,11 @@ export default function RootLayout({
         style={{ fontFamily: 'Manrope, Inter, sans-serif' }}
       >
         <SessionProvider>
-          {children}
+          <SimpleCrossDomainProvider>
+            <CrossDomainSessionInitializer>
+              {children}
+            </CrossDomainSessionInitializer>
+          </SimpleCrossDomainProvider>
         </SessionProvider>
       </body>
     </html>

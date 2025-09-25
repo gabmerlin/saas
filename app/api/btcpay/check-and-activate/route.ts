@@ -160,7 +160,6 @@ export async function POST(request: NextRequest) {
           });
 
         if (invoiceCreateError) {
-          console.error("Erreur lors de la création de la facture:", invoiceCreateError);
         }
 
         return NextResponse.json({

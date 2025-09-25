@@ -1,7 +1,7 @@
 // api/onboarding/owner/route.ts
 import { NextResponse } from "next/server";
 import { createClient, createClientWithSession } from "@/lib/supabase/server";
-import { OwnerOnboardingSchema } from "@/lib/validation/onboarding";
+import { OwnerOnboardingSchema } from "@/lib/validators/onboarding";
 import { createTenantWithOwner, getServiceClient } from "@/lib/tenants";
 import { addDomainToVercelProject } from "@/lib/vercel";
 import { provisionSubdomainDNS } from "@/lib/ovh";

@@ -8,16 +8,42 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { MessageSquare, Users, Settings, CreditCard, Shield, Zap } from "lucide-react";
 import { getUserFirstName } from "@/lib/utils/user";
+import { crossDomainSessionSync } from "@/lib/auth/client/cross-domain-session-sync";
+import { localhostSessionSync } from "@/lib/auth/client/localhost-session-sync";
+import { UnifiedLogoutButton } from "@/components/auth/unified-logout-button";
 
 export default function DirectDashboardPage() {
   const router = useRouter();
-  const { isLoading: sessionLoading, user, isAuthenticated, signOut } = useAuth();
+  const { isLoading: sessionLoading, user, isAuthenticated } = useAuth();
   const [loading, setLoading] = useState(true);
   const [agencyInfo, setAgencyInfo] = useState<any>(null);
   const [subscriptionInfo, setSubscriptionInfo] = useState<any>(null);
 
   useEffect(() => {
     const checkAgencyInfo = async () => {
+      // D'abord, initialiser la synchronisation localhost
+      await localhostSessionSync.initialize();
+      
+      // Ensuite, essayer de restaurer la session cross-domain
+      if (!isAuthenticated) {
+        const restored = await crossDomainSessionSync.restoreSessionInSupabase();
+        if (!restored) {
+          setLoading(false);
+          return;
+        }
+        
+        // Attendre un peu pour que le hook useAuth se mette à jour
+        await new Promise(resolve => setTimeout(resolve, 500));
+        
+        // Vérifier à nouveau après restauration
+        const supabase = supabaseBrowser();
+        const { data: { session: restoredSession } } = await supabase.auth.getSession();
+        if (!restoredSession) {
+          setLoading(false);
+          return;
+        }
+      }
+
       if (!isAuthenticated || !user) {
         setLoading(false);
         return;
@@ -65,9 +91,9 @@ export default function DirectDashboardPage() {
                   
                   
                   if (isOwner) {
-                    window.location.href = '/subscription-renewal';
+                    window.location.href = '/onboarding/subscription-renewal';
                   } else {
-                    window.location.href = '/subscription-expired';
+                    window.location.href = '/onboarding/subscription-expired';
                   }
                   return;
                 }
@@ -113,7 +139,7 @@ export default function DirectDashboardPage() {
           </p>
           <div className="space-y-3">
             <Button 
-              onClick={() => window.location.href = '/sign-in?next=/dashboard'}
+              onClick={() => window.location.href = '/auth/sign-in?next=/dashboard'}
               className="w-full bg-blue-600 hover:bg-blue-700 text-white"
             >
               Se connecter maintenant
@@ -157,20 +183,9 @@ export default function DirectDashboardPage() {
             </p>
           </div>
           
-          <Button 
-            onClick={async () => {
-              await signOut();
-              
-              // Rediriger vers la page d'accueil du domaine principal
-              const mainDomain = process.env.NODE_ENV === 'production' 
-                ? 'https://qgchatting.com'
-                : 'http://localhost:3000';
-              window.location.href = `${mainDomain}/home`;
-            }}
+          <UnifiedLogoutButton 
             variant="outline"
-          >
-            Se déconnecter
-          </Button>
+          />
         </div>
 
         {/* Dashboard Cards */}
@@ -262,7 +277,7 @@ export default function DirectDashboardPage() {
                   variant="outline" 
                   size="sm" 
                   className="ml-2"
-                  onClick={() => window.location.href = '/subscription-renewal'}
+                  onClick={() => window.location.href = '/onboarding/subscription-renewal'}
                 >
                   Renouveler maintenant
                 </Button>

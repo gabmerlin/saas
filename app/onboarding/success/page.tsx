@@ -44,7 +44,7 @@ function OnboardingSuccessContent() {
           
           // Rediriger vers la page d'initialisation après 3 secondes
           setTimeout(() => {
-            router.push("/agency-initializing");
+            router.push("/onboarding/agency-initializing");
           }, 3000);
         } else if (data.status === "expired" || data.status === "cancelled") {
           setStatus("error");

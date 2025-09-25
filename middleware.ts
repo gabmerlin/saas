@@ -5,9 +5,8 @@ import { getServiceClient } from '@/lib/tenants'
 
 const PUBLIC_FILE = /\.(.*)$/
 const PUBLIC_PATHS = [
-  '/sign-in',
-  '/sign-up', 
-  '/callback',
+  '/auth/sign-in',
+  '/auth/sign-up', 
   '/auth/callback',
   '/auth/verify-email',
   '/auth/reset-password',
@@ -19,6 +18,9 @@ const PUBLIC_PATHS = [
 
 export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl
+  const host = req.headers.get('host') ?? ''
+  const root = process.env.NEXT_PUBLIC_ROOT_DOMAIN ?? 'qgchatting.com'
+  const sub = extractSubdomain(host, root)
   
   // Ignore API, fichiers statiques, _next, etc.
   if (
@@ -26,10 +28,6 @@ export async function middleware(req: NextRequest) {
     pathname.startsWith('/_next') ||
     PUBLIC_FILE.test(pathname)
   ) {
-    // Propage le sous-domaine en header interne si présent
-    const host = req.headers.get('host') ?? ''
-    const root = process.env.NEXT_PUBLIC_ROOT_DOMAIN ?? 'qgchatting.com'
-    const sub = extractSubdomain(host, root)
     if (sub) {
       const res = NextResponse.next()
       res.headers.set('x-tenant-subdomain', sub)
@@ -38,18 +36,51 @@ export async function middleware(req: NextRequest) {
     return NextResponse.next()
   }
 
-  // Ajouter des headers pour la synchronisation cross-domain
+  // Headers de sécurité communs
   const res = NextResponse.next()
   res.headers.set('x-frame-options', 'SAMEORIGIN')
   res.headers.set('x-content-type-options', 'nosniff')
   res.headers.set('referrer-policy', 'strict-origin-when-cross-origin')
 
-  // Pas de redirection automatique - laisser Next.js gérer le routage
-
-  // Vérifier l'abonnement pour les sous-domaines
-  const host = req.headers.get('host') ?? ''
-  const root = process.env.NEXT_PUBLIC_ROOT_DOMAIN ?? 'qgchatting.com'
-  const sub = extractSubdomain(host, root)
+  // Si on est sur un sous-domaine, synchroniser la session
+  if (sub) {
+    res.headers.set('x-tenant-subdomain', sub)
+    
+    // Synchroniser TOUS les cookies Supabase entre domaines
+    const supabaseCookieNames = [
+      'sb-ndlmzwwfwugtwpmebdog-auth-token',
+      'sb-ndlmzwwfwugtwpmebdog-auth-token.0',
+      'sb-ndlmzwwfwugtwpmebdog-auth-token.1',
+      'supabase-auth-token',
+      'sb-auth-token',
+      'cross-domain-session'
+    ];
+    
+    supabaseCookieNames.forEach(cookieName => {
+      const cookie = req.cookies.get(cookieName);
+      if (cookie) {
+        // Cookie partagé pour TOUS les sous-domaines
+        res.cookies.set(cookieName, cookie.value, {
+          domain: `.${root}`,
+          path: '/',
+          httpOnly: false,
+          secure: process.env.NODE_ENV === 'production',
+          sameSite: 'lax',
+          maxAge: 60 * 60 * 24 * 7 // 7 jours
+        });
+        
+        // AUSSI synchroniser avec le domaine principal
+        res.cookies.set(cookieName, cookie.value, {
+          domain: root,
+          path: '/',
+          httpOnly: false,
+          secure: process.env.NODE_ENV === 'production',
+          sameSite: 'lax',
+          maxAge: 60 * 60 * 24 * 7 // 7 jours
+        });
+      }
+    });
+  }
   
   if (sub) {
     // Rediriger /home vers le domaine principal si accédé depuis un sous-domaine
@@ -98,14 +129,14 @@ export async function middleware(req: NextRequest) {
           // Si l'abonnement est expiré, rediriger vers la page appropriée
           if (subscription.is_expired) {
             // Ne pas rediriger si on est déjà sur une page d'expiration
-            if (pathname === '/subscription-expired' || pathname === '/subscription-renewal') {
+            if (pathname === '/onboarding/subscription-expired' || pathname === '/onboarding/subscription-renewal') {
               // Laisser passer sans redirection
             } else {
               // Rediriger vers subscription-renewal par défaut
               // La page subscription-renewal vérifiera si l'utilisateur est owner
               // et redirigera vers subscription-expired si ce n'est pas le cas
               const url = req.nextUrl.clone()
-              url.pathname = '/subscription-renewal'
+              url.pathname = '/onboarding/subscription-renewal'
               return NextResponse.redirect(url)
             }
           }

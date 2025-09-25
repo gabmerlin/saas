@@ -2,7 +2,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 export const runtime = 'nodejs';
-import { requireAuth } from '@/lib/auth/session';
+import { requireAuth } from '@/lib/auth/server/session';
 import { createInvitationServer, getInvitationsServer } from '@/lib/invitations/server-actions';
 import { generateInvitationEmail } from '@/lib/invitations/email-templates';
 import nodemailer from 'nodemailer';

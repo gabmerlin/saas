@@ -1,22 +1,48 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useSearchParams, useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { MessageSquare, Users, Settings, CreditCard, Shield, Zap } from "lucide-react";
 import { supabaseBrowser } from "@/lib/supabase/client";
 import { useAuth } from "@/lib/hooks/use-auth";
-import { redirectToAgencyDashboard } from "@/lib/auth/agency-redirect";
+import { redirectToAgencyDashboard } from "@/lib/auth/client/agency-redirect";
 import { getUserFirstName } from "@/lib/utils/user";
+import { UnifiedLogoutButton } from "@/components/auth/unified-logout-button";
 
 export default function HomePage() {
-  const { isLoading: sessionLoading, user, isAuthenticated, signOut } = useAuth();
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const { isLoading: sessionLoading, user, isAuthenticated } = useAuth();
   const [userAgency, setUserAgency] = useState<{name: string; subdomain: string} | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    // Vérifier si on vient d'une déconnexion
+    const isLogout = searchParams.get('logout');
+    if (isLogout) {
+      // Nettoyer l'URL des paramètres de déconnexion
+      const newUrl = new URL(window.location.href);
+      newUrl.searchParams.delete('logout');
+      newUrl.searchParams.delete('t');
+      window.history.replaceState({}, '', newUrl.toString());
+      
+      // Forcer un nettoyage complet
+      setUserAgency(null);
+      setLoading(false);
+      return;
+    }
+
     const checkAgencyInfo = async () => {
       if (!isAuthenticated || !user) {
+        setLoading(false);
+        return;
+      }
+
+      // Vérifier si on vient d'une déconnexion - ne pas faire d'appels API
+      const isLogout = searchParams.get('logout');
+      if (isLogout) {
         setLoading(false);
         return;
       }
@@ -76,12 +102,12 @@ export default function HomePage() {
         // Rediriger vers le dashboard de l'agence avec la session synchronisée
         await redirectToAgencyDashboard(userAgency.subdomain);
       } else {
-        // Rediriger vers l'onboarding
-        window.location.href = '/fr/owner';
+        // Rediriger vers l'onboarding avec router.push pour éviter la redirection via la page racine
+        router.push('/onboarding/owner');
       }
     } else {
       // Rediriger vers la connexion
-      window.location.href = '/sign-in';
+      router.push('/auth/sign-in');
     }
   };
 
@@ -123,29 +149,11 @@ export default function HomePage() {
                       </span>
                     )}
                   </div>
-                  <Button 
-                    onClick={async () => {
-                      try {
-                        console.log('Début de la déconnexion...');
-                        await signOut();
-                        
-                        // Attendre un peu pour que la déconnexion se termine
-                        await new Promise(resolve => setTimeout(resolve, 500));
-                        
-                        // Forcer la redirection vers la page de connexion
-                        window.location.href = '/sign-in';
-                      } catch (error) {
-                        console.error('Erreur lors de la déconnexion:', error);
-                        // Forcer la redirection même en cas d'erreur
-                        window.location.href = '/sign-in';
-                      }
-                    }}
+                  <UnifiedLogoutButton 
                     variant="ghost" 
                     size="sm"
                     className="text-gray-500 hover:text-red-600"
-                  >
-                    Se déconnecter
-                  </Button>
+                  />
                   <Button 
                     onClick={handleGetStarted}
                     className="bg-blue-600 hover:bg-blue-700 text-white"
@@ -156,13 +164,13 @@ export default function HomePage() {
               ) : (
                 <div className="flex items-center space-x-4">
                   <Button 
-                    onClick={() => window.location.href = '/sign-in'}
+                    onClick={() => router.push('/auth/sign-in')}
                     variant="ghost"
                   >
                     Se connecter
                   </Button>
                   <Button 
-                    onClick={() => window.location.href = '/sign-in'}
+                    onClick={() => router.push('/auth/sign-in')}
                     className="bg-blue-600 hover:bg-blue-700 text-white"
                   >
                     Commencer

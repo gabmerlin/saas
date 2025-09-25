@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { CheckCircle, Mail, RefreshCw, ArrowLeft } from 'lucide-react';
 import { toast } from 'sonner';
-import { resendVerificationEmail } from '@/lib/auth/actions';
+import { resendVerificationEmail } from '@/lib/auth/client/auth-actions';
 
 export default function VerifyEmailPage() {
   const router = useRouter();
@@ -27,7 +27,7 @@ export default function VerifyEmailPage() {
   const handleResendEmail = async () => {
     try {
       setSending(true);
-      await resendVerificationEmail();
+      await resendVerificationEmail(email);
       setSent(true);
       toast.success('Email de vérification renvoyé !');
     } catch (error) {

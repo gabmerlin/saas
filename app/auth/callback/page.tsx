@@ -2,6 +2,7 @@
 import { useEffect, useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { supabaseBrowser } from '@/lib/supabase/client';
+import { crossDomainSessionSync } from '@/lib/auth/client/cross-domain-session-sync';
 
 function AuthCallbackContent() {
   const router = useRouter();
@@ -18,9 +19,6 @@ function AuthCallbackContent() {
 
     const handleAuthCallback = async () => {
       try {
-        console.log('=== DÉBUT CALLBACK OAuth ===');
-        console.log('URL complète:', window.location.href);
-        console.log('Search params:', Object.fromEntries(searchParams.entries()));
         
         setStatus('Traitement de l\'authentification...');
         
@@ -29,96 +27,86 @@ function AuthCallbackContent() {
         // Vérifier s'il y a un code d'erreur dans l'URL
         const error = searchParams.get('error');
         if (error) {
-          console.error('Erreur OAuth dans URL:', error);
           setStatus(`Erreur: ${error}`);
-          setTimeout(() => router.push('/sign-in?error=auth_failed'), 2000);
+          setTimeout(() => router.push('/auth/sign-in?error=auth_failed'), 2000);
           return;
         }
 
         // Vérifier s'il y a un code d'autorisation
         const code = searchParams.get('code');
         if (code) {
-          console.log('Code OAuth reçu:', code.substring(0, 20) + '...');
           setStatus('Échange du code d\'autorisation...');
           
-          // Échanger le code contre une session
-          const { data, error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
           
-          if (exchangeError) {
-            console.error('Erreur exchangeCodeForSession:', exchangeError);
-            console.log('Tentative de récupération de la session existante...');
+          try {
+            // Configuration minimale - laissez Supabase gérer
+            const { data, error } = await supabase.auth.exchangeCodeForSession(code);
             
-            // Si l'échange échoue, essayer de récupérer la session existante
+            if (error) {
+              setStatus(`Erreur: ${error.message}`);
+              setTimeout(() => router.push('/auth/auth/sign-in?error=auth_failed'), 2000);
+              return;
+            }
+            
+            
+            // Vérifier la session créée
             const { data: { session }, error: sessionError } = await supabase.auth.getSession();
             
             if (sessionError) {
-              console.error('Erreur getSession:', sessionError);
-              setStatus(`Erreur échange: ${exchangeError.message}`);
-              setTimeout(() => router.push('/sign-in?error=auth_failed'), 2000);
+              setStatus(`Erreur session: ${sessionError.message}`);
+              setTimeout(() => router.push('/auth/auth/sign-in?error=auth_failed'), 2000);
               return;
             }
             
             if (session) {
-              console.log('Session récupérée avec succès:', session.user?.email);
               setStatus('Connexion réussie !');
+              
+              // Synchroniser la session vers tous les domaines
+              await crossDomainSessionSync.syncSessionToAllDomains(session);
+              
               setTimeout(() => {
                 const next = searchParams.get('next') || '/home';
-                console.log('Redirection vers:', next);
                 window.location.href = next;
               }, 1000);
               return;
             } else {
-              console.log('Aucune session trouvée');
-              setStatus(`Erreur échange: ${exchangeError.message}`);
-              setTimeout(() => router.push('/sign-in?error=auth_failed'), 2000);
+              setStatus('Aucune session créée');
+              setTimeout(() => router.push('/auth/auth/sign-in?error=no_session'), 2000);
               return;
             }
-          }
-          
-          if (data.session) {
-            console.log('Session créée avec succès:', data.session.user?.email);
-            setStatus('Connexion réussie !');
-            setTimeout(() => {
-              const next = searchParams.get('next') || '/home';
-              console.log('Redirection vers:', next);
-              window.location.href = next;
-            }, 1000);
-            return;
-          } else {
-            console.log('Aucune session après échange du code');
-            setStatus('Aucune session créée');
-            setTimeout(() => router.push('/sign-in?error=no_session'), 2000);
+          } catch (error) {
+            setStatus(`Erreur: ${error}`);
+            setTimeout(() => router.push('/auth/auth/sign-in?error=auth_failed'), 2000);
             return;
           }
         }
 
         // Si pas de code, essayer de récupérer la session existante
-        console.log('Pas de code OAuth, vérification session existante...');
         const { data: { session }, error: sessionError } = await supabase.auth.getSession();
         
         if (sessionError) {
-          console.error('Erreur getSession:', sessionError);
           setStatus(`Erreur session: ${sessionError.message}`);
-          setTimeout(() => router.push('/sign-in?error=auth_failed'), 2000);
+          setTimeout(() => router.push('/auth/sign-in?error=auth_failed'), 2000);
           return;
         }
 
         if (session) {
-          console.log('Session existante trouvée:', session.user?.email);
           setStatus('Connexion réussie !');
+          
+          // Synchroniser la session vers tous les domaines
+          await crossDomainSessionSync.syncSessionToAllDomains(session);
+          
           setTimeout(() => {
             const next = searchParams.get('next') || '/home';
             window.location.href = next;
           }, 1000);
         } else {
-          console.log('Aucune session trouvée');
           setStatus('Aucune session trouvée');
-          setTimeout(() => router.push('/sign-in?error=no_session'), 2000);
+          setTimeout(() => router.push('/auth/sign-in?error=no_session'), 2000);
         }
       } catch (error) {
-        console.error('Erreur callback:', error);
         setStatus(`Erreur: ${error}`);
-        setTimeout(() => router.push('/sign-in?error=auth_failed'), 2000);
+        setTimeout(() => router.push('/auth/sign-in?error=auth_failed'), 2000);
       }
     };
 

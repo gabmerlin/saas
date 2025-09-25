@@ -15,8 +15,6 @@ function RootRedirectContent() {
       const error = searchParams.get('error');
       
       if (code) {
-        console.log('=== CODE OAUTH REÇU SUR PAGE RACINE ===');
-        console.log('Code:', code.substring(0, 20) + '...');
         setStatus('Redirection vers le gestionnaire OAuth...');
         
         // Rediriger vers /auth/callback qui gère correctement l'OAuth
@@ -25,12 +23,12 @@ function RootRedirectContent() {
         window.location.href = callbackUrl;
         return;
       } else if (error) {
-        console.log('Erreur OAuth reçue:', error);
         setStatus(`Erreur: ${error}`);
         setTimeout(() => {
-          window.location.href = '/sign-in?error=auth_failed';
+          window.location.href = '/auth/sign-in?error=auth_failed';
         }, 2000);
       } else {
+        
         // Redirection normale vers /home
         setStatus('Redirection vers /home...');
         window.location.href = '/home';
