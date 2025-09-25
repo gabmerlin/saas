@@ -40,11 +40,11 @@ function AuthCallbackContent() {
           
           try {
             // Configuration minimale - laissez Supabase gérer
-            const { data, error } = await supabase.auth.exchangeCodeForSession(code);
+            const { error } = await supabase.auth.exchangeCodeForSession(code);
             
             if (error) {
               setStatus(`Erreur: ${error.message}`);
-              setTimeout(() => router.push('/auth/auth/sign-in?error=auth_failed'), 2000);
+              setTimeout(() => router.push('/auth/sign-in?error=auth_failed'), 2000);
               return;
             }
             
@@ -54,7 +54,7 @@ function AuthCallbackContent() {
             
             if (sessionError) {
               setStatus(`Erreur session: ${sessionError.message}`);
-              setTimeout(() => router.push('/auth/auth/sign-in?error=auth_failed'), 2000);
+              setTimeout(() => router.push('/auth/sign-in?error=auth_failed'), 2000);
               return;
             }
             
@@ -71,12 +71,12 @@ function AuthCallbackContent() {
               return;
             } else {
               setStatus('Aucune session créée');
-              setTimeout(() => router.push('/auth/auth/sign-in?error=no_session'), 2000);
+              setTimeout(() => router.push('/auth/sign-in?error=no_session'), 2000);
               return;
             }
           } catch (error) {
             setStatus(`Erreur: ${error}`);
-            setTimeout(() => router.push('/auth/auth/sign-in?error=auth_failed'), 2000);
+            setTimeout(() => router.push('/auth/sign-in?error=auth_failed'), 2000);
             return;
           }
         }

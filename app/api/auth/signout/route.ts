@@ -1,7 +1,7 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 
-export async function POST(request: NextRequest) {
+export async function POST() {
   try {
     // Déconnexion côté serveur (sans scope global pour éviter 403)
     const supabase = createClient();
@@ -10,7 +10,7 @@ export async function POST(request: NextRequest) {
       if (error) {
         // Ne pas retourner d'erreur, continuer le nettoyage
       }
-    } catch (supabaseError) {
+        } catch {
       // Ignorer les erreurs Supabase, continuer le nettoyage
     }
 
@@ -38,7 +38,7 @@ export async function POST(request: NextRequest) {
     });
 
     return response;
-  } catch (error) {
+  } catch {
     // Même en cas d'erreur, retourner un succès pour éviter les problèmes
     return NextResponse.json({ success: true });
   }

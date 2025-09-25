@@ -5,7 +5,6 @@
 
 import { supabaseBrowser } from '@/lib/supabase/client';
 import { crossDomainSessionSync } from './cross-domain-session-sync';
-import { localhostSessionSync } from './localhost-session-sync';
 
 export class CrossDomainLogout {
   private static instance: CrossDomainLogout;
@@ -37,7 +36,7 @@ export class CrossDomainLogout {
       // 1. Déconnexion Supabase (sans scope global pour éviter 403)
       try {
         await supabase.auth.signOut({ scope: 'local' });
-      } catch (supabaseError) {
+        } catch {
         // Si la déconnexion Supabase échoue, continuer quand même
       }
       
@@ -56,7 +55,7 @@ export class CrossDomainLogout {
       // 6. Rediriger vers le domaine principal
       this.redirectToMainDomain();
       
-    } catch (error) {
+      } catch {
       // En cas d'erreur, forcer la redirection
       this.clearAllStorage();
       this.clearAllCookies();
@@ -112,7 +111,7 @@ export class CrossDomainLogout {
         localStorage.removeItem(key);
         sessionStorage.removeItem(key);
       });
-    } catch (error) {
+      } catch {
       // Erreur silencieuse
     }
   }
@@ -164,7 +163,7 @@ export class CrossDomainLogout {
           document.cookie = `${cookieName}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/; domain=.${rootDomain}`;
         });
       }
-    } catch (error) {
+      } catch {
       // Erreur silencieuse
     }
   }
@@ -195,13 +194,13 @@ export class CrossDomainLogout {
                             hostname === 'www.qgchatting.com';
       
       if (isOnMainDomain) {
-        // Si on est déjà sur le domaine principal, juste recharger la page
-        window.location.replace(`${mainDomain}/home?logout=true&t=${Date.now()}`);
+        // Si on est déjà sur le domaine principal, forcer un rechargement complet
+        window.location.replace(`${mainDomain}/home?logout=true&t=${Date.now()}&force_reload=true`);
       } else {
-        // Si on est sur un sous-domaine, rediriger vers le domaine principal
-        window.location.replace(`${mainDomain}/home?logout=true&t=${Date.now()}`);
+        // Si on est sur un sous-domaine, rediriger vers le domaine principal avec rechargement forcé
+        window.location.replace(`${mainDomain}/home?logout=true&t=${Date.now()}&force_reload=true`);
       }
-    } catch (error) {
+      } catch {
       // En cas d'erreur, rediriger vers la page de connexion
       window.location.replace('/auth/sign-in');
     }

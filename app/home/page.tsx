@@ -3,13 +3,14 @@
 import { useState, useEffect } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { MessageSquare, Users, Settings, CreditCard, Shield, Zap } from "lucide-react";
+import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { MessageSquare, Users, Shield, Zap } from "lucide-react";
 import { supabaseBrowser } from "@/lib/supabase/client";
 import { useAuth } from "@/lib/hooks/use-auth";
 import { redirectToAgencyDashboard } from "@/lib/auth/client/agency-redirect";
 import { getUserFirstName } from "@/lib/utils/user";
 import { UnifiedLogoutButton } from "@/components/auth/unified-logout-button";
+import { ForceLogoutState } from "@/components/auth/force-logout-state";
 
 export default function HomePage() {
   const searchParams = useSearchParams();
@@ -19,21 +20,6 @@ export default function HomePage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Vérifier si on vient d'une déconnexion
-    const isLogout = searchParams.get('logout');
-    if (isLogout) {
-      // Nettoyer l'URL des paramètres de déconnexion
-      const newUrl = new URL(window.location.href);
-      newUrl.searchParams.delete('logout');
-      newUrl.searchParams.delete('t');
-      window.history.replaceState({}, '', newUrl.toString());
-      
-      // Forcer un nettoyage complet
-      setUserAgency(null);
-      setLoading(false);
-      return;
-    }
-
     const checkAgencyInfo = async () => {
       if (!isAuthenticated || !user) {
         setLoading(false);
@@ -79,11 +65,11 @@ export default function HomePage() {
             if (agencyData.ok && agencyData.hasExistingAgency) {
               setUserAgency(agencyData.agency);
             }
-          } catch (agencyError) {
+          } catch {
             // Erreur silencieuse
           }
         }
-      } catch (error) {
+      } catch {
         // Erreur silencieuse
       } finally {
         setLoading(false);
@@ -94,7 +80,7 @@ export default function HomePage() {
     if (!sessionLoading) {
       checkAgencyInfo();
     }
-  }, [isAuthenticated, user, sessionLoading]);
+  }, [searchParams, isAuthenticated, user, sessionLoading]);
 
   const handleGetStarted = async () => {
     if (isAuthenticated) {
@@ -124,6 +110,7 @@ export default function HomePage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100">
+      <ForceLogoutState />
       {/* Hero Section */}
       <section className="py-20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">

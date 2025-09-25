@@ -55,7 +55,7 @@ export function CrossDomainSessionProvider({ children }: CrossDomainSessionProvi
           subscription.unsubscribe();
           unsubscribeCrossDomain();
         };
-      } catch (error) {
+        } catch {
         setIsSyncing(false);
       }
     };

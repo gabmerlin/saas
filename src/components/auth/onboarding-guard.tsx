@@ -61,7 +61,7 @@ export function OnboardingGuard({
             setCanAccess(true);
           }
         }
-      } catch (error) {
+          } catch {
         // En cas d'erreur, permettre l'accès
         setCanAccess(true);
       } finally {

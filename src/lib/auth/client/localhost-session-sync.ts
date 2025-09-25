@@ -51,7 +51,7 @@ export class LocalhostSessionSync {
         // Pas de session, rediriger normalement
         window.location.href = targetUrl;
       }
-    } catch (error) {
+      } catch {
       // En cas d'erreur, rediriger normalement
       window.location.href = targetUrl;
     }
@@ -87,7 +87,7 @@ export class LocalhostSessionSync {
       }
       
       return false;
-    } catch (error) {
+      } catch {
       return false;
     }
   }

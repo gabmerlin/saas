@@ -45,7 +45,7 @@ export class CrossDomainSync {
       try {
         const session = JSON.parse(event.newValue);
         this.notifyListeners(session);
-      } catch (error) {
+      } catch {
       }
     }
   }
@@ -92,7 +92,7 @@ export class CrossDomainSync {
     this.listeners.forEach(callback => {
       try {
         callback(session);
-      } catch (error) {
+      } catch {
       }
     });
   }
@@ -104,7 +104,7 @@ export class CrossDomainSync {
     try {
       const stored = localStorage.getItem('sb-auth-token');
       return stored ? JSON.parse(stored) : null;
-    } catch (error) {
+    } catch {
       return null;
     }
   }

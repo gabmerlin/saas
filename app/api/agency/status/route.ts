@@ -70,7 +70,7 @@ export async function GET(request: NextRequest) {
             userRoles = rolesData?.map(ur => ur.roles[0]?.key).filter(Boolean) || [];
           }
         }
-      } catch (error) {
+      } catch {
         // Erreur silencieuse
       }
     }
@@ -187,7 +187,7 @@ export async function GET(request: NextRequest) {
           : 'Configuration en cours...'
     });
 
-  } catch (error) {
+  } catch {
     return NextResponse.json(
       { error: 'Erreur lors de la vérification' },
       { status: 500 }

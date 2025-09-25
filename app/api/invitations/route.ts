@@ -25,7 +25,7 @@ export async function GET(request: NextRequest) {
 
     const invitations = await getInvitationsServer(tenantId);
     return NextResponse.json({ invitations });
-  } catch (error) {
+  } catch {
     return NextResponse.json(
       { error: 'Erreur lors de la récupération des invitations' },
       { status: 500 }
@@ -86,12 +86,12 @@ export async function POST(request: NextRequest) {
           secondary: '#666666',
         },
       });
-    } catch (emailError) {
+      } catch {
       // Ne pas faire échouer la création de l'invitation si l'email échoue
     }
 
     return NextResponse.json({ invitation });
-  } catch (error) {
+  } catch {
     return NextResponse.json(
       { error: 'Erreur lors de la création de l\'invitation' },
       { status: 500 }

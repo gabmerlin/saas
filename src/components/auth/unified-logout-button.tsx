@@ -3,9 +3,8 @@
  */
 'use client';
 
-import { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { crossDomainLogout } from '@/lib/auth/client/cross-domain-logout';
+import { useAuth } from '@/lib/hooks/use-auth';
 
 interface UnifiedLogoutButtonProps {
   variant?: 'default' | 'destructive' | 'outline' | 'secondary' | 'ghost' | 'link';
@@ -22,20 +21,15 @@ export function UnifiedLogoutButton({
   children = 'Se déconnecter',
   disabled = false
 }: UnifiedLogoutButtonProps) {
-  const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const { isSigningOut, signOut } = useAuth();
 
   const handleLogout = async () => {
-    if (isLoggingOut || disabled) return;
-    
-    setIsLoggingOut(true);
+    if (isSigningOut || disabled) return;
     
     try {
-      // Utiliser le système de déconnexion cross-domain unifié
-      await crossDomainLogout.signOut();
-    } catch (error) {
-      // La redirection est gérée automatiquement par crossDomainLogout
-    } finally {
-      setIsLoggingOut(false);
+      await signOut();
+    } catch {
+      // La redirection est gérée automatiquement par signOut
     }
   };
 
@@ -44,10 +38,10 @@ export function UnifiedLogoutButton({
       onClick={handleLogout}
       variant={variant}
       size={size}
-      disabled={isLoggingOut || disabled}
-      className={`${className} ${(isLoggingOut || disabled) ? 'opacity-50' : ''}`}
+      disabled={isSigningOut || disabled}
+      className={`${className} ${(isSigningOut || disabled) ? 'opacity-50' : ''}`}
     >
-      {isLoggingOut ? 'Déconnexion...' : children}
+      {isSigningOut ? 'Déconnexion...' : children}
     </Button>
   );
 }

@@ -2,7 +2,6 @@
 
 import { useEffect, useState, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
-import { supabaseBrowser } from "@/lib/supabase/client";
 
 function RootRedirectContent() {
   const searchParams = useSearchParams();

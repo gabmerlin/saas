@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { getServiceClient } from "@/lib/tenants";
 
 export const runtime = 'nodejs';

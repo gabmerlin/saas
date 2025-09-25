@@ -44,13 +44,13 @@ export async function createClientWithSession() {
             });
             break;
           }
-        } catch (parseError) {
+        } catch {
           // Continuer avec le cookie suivant
           continue;
         }
       }
     }
-  } catch (error) {
+  } catch {
     // En cas d'erreur, retourner le client sans session
   }
 

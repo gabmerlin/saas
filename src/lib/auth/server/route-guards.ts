@@ -19,8 +19,8 @@ export async function requireAuth(request: NextRequest) {
     }
 
     return null; // Pas d'erreur, continuer
-  } catch (error) {
-    return NextResponse.redirect(new URL('/auth/auth/sign-in', request.url));
+  } catch {
+    return NextResponse.redirect(new URL('/auth/sign-in', request.url));
   }
 }
 
@@ -61,7 +61,7 @@ export async function requireRole(request: NextRequest, role: string) {
     }
 
     return null; // Pas d'erreur, continuer
-  } catch (error) {
+  } catch {
     return NextResponse.json(
       { error: 'Erreur de vérification des rôles' },
       { status: 500 }
@@ -110,7 +110,7 @@ export async function requirePermission(request: NextRequest, permission: string
     }
 
     return null; // Pas d'erreur, continuer
-  } catch (error) {
+  } catch {
     return NextResponse.json(
       { error: 'Erreur de vérification des permissions' },
       { status: 500 }

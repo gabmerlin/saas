@@ -14,7 +14,7 @@ const MESSAGE_TYPES = {
 
 export const crossDomainMessaging = {
   // Envoyer un message à tous les domaines
-  broadcastMessage: (type: string, data?: any) => {
+  broadcastMessage: (type: string, data?: unknown) => {
     if (typeof window === 'undefined') return;
     
     try {
@@ -32,15 +32,15 @@ export const crossDomainMessaging = {
         data,
         timestamp: Date.now()
       }));
-    } catch (error) {
+    } catch {
     }
   },
 
   // Écouter les messages cross-domain
-  listenForMessages: (callback: (type: string, data?: any) => void) => {
+  listenForMessages: (callback: (type: string, data?: unknown) => void) => {
     if (typeof window === 'undefined') return () => {};
     
-    const handleMessage = (event: MessageEvent) => {
+    const handleMessage = (event: MessageEvent<{ type: string; data?: unknown }>) => {
       if (event.data?.type) {
         callback(event.data.type, event.data.data);
       }
@@ -51,7 +51,7 @@ export const crossDomainMessaging = {
         try {
           const message = JSON.parse(event.newValue);
           callback(message.type, message.data);
-        } catch (error) {
+        } catch {
         }
       }
     };
@@ -87,7 +87,7 @@ export const crossDomainMessaging = {
 
   // Écouter les demandes de session
   listenForSessionRequests: (getSession: () => Promise<Session | null>) => {
-    return crossDomainMessaging.listenForMessages(async (type, data) => {
+    return crossDomainMessaging.listenForMessages(async (type) => {
       if (type === MESSAGE_TYPES.SESSION_REQUEST) {
         const session = await getSession();
         crossDomainMessaging.respondWithSession(session);
@@ -99,7 +99,7 @@ export const crossDomainMessaging = {
   listenForSessionResponses: (callback: (session: Session | null) => void) => {
     return crossDomainMessaging.listenForMessages((type, data) => {
       if (type === MESSAGE_TYPES.SESSION_RESPONSE) {
-        callback(data);
+        callback(data as Session | null);
       }
     });
   }

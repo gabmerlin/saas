@@ -82,7 +82,7 @@ export async function getServerSession(): Promise<SessionData | null> {
       permissions,
       expires_at: Date.now() + (AUTH_CONFIG.SESSION_DURATION * 1000),
     };
-  } catch (error) {
+  } catch {
     return null;
   }
 }

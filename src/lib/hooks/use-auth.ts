@@ -6,12 +6,39 @@ import { crossDomainLogout } from '@/lib/auth/client/cross-domain-logout';
 
 export function useAuth() {
   const [isLoading, setIsLoading] = useState(true);
-  const [session, setSession] = useState<any>(null);
-  const [user, setUser] = useState<any>(null);
+  const [session, setSession] = useState<{ access_token: string; refresh_token: string; user: { id: string; email?: string } } | null>(null);
+  const [user, setUser] = useState<{ id: string; email?: string } | null>(null);
   const [isSigningOut, setIsSigningOut] = useState(false);
 
   useEffect(() => {
     const supabase = supabaseBrowser();
+    
+    // Fonction pour vérifier les paramètres de déconnexion
+    const checkLogoutParams = () => {
+      const urlParams = new URLSearchParams(window.location.search);
+      const isLogout = urlParams.get('logout');
+      
+      if (isLogout) {
+        // Si on vient d'une déconnexion, forcer l'état déconnecté
+        setSession(null);
+        setUser(null);
+        setIsLoading(false);
+        return true;
+      }
+      return false;
+    };
+    
+    // Vérifier immédiatement
+    if (checkLogoutParams()) {
+      return;
+    }
+    
+    // Écouter les changements d'URL pour détecter les déconnexions
+    const handleUrlChange = () => {
+      checkLogoutParams();
+    };
+    
+    window.addEventListener('popstate', handleUrlChange);
     
     // Écouter les changements d'état d'authentification
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
@@ -37,7 +64,10 @@ export function useAuth() {
       }
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      subscription.unsubscribe();
+      window.removeEventListener('popstate', handleUrlChange);
+    };
   }, []);
 
   const signOut = async () => {
@@ -54,7 +84,7 @@ export function useAuth() {
       // Utiliser la déconnexion cross-domain
       await crossDomainLogout.signOut();
       
-    } catch (error) {
+      } catch {
       // En cas d'erreur, forcer la redirection
       if (typeof window !== 'undefined') {
         window.location.href = '/auth/sign-in';

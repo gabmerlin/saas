@@ -115,7 +115,7 @@ export async function acceptInvitation(token, userData) {
       .from('invitation')
       .update({ accepted_at: new Date().toISOString() })
       .eq('id', invitationData.id);
-  } catch (err) {
+    } catch {
     // Ignorer l'erreur de mise à jour de l'invitation
   }
 
@@ -171,7 +171,7 @@ export async function resendInvitation(invitationId) {
     }
 
     return data;
-  } catch (err) {
+    } catch {
     throw new Error('Erreur lors du renvoi de l\'invitation');
   }
 }

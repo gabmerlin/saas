@@ -76,25 +76,25 @@ export default function SubscriptionRenewalPage() {
 
           if (tenantData) {
             // Vérifier les rôles de l'utilisateur
-            const { data: userRolesData, error: userRolesError } = await supabase
+            const { data: userRolesData } = await supabase
               .from('user_roles')
               .select(`
                 roles!inner(key)
               `)
               .eq('user_id', session.user.id)
-              .eq('tenant_id', (tenantData as any).id);
+              .eq('tenant_id', (tenantData as { id: string }).id);
 
             // Vérifier aussi user_tenants
-            const { data: userTenantData, error: userTenantError } = await supabase
+            const { data: userTenantData } = await supabase
               .from('user_tenants')
               .select('is_owner')
               .eq('user_id', session.user.id)
-              .eq('tenant_id', (tenantData as any).id)
+              .eq('tenant_id', (tenantData as { id: string }).id)
               .single();
 
-            const userRoles = userRolesData?.map((ur: any) => ur.roles[0]?.key).filter(Boolean) || [];
+            const userRoles = userRolesData?.map((ur: { roles: { key: string }[] }) => ur.roles[0]?.key).filter(Boolean) || [];
             const isOwnerFromRoles = userRoles.includes('owner');
-            const isOwnerFromTenants = (userTenantData as any)?.is_owner || false;
+            const isOwnerFromTenants = (userTenantData as { is_owner: boolean } | null)?.is_owner || false;
             const isOwner = isOwnerFromRoles || isOwnerFromTenants;
             
             
@@ -107,7 +107,7 @@ export default function SubscriptionRenewalPage() {
             window.location.href = '/subscription-expired';
             return;
           }
-        } catch (error) {
+        } catch {
           window.location.href = '/subscription-expired';
           return;
         }
@@ -122,12 +122,12 @@ export default function SubscriptionRenewalPage() {
         if (plansError) {
         } else {
           // Transformer les données pour correspondre à l'interface Plan
-          const transformedPlans: Plan[] = (plansData as any[] || []).map((plan: any) => ({
+          const transformedPlans: Plan[] = (plansData as { id: string; name: string; price_usd: number; description?: string; features?: Record<string, unknown> }[] || []).map((plan: { id: string; name: string; price_usd: number; description?: string; features?: Record<string, unknown> }) => ({
             id: plan.id,
             name: plan.name,
             price: plan.price_usd,
             description: plan.description || "",
-            features: plan.features || {}
+            features: (plan.features as Record<string, boolean>) || {}
           }));
           setAvailablePlans(transformedPlans);
         }
@@ -161,7 +161,7 @@ export default function SubscriptionRenewalPage() {
     setShowPaymentPopup(true);
   };
 
-  const handlePaymentSuccess = (transactionId: string) => {
+  const handlePaymentSuccess = () => {
     // Rediriger vers l'agence après paiement réussi
     const hostname = window.location.hostname;
     const subdomain = hostname.split('.')[0];
@@ -313,7 +313,7 @@ export default function SubscriptionRenewalPage() {
                   const isPopular = plan.name === "Advanced";
                   
                   // Définir les limites selon le plan
-                  const employeeLimit = (plan as any).max_employees || "Illimité";
+                  const employeeLimit = (plan as { max_employees?: number }).max_employees || "Illimité";
                   const modelLimit = plan.name === "Lifetime" ? "Illimité" : 
                                    plan.name === "Professional" ? "25" :
                                    plan.name === "Advanced" ? "7" : "4";

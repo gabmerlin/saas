@@ -54,7 +54,6 @@ import {
   OwnerOnboardingAgencySchema,
 } from "@/lib/validators/onboarding";
 
-import { CardTitle } from "@/components/ui/card";
 
 import {
   Tooltip,
@@ -557,58 +556,8 @@ const advDefaults: AdvFormExt = {
 
 /* ----------------- UI helpers ----------------- */
 
-function HeaderWithHelp({
-  title,
-  help,
-}: {
-  title: string;
-  help: React.ReactNode;
-}) {
-  return (
-    <div className="flex items-start justify-between">
-      <CardTitle>{title}</CardTitle>
-      <Tooltip delayDuration={150}>
-        <TooltipTrigger className="shrink-0 -mt-1" aria-label="Aide">
-          <HelpCircle className="w-4 h-4 text-muted-foreground" />
-        </TooltipTrigger>
-        <TooltipContent side="right" align="start" collisionPadding={12} className="max-w-sm text-sm">
-          {help}
-        </TooltipContent>
-      </Tooltip>
-    </div>
-  );
-}
 
-function Hint({ children }: { children: React.ReactNode }) {
-  return <p className="text-sm text-muted-foreground">{children}</p>;
-}
 
-function SourcePill({
-  label,
-  status,
-}: {
-  label: string;
-  status: DomainSourceStatus;
-}) {
-  const map: Record<
-    DomainSourceStatus,
-    { icon: React.ReactNode; cls: string; txt: string }
-  > = {
-    idle: { icon: <Info className="w-3.5 h-3.5" />, cls: "text-muted-foreground", txt: "—" },
-    checking: { icon: <Loader2 className="w-3.5 h-3.5 animate-spin" />, cls: "text-muted-foreground", txt: "Vérif…" },
-    ok: { icon: <CheckCircle className="w-3.5 h-3.5" />, cls: "text-green-600", txt: "Libre" },
-    taken: { icon: <XCircle className="w-3.5 h-3.5" />, cls: "text-red-600", txt: "Pris" },
-    invalid: { icon: <XCircle className="w-3.5 h-3.5" />, cls: "text-red-600", txt: "Invalide" },
-    error: { icon: <XCircle className="w-3.5 h-3.5" />, cls: "text-red-600", txt: "Erreur" },
-  };
-  const m = map[status];
-  return (
-    <span className={`inline-flex items-center gap-1 text-xs ${m.cls}`}>
-      {m.icon}
-      <span>{label} : {m.txt}</span>
-    </span>
-  );
-}
 
 export default function OwnerOnboardingPage() {
   const supabase = supabaseBrowser();
@@ -752,7 +701,6 @@ export default function OwnerOnboardingPage() {
       body: JSON.stringify(b.data),
     });
 
-    let agencyUrl: string | null = null;
     let tenantId: string | null = null;
     if (!r1.ok) {
       if (r1.status === 409) {
@@ -773,7 +721,6 @@ export default function OwnerOnboardingPage() {
       return;
     } else {
       const j: OwnerResp = await r1.json().catch(() => ({ agencyUrl: undefined, tenantId: undefined }));
-      agencyUrl = j?.agencyUrl ?? null;
       tenantId = j?.tenantId ?? null;
       
       // Stocker le tenantId pour le popup de paiement
@@ -822,8 +769,6 @@ export default function OwnerOnboardingPage() {
     setSubmitting(false);
   }
 
-  /* --------- Vérification d'agence existante ---------- */
-  // La vérification d'agence existante est maintenant gérée par OwnerGuard
 
   /* --------- Chargement des plans d'abonnement ---------- */
   useEffect(() => {
@@ -839,23 +784,23 @@ export default function OwnerOnboardingPage() {
         setAvailablePlans(data || []);
         
         // Sélectionner le plan Starter par défaut
-        const starterPlan = (data as any[])?.find(plan => plan.name === "Starter");
+        const starterPlan = (data as { id: string; name: string; price_usd: number; description?: string; features?: Record<string, unknown> }[])?.find(plan => plan.name === "Starter");
         if (starterPlan) {
           setSelectedPlan({
             id: starterPlan.id,
             name: starterPlan.name,
             price: starterPlan.price_usd,
             description: starterPlan.description || "",
-            features: starterPlan.features || {}
+            features: (starterPlan.features as Record<string, boolean>) || {}
           });
         }
-      } catch (err) {
+      } catch {
         // Erreur lors du chargement des plans
       }
     };
     
     loadPlans();
-  }, []);
+  }, [supabase]);
 
 
   /* --------- Billing email par défaut ---------- */
@@ -889,7 +834,7 @@ export default function OwnerOnboardingPage() {
       // Note: Suppression de la logique restrictive qui empêchait l'accès à l'onboarding
       // Maintenant, tout utilisateur connecté peut créer une agence
     })();
-  }, [supabase]);
+  }, [supabase.auth]);
 
   /* --------- Sync de base ---------- */
   useEffect(() => {
@@ -901,9 +846,6 @@ export default function OwnerOnboardingPage() {
     setAdv((a) => ({ ...a, agencyName: basic.agencyName, subdomain: basic.subdomain }));
   }, [basic.agencyName, basic.subdomain]);
 
-  useEffect(() => {
-    setAdv((a) => ({ ...a, localeDefault: basic.locale as "fr" | "en" }));
-  }, [basic.locale]);
 
   // Forcer l'état d'Instagram sur l'add‑on (billing) uniquement
   useEffect(() => {
@@ -958,7 +900,6 @@ export default function OwnerOnboardingPage() {
         },
       }));
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [presetKey]);
 
   /* --------- Arrondi ---------- */
@@ -2742,7 +2683,7 @@ export default function OwnerOnboardingPage() {
                 </div>
 
                       <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
-                        {availablePlans.map((plan, index) => {
+                        {availablePlans.map((plan) => {
                           const isSelected = selectedPlan?.id === plan.id;
                           const planKey = plan.name.toLowerCase().replace(' ', '_').replace('-', '_');
                           const isLifetime = plan.name === "Lifetime";
@@ -3224,7 +3165,7 @@ export default function OwnerOnboardingPage() {
         }}
         tenantId={currentTenantId}
         selectedPlan={selectedPlan}
-        onPaymentSuccess={async (transactionId) => {
+                onPaymentSuccess={async () => {
           setShowPaymentPopup(false);
           
           // Attendre que l'agence soit complètement créée avant de rediriger
@@ -3245,7 +3186,7 @@ export default function OwnerOnboardingPage() {
               // Si l'agence n'est pas encore prête, rediriger vers la page d'attente
               window.location.href = `/onboarding/agency-initializing?subdomain=${basic.subdomain}`;
             }
-          } catch (error) {
+          } catch {
             // En cas d'erreur, rediriger vers la page d'attente
             window.location.href = `/onboarding/agency-initializing?subdomain=${basic.subdomain}`;
           }

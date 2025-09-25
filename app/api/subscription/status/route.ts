@@ -58,7 +58,7 @@ export async function GET(request: NextRequest) {
       subscription: subscriptionDetails
     });
 
-  } catch (error) {
+  } catch {
     return NextResponse.json(
       { error: 'Erreur lors de la vérification de l\'abonnement' },
       { status: 500 }

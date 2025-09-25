@@ -49,7 +49,7 @@ function SignInContent() {
           window.location.href = next;
           return;
         }
-      } catch (error) {
+      } catch {
       } finally {
         setIsChecking(false);
       }
@@ -66,7 +66,7 @@ function SignInContent() {
     setMsg(null);
 
     try {
-      const result = await signInWithEmail(email, password, rememberMe);
+      const result = await signInWithEmail(email, password);
       toast.success("Connexion réussie !");
       
       // Synchroniser la session vers tous les domaines
@@ -122,7 +122,7 @@ function SignInContent() {
     try {
       
       // Utiliser l'API Supabase standard
-      const { data, error } = await supabaseBrowser().auth.signInWithOAuth({
+      const { error } = await supabaseBrowser().auth.signInWithOAuth({
         provider: 'google',
         options: {
           redirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(next || '/home')}`,

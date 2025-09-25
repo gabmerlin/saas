@@ -56,7 +56,7 @@ export const crossDomainSync = {
       // 4. Synchroniser avec les autres onglets/fenêtres
       crossDomainSync.broadcastSession(session);
       
-    } catch (error) {
+    } catch {
     }
   },
 
@@ -92,7 +92,7 @@ export const crossDomainSync = {
       }
       
       return null;
-    } catch (error) {
+    } catch {
       return null;
     }
   },
@@ -125,7 +125,7 @@ export const crossDomainSync = {
       // 4. Notifier les autres onglets/fenêtres
       crossDomainSync.broadcastClear();
       
-    } catch (error) {
+    } catch {
     }
   },
 
@@ -139,7 +139,7 @@ export const crossDomainSync = {
         type: 'SESSION_SYNC',
         session: session
       }, '*');
-    } catch (error) {
+    } catch {
     }
   },
 
@@ -151,7 +151,7 @@ export const crossDomainSync = {
       window.postMessage({
         type: 'SESSION_CLEAR'
       }, '*');
-    } catch (error) {
+    } catch {
     }
   },
 

@@ -49,7 +49,7 @@ export function setCookieWithDomain(name: string, value: string, days: number = 
   // Essayer de définir le cookie
   try {
     document.cookie = cookieString;
-  } catch (error) {
+    } catch {
     // Fallback sans domaine si ça échoue
     document.cookie = `${name}=${value};expires=${expires.toUTCString()};path=/;SameSite=Lax;Secure=${isSecure}`;
   }
@@ -109,7 +109,7 @@ export function removeCookieWithDomain(name: string): void {
 /**
  * Stocke une session dans les cookies partagés et localStorage
  */
-export function storeSession(sessionData: any): void {
+export function storeSession(sessionData: { access_token: string; refresh_token: string; user: { id: string; email?: string } }): void {
   if (typeof window === 'undefined') return;
   
   const sessionString = JSON.stringify(sessionData);
@@ -125,7 +125,7 @@ export function storeSession(sessionData: any): void {
 /**
  * Récupère une session depuis les cookies partagés ou localStorage
  */
-export function getStoredSession(): any | null {
+export function getStoredSession(): { access_token: string; refresh_token: string; user: { id: string; email?: string } } | null {
   if (typeof window === 'undefined') return null;
   
   // D'abord essayer localStorage (où la session est stockée)

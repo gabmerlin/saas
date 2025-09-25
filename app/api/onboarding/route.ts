@@ -33,7 +33,7 @@ export async function POST(req: Request) {
     const authHeader = req.headers.get('authorization');
     const sessionToken = req.headers.get('x-session-token');
     
-    let user: any = null;
+    let user: { id: string; email?: string; user_metadata?: { full_name?: string; name?: string } } | null = null;
     
     if (authHeader && authHeader.startsWith('Bearer ')) {
       // Utilisation du token Bearer
@@ -282,7 +282,7 @@ export async function POST(req: Request) {
                   secondary: input.themeTokens?.secondary || '#666666',
                 },
               });
-            } catch (emailError) {
+            } catch {
               // Ne pas faire échouer l'onboarding si l'email échoue
             }
           }
@@ -301,7 +301,7 @@ export async function POST(req: Request) {
           planKey: input.planKey,
           priceUsd: 1199.00
         });
-      } catch (subscriptionError) {
+        } catch {
         // Ne pas faire échouer l'onboarding si l'abonnement échoue
       }
     }

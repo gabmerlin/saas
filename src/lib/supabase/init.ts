@@ -37,35 +37,35 @@ if (typeof window !== 'undefined') {
     );
   };
   
-  console.log = (...args: any[]) => {
+  console.log = (...args: unknown[]) => {
     const message = args.join(' ');
     if (!shouldFilter(message)) {
       originalConsoleLog.apply(console, args);
     }
   };
   
-  console.error = (...args: any[]) => {
+  console.error = (...args: unknown[]) => {
     const message = args.join(' ');
     if (!shouldFilter(message)) {
       originalConsoleError.apply(console, args);
     }
   };
   
-  console.warn = (...args: any[]) => {
+  console.warn = (...args: unknown[]) => {
     const message = args.join(' ');
     if (!shouldFilter(message)) {
       originalConsoleWarn.apply(console, args);
     }
   };
   
-  console.info = (...args: any[]) => {
+  console.info = (...args: unknown[]) => {
     const message = args.join(' ');
     if (!shouldFilter(message)) {
       originalConsoleInfo.apply(console, args);
     }
   };
   
-  console.debug = (...args: any[]) => {
+  console.debug = (...args: unknown[]) => {
     const message = args.join(' ');
     if (!shouldFilter(message)) {
       originalConsoleDebug.apply(console, args);
@@ -83,16 +83,18 @@ if (typeof process !== 'undefined') {
   const originalStdoutWrite = process.stdout.write;
   const originalStderrWrite = process.stderr.write;
   
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   process.stdout.write = function(chunk: any, encoding?: any, callback?: any) {
-    const message = chunk.toString();
+    const message = String(chunk);
     if (!shouldFilter(message)) {
       return originalStdoutWrite.call(this, chunk, encoding, callback);
     }
     return true;
   };
-  
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   process.stderr.write = function(chunk: any, encoding?: any, callback?: any) {
-    const message = chunk.toString();
+    const message = String(chunk);
     if (!shouldFilter(message)) {
       return originalStderrWrite.call(this, chunk, encoding, callback);
     }

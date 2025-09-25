@@ -1,6 +1,5 @@
 // app/api/auth/signup-with-invitation/route.ts
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
 
 export const runtime = 'nodejs';
 
@@ -122,14 +121,14 @@ export async function POST(req: NextRequest) {
         message: 'Compte créé et invitation acceptée avec succès'
       });
 
-    } catch (invitationError) {
+      } catch {
       return NextResponse.json(
         { error: 'Compte créé mais erreur lors de l\'acceptation de l\'invitation' },
         { status: 500 }
       );
     }
 
-  } catch (error) {
+  } catch {
     return NextResponse.json(
       { error: 'Erreur interne du serveur' },
       { status: 500 }

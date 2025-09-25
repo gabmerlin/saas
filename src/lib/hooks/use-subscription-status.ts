@@ -63,7 +63,7 @@ export function useSubscriptionStatus() {
         }
 
         // Type assertion pour le rôle
-        const roles = (userRoleData as any).roles as { key: string } | { key: string }[];
+        const roles = (userRoleData as { roles: { key: string } | { key: string }[] }).roles;
         const role = Array.isArray(roles) 
           ? roles[0]?.key 
           : roles?.key;
@@ -85,7 +85,7 @@ export function useSubscriptionStatus() {
         } else {
           setError(data.error || 'Erreur lors de la récupération de l\'abonnement');
         }
-      } catch (err) {
+      } catch {
         setError('Erreur de connexion');
       } finally {
         setLoading(false);

@@ -40,13 +40,13 @@ export async function createClientWithSession(): Promise<SupabaseClient> {
             });
             break;
           }
-        } catch (parseError) {
+        } catch {
           // Continuer avec le cookie suivant
           continue;
         }
       }
     }
-  } catch (error) {
+  } catch {
     // En cas d'erreur, retourner le client sans session
   }
 

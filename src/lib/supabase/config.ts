@@ -9,7 +9,7 @@ if (typeof window !== 'undefined') {
   const originalConsoleError = console.error;
   const originalConsoleWarn = console.warn;
   
-  console.log = (...args: any[]) => {
+  console.log = (...args: unknown[]) => {
     // Filtrer les logs GoTrueClient
     const message = args.join(' ');
     if (!message.includes('GoTrueClient') && 
@@ -21,7 +21,7 @@ if (typeof window !== 'undefined') {
     }
   };
   
-  console.error = (...args: any[]) => {
+  console.error = (...args: unknown[]) => {
     // Filtrer les erreurs GoTrueClient non critiques
     const message = args.join(' ');
     if (!message.includes('GoTrueClient') && 
@@ -33,7 +33,7 @@ if (typeof window !== 'undefined') {
     }
   };
   
-  console.warn = (...args: any[]) => {
+  console.warn = (...args: unknown[]) => {
     // Filtrer les warnings GoTrueClient
     const message = args.join(' ');
     if (!message.includes('GoTrueClient') && 

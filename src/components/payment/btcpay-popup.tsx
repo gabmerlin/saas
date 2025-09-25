@@ -177,7 +177,7 @@ export default function BTCPayPopup({
             if (activateData.ok) {
             } else {
             }
-          } catch (activationError) {
+          } catch {
           }
           onPaymentSuccess(data.transactionId);
           return;

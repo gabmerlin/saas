@@ -2,7 +2,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 export const runtime = 'nodejs';
-import { createClient } from '@/lib/supabase/server';
 
 // GET /api/invitations/check - Vérifier une invitation
 export async function GET(request: NextRequest) {
@@ -62,7 +61,7 @@ export async function GET(request: NextRequest) {
     };
 
     return NextResponse.json({ invitation: invitationWithRelations });
-  } catch (error) {
+  } catch {
     return NextResponse.json(
       { error: 'Erreur lors de la vérification de l\'invitation' },
       { status: 500 }

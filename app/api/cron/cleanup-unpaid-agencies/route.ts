@@ -104,7 +104,7 @@ export async function GET(request: NextRequest) {
       deletedAgencies
     });
 
-  } catch (error) {
+  } catch {
     return NextResponse.json(
       { error: "Erreur interne du serveur" },
       { status: 500 }

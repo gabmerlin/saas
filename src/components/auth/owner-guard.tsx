@@ -49,7 +49,7 @@ export function OwnerGuard({
         } else {
           setIsOwner(userTenants && userTenants.length > 0);
         }
-      } catch (error) {
+          } catch {
         setIsOwner(false);
       } finally {
         setChecking(false);

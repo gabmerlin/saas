@@ -50,7 +50,7 @@ export default function SubscriptionExpiredPage() {
               return;
             }
           }
-        } catch (error) {
+        } catch {
           // Erreur silencieuse
         }
       };

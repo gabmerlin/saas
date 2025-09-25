@@ -23,7 +23,7 @@ export function SimpleCrossDomainProvider({ children }: SimpleCrossDomainProvide
         }
         
         setIsReady(true);
-      } catch (error) {
+      } catch {
         setIsReady(true);
       }
     };

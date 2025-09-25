@@ -3,7 +3,7 @@
 /**
  * Extrait le prénom de l'utilisateur depuis ses métadonnées ou son email
  */
-export function getUserFirstName(user: any): string {
+export function getUserFirstName(user: { user_metadata?: { full_name?: string; name?: string }; email?: string } | null): string {
   if (!user) return 'Utilisateur';
   
   // Priorité 1: full_name depuis les métadonnées (Google OAuth)
@@ -37,7 +37,7 @@ export function getUserFirstName(user: any): string {
 /**
  * Extrait le nom complet de l'utilisateur
  */
-export function getUserFullName(user: any): string {
+export function getUserFullName(user: { user_metadata?: { full_name?: string; name?: string }; email?: string } | null): string {
   if (!user) return 'Utilisateur';
   
   // Priorité 1: full_name depuis les métadonnées

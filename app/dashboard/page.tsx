@@ -1,23 +1,21 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
 import { supabaseBrowser } from "@/lib/supabase/client";
 import { useAuth } from "@/lib/hooks/use-auth";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { MessageSquare, Users, Settings, CreditCard, Shield, Zap } from "lucide-react";
+import { MessageSquare, Users, Settings, CreditCard, Shield } from "lucide-react";
 import { getUserFirstName } from "@/lib/utils/user";
 import { crossDomainSessionSync } from "@/lib/auth/client/cross-domain-session-sync";
 import { localhostSessionSync } from "@/lib/auth/client/localhost-session-sync";
 import { UnifiedLogoutButton } from "@/components/auth/unified-logout-button";
 
 export default function DirectDashboardPage() {
-  const router = useRouter();
   const { isLoading: sessionLoading, user, isAuthenticated } = useAuth();
   const [loading, setLoading] = useState(true);
-  const [agencyInfo, setAgencyInfo] = useState<any>(null);
-  const [subscriptionInfo, setSubscriptionInfo] = useState<any>(null);
+  const [agencyInfo, setAgencyInfo] = useState<{ name: string; subdomain: string; url: string } | null>(null);
+  const [subscriptionInfo, setSubscriptionInfo] = useState<{ is_expired: boolean; days_until_expiration: number; is_expiring_soon?: boolean; status?: string; days_remaining?: number; plan_name?: string } | null>(null);
 
   useEffect(() => {
     const checkAgencyInfo = async () => {
@@ -99,11 +97,11 @@ export default function DirectDashboardPage() {
                 }
               }
             }
-          } catch (agencyError) {
+          } catch {
             // Erreur silencieuse
           }
         }
-      } catch (error) {
+      } catch {
         // Erreur silencieuse
       } finally {
         setLoading(false);

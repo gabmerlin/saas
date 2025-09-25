@@ -45,7 +45,7 @@ export class CrossDomainSessionSync {
   /**
    * Synchronise la session vers tous les domaines
    */
-  async syncSessionToAllDomains(session: any) {
+  async syncSessionToAllDomains(session: { access_token: string; refresh_token: string; user: { id: string; email?: string } }) {
     if (typeof window === 'undefined') return;
 
     try {
@@ -80,7 +80,7 @@ export class CrossDomainSessionSync {
         session: session
       }, '*');
       
-    } catch (error) {
+      } catch {
       // Erreur silencieuse
     }
   }
@@ -109,7 +109,7 @@ export class CrossDomainSessionSync {
         type: 'CROSS_DOMAIN_SESSION_CLEAR'
       }, '*');
       
-    } catch (error) {
+      } catch {
       // Erreur silencieuse
     }
   }
@@ -117,7 +117,7 @@ export class CrossDomainSessionSync {
   /**
    * Récupère la session depuis le stockage cross-domain
    */
-  getCrossDomainSession(): any | null {
+  getCrossDomainSession(): { access_token: string; refresh_token: string; user: { id: string; email?: string } } | null {
     if (typeof window === 'undefined') return null;
 
     try {
@@ -148,7 +148,7 @@ export class CrossDomainSessionSync {
       }
       
       return null;
-    } catch (error) {
+      } catch {
       return null;
     }
   }
@@ -156,7 +156,7 @@ export class CrossDomainSessionSync {
   /**
    * Diffuse la session vers toutes les fenêtres ouvertes
    */
-  private broadcastSessionToAllWindows(session: any) {
+  private broadcastSessionToAllWindows(session: { access_token: string; refresh_token: string; user: { id: string; email?: string } }) {
     if (typeof window === 'undefined') return;
     
     try {
@@ -176,7 +176,7 @@ export class CrossDomainSessionSync {
         });
         channel.close();
       }
-    } catch (error) {
+      } catch {
       // Erreur silencieuse
     }
   }
@@ -198,7 +198,7 @@ export class CrossDomainSessionSync {
       });
 
       return !error;
-    } catch (error) {
+      } catch {
       return false;
     }
   }

@@ -7,7 +7,7 @@ import { supabaseBrowser } from '@/lib/supabase/client';
 import { sessionManager } from './session-manager';
 
 // Connexion par email
-export async function signInWithEmail(email: string, password: string, rememberMe: boolean = false) {
+export async function signInWithEmail(email: string, password: string) {
   const supabase = supabaseBrowser();
   const { data, error } = await supabase.auth.signInWithPassword({
     email,

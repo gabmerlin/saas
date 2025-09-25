@@ -24,7 +24,7 @@ export class SessionManager {
   private initialize() {
     // Écouter les changements d'état d'authentification
     const supabase = supabaseBrowser();
-    supabase.auth.onAuthStateChange((event: any, session: any) => {
+    supabase.auth.onAuthStateChange((event: string, session: Session | null) => {
 
       // Notifier tous les listeners
       this.notifyListeners(session);
@@ -33,11 +33,11 @@ export class SessionManager {
 
 
 
-  private notifyListeners(session: any) {
+  private notifyListeners(session: Session | null) {
     this.listeners.forEach(listener => {
       try {
         listener(session);
-      } catch (error) {
+      } catch {
       }
     });
   }
