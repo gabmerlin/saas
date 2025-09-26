@@ -80,7 +80,8 @@ export async function POST(request: NextRequest) {
         requestedCurrency: currency, // Devise crypto demandée par l'utilisateur
       },
       checkout: {
-        redirectURL: `${process.env.NEXT_PUBLIC_APP_URL}/onboarding/success?invoiceId=${orderId}`,
+        // Utiliser une URL vide ou une URL qui ne fait rien au lieu de null
+        redirectURL: `${process.env.NEXT_PUBLIC_APP_URL}/onboarding/owner`,
         notificationURL: `${process.env.NEXT_PUBLIC_APP_URL}/api/btcpay/webhook`,
       },
     };

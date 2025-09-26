@@ -72,6 +72,11 @@ export default function BTCPayPopup({
     setIsProcessing(true);
     setError(null);
     setPaymentStatus("processing");
+    
+    // Marquer qu'un paiement est en cours
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('paymentInProgress', 'true');
+    }
 
     try {
       // Récupérer le token d'authentification depuis Supabase
@@ -123,7 +128,7 @@ export default function BTCPayPopup({
       }
 
       // Vérifier le statut du paiement
-      checkPaymentStatus(data.invoiceId);
+      checkPaymentStatus(data.invoiceId, paymentWindow);
 
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : "Erreur inconnue";
@@ -135,7 +140,7 @@ export default function BTCPayPopup({
     }
   };
 
-  const checkPaymentStatus = async (invoiceId: string) => {
+  const checkPaymentStatus = async (invoiceId: string, paymentWindow: Window | null) => {
     const maxAttempts = 60; // 5 minutes max
     let attempts = 0;
 
@@ -164,6 +169,21 @@ export default function BTCPayPopup({
 
         if (data.status === "paid") {
           setPaymentStatus("success");
+          
+          // Nettoyer le flag de paiement en cours
+          if (typeof window !== 'undefined') {
+            localStorage.removeItem('paymentInProgress');
+          }
+          
+          // Fermer la fenêtre de paiement BTCPay si elle est encore ouverte
+          try {
+            if (paymentWindow && !paymentWindow.closed) {
+              paymentWindow.close();
+            }
+          } catch {
+            // Ignorer les erreurs de fermeture de fenêtre
+          }
+          
           try {
             const activateResponse = await fetch("/api/btcpay/check-and-activate", {
               method: "POST",
@@ -189,6 +209,11 @@ export default function BTCPayPopup({
         if (data.status === "expired" || data.status === "cancelled") {
           setPaymentStatus("error");
           setError("Le paiement a expiré ou été annulé");
+          
+          // Nettoyer le flag de paiement en cours
+          if (typeof window !== 'undefined') {
+            localStorage.removeItem('paymentInProgress');
+          }
           return;
         }
 
@@ -202,6 +227,11 @@ export default function BTCPayPopup({
       } catch {
         setPaymentStatus("error");
         setError("Erreur lors de la vérification du paiement");
+        
+        // Nettoyer le flag de paiement en cours
+        if (typeof window !== 'undefined') {
+          localStorage.removeItem('paymentInProgress');
+        }
       }
     };
 

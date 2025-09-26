@@ -31,6 +31,18 @@ export function OwnerGuard({
   const [isOwner, setIsOwner] = useState<boolean | null>(null);
   const [checking, setChecking] = useState(true);
 
+  // Vérifier si un paiement est en cours (via URL ou localStorage)
+  const isPaymentInProgress = () => {
+    if (typeof window === 'undefined') return false;
+    
+    // Vérifier les paramètres URL
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('payment') === 'processing') return true;
+    
+    // Vérifier le localStorage
+    return localStorage.getItem('paymentInProgress') === 'true';
+  };
+
   useEffect(() => {
     const checkOwnerStatus = async () => {
       if (!user || !isAuthenticated) {
@@ -63,7 +75,8 @@ export function OwnerGuard({
   }, [user, isAuthenticated]);
 
   useEffect(() => {
-    if (!checking && !isOwner) {
+    // Ne pas rediriger si un paiement est en cours
+    if (!checking && !isOwner && !isPaymentInProgress()) {
       router.push(redirectTo);
     }
   }, [isOwner, checking, router, redirectTo]);
@@ -72,7 +85,8 @@ export function OwnerGuard({
     return <>{fallback}</>;
   }
 
-  if (!isOwner) {
+  // Permettre l'accès si l'utilisateur est propriétaire OU si un paiement est en cours
+  if (!isOwner && !isPaymentInProgress()) {
     return null;
   }
 

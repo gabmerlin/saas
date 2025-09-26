@@ -29,11 +29,28 @@ function RootRedirectContent() {
           window.location.href = '/auth/sign-in?error=auth_failed';
         }, 2000);
       } else {
-        // Redirection normale vers /home avec gestion cross-domain
-        setStatus('Redirection vers /home...');
-        if (typeof window !== 'undefined') {
-          const redirectUrl = getAppropriateRedirectUrl('/home');
-          window.location.replace(redirectUrl);
+        // Vérifier si un paiement est en cours
+        const isPaymentInProgress = () => {
+          if (typeof window === 'undefined') return false;
+          
+          // Vérifier les paramètres URL
+          const urlParams = new URLSearchParams(window.location.search);
+          if (urlParams.get('payment') === 'processing') return true;
+          
+          // Vérifier le localStorage
+          return localStorage.getItem('paymentInProgress') === 'true';
+        };
+
+        // Ne pas rediriger si un paiement est en cours
+        if (!isPaymentInProgress()) {
+          // Redirection normale vers /home avec gestion cross-domain
+          setStatus('Redirection vers /home...');
+          if (typeof window !== 'undefined') {
+            const redirectUrl = getAppropriateRedirectUrl('/home');
+            window.location.replace(redirectUrl);
+          }
+        } else {
+          setStatus('Paiement en cours...');
         }
       }
     };

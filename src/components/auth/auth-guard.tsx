@@ -28,8 +28,21 @@ export function AuthGuard({
   const { isAuthenticated, isLoading } = useAuth();
   const router = useRouter();
 
+  // Vérifier si un paiement est en cours
+  const isPaymentInProgress = () => {
+    if (typeof window === 'undefined') return false;
+    
+    // Vérifier les paramètres URL
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('payment') === 'processing') return true;
+    
+    // Vérifier le localStorage
+    return localStorage.getItem('paymentInProgress') === 'true';
+  };
+
   useEffect(() => {
-    if (!isLoading && !isAuthenticated) {
+    // Ne pas rediriger si un paiement est en cours
+    if (!isLoading && !isAuthenticated && !isPaymentInProgress()) {
       router.push(redirectTo);
     }
   }, [isAuthenticated, isLoading, router, redirectTo]);
@@ -38,7 +51,8 @@ export function AuthGuard({
     return <>{fallback}</>;
   }
 
-  if (!isAuthenticated) {
+  // Permettre l'accès si l'utilisateur est authentifié OU si un paiement est en cours
+  if (!isAuthenticated && !isPaymentInProgress()) {
     return null; 
   }
 

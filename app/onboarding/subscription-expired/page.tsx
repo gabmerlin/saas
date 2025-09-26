@@ -36,16 +36,15 @@ export default function SubscriptionExpiredPage() {
               return;
             }
             
-            const response = await fetch(`/api/agency/status?subdomain=${subdomain}`, {
-              headers: {
-                'Authorization': `Bearer ${session.access_token}`,
-              }
-            });
-            const data = await response.json();
+            // Vérifier directement dans la table user_tenants si l'utilisateur est owner
+            const { data: userTenants, error } = await supabase
+              .from('user_tenants')
+              .select('is_owner')
+              .eq('user_id', user.id)
+              .eq('is_owner', true);
             
-            
-            if (data.ok && data.status?.user_roles?.includes('owner')) {
-              // Rediriger vers subscription-renewal si c'est un owner
+            if (!error && userTenants && userTenants.length > 0) {
+              // L'utilisateur est propriétaire, rediriger vers subscription-renewal
               window.location.href = '/onboarding/subscription-renewal';
               return;
             }

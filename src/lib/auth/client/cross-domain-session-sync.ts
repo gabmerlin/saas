@@ -28,9 +28,22 @@ export class CrossDomainSessionSync {
     
     // Écouter les changements d'état d'authentification
     supabase.auth.onAuthStateChange(async (event, session) => {
+      // Vérifier si un paiement est en cours
+      const isPaymentInProgress = () => {
+        if (typeof window === 'undefined') return false;
+        
+        // Vérifier les paramètres URL
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.get('payment') === 'processing') return true;
+        
+        // Vérifier le localStorage
+        return localStorage.getItem('paymentInProgress') === 'true';
+      };
+
       if (event === 'SIGNED_IN' && session) {
         await this.syncSessionToAllDomains(session);
-      } else if (event === 'SIGNED_OUT') {
+      } else if (event === 'SIGNED_OUT' && !isPaymentInProgress()) {
+        // Ne pas nettoyer la session si un paiement est en cours
         await this.clearSessionFromAllDomains();
       }
     });

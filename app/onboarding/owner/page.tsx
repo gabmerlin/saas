@@ -14,7 +14,7 @@
  */
 
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { z } from "zod";
 import { supabaseBrowser } from "@/lib/supabase/client";
 import { AuthGuard } from "@/components/auth/auth-guard";
@@ -562,6 +562,7 @@ const advDefaults: AdvFormExt = {
 export default function OwnerOnboardingPage() {
   const supabase = supabaseBrowser();
   const router = useRouter();
+  const searchParams = useSearchParams();
   
   // Définir le titre de la page
   usePageTitle("Création d'agence - QG Chatting");

@@ -29,9 +29,23 @@ export function CrossDomainSessionProvider({ children }: CrossDomainSessionProvi
 
         // 2. Écouter les changements de session Supabase
         const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-          
-          // Synchroniser avec les autres domaines (sans déclencher les listeners locaux)
-          crossDomainSync.syncSession(session, true);
+          // Vérifier si un paiement est en cours
+          const isPaymentInProgress = () => {
+            if (typeof window === 'undefined') return false;
+            
+            // Vérifier les paramètres URL
+            const urlParams = new URLSearchParams(window.location.search);
+            if (urlParams.get('payment') === 'processing') return true;
+            
+            // Vérifier le localStorage
+            return localStorage.getItem('paymentInProgress') === 'true';
+          };
+
+          // Ne pas synchroniser si un paiement est en cours
+          if (!isPaymentInProgress()) {
+            // Synchroniser avec les autres domaines (sans déclencher les listeners locaux)
+            crossDomainSync.syncSession(session, true);
+          }
         });
 
         // 3. Écouter les changements cross-domain

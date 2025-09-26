@@ -75,8 +75,21 @@ export function OnboardingGuard({
     checkAccess();
   }, [user, isAuthenticated, isLoading]);
 
+  // Vérifier si un paiement est en cours
+  const isPaymentInProgress = () => {
+    if (typeof window === 'undefined') return false;
+    
+    // Vérifier les paramètres URL
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('payment') === 'processing') return true;
+    
+    // Vérifier le localStorage
+    return localStorage.getItem('paymentInProgress') === 'true';
+  };
+
   useEffect(() => {
-    if (!checking && !canAccess) {
+    // Ne pas rediriger si un paiement est en cours
+    if (!checking && !canAccess && !isPaymentInProgress()) {
       router.push(redirectTo);
     }
   }, [canAccess, checking, router, redirectTo]);
@@ -85,7 +98,8 @@ export function OnboardingGuard({
     return <>{fallback}</>;
   }
 
-  if (!canAccess) {
+  // Permettre l'accès si l'utilisateur a accès OU si un paiement est en cours
+  if (!canAccess && !isPaymentInProgress()) {
     return null;
   }
 
