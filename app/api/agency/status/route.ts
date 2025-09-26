@@ -55,24 +55,16 @@ export async function GET(request: NextRequest) {
         if (userError) {
           // Erreur silencieuse
         } else if (user) {
-          
-          const { data: rolesData, error: rolesError } = await dbClient
-            .from('user_roles')
-            .select(`
-              role_id,
-              roles!inner(key)
-            `)
+          // Vérifier directement si l'utilisateur est owner dans user_tenants
+          const { data: userTenant, error: tenantError } = await dbClient
+            .from('user_tenants')
+            .select('is_owner')
             .eq('user_id', user.id)
-            .eq('tenant_id', agency.id);
+            .eq('tenant_id', agency.id)
+            .single();
           
-          console.log('🔍 Données brutes user_roles:', { rolesData, rolesError });
-          
-          if (rolesError) {
-            console.log('❌ Erreur user_roles:', rolesError);
-          } else {
-            console.log('🔍 Structure des données:', rolesData);
-            userRoles = rolesData?.map(ur => ur.roles?.key).filter(Boolean) || [];
-            console.log('✅ Rôles extraits:', userRoles);
+          if (!tenantError && userTenant?.is_owner) {
+            userRoles = ['owner'];
           }
         }
       } catch {
