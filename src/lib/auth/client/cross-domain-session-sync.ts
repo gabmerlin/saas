@@ -159,9 +159,35 @@ export class CrossDomainSessionSync {
         .find(row => row.startsWith('cross-domain-session='));
       
       console.log('🔍 CROSS-DOMAIN SYNC: Cookie session:', !!cookieValue);
+      console.log('🔍 CROSS-DOMAIN SYNC: All cookies:', document.cookie);
       if (cookieValue) {
         const sessionData = decodeURIComponent(cookieValue.split('=')[1]);
         return JSON.parse(sessionData);
+      }
+      
+      // 3. Essayer les cookies Supabase directement
+      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+      const supabaseProjectId = supabaseUrl.split('//')[1]?.split('.')[0] || 'ndlmzwwfwugtwpmebdog';
+      const supabaseCookieName = `sb-${supabaseProjectId}-auth-token`;
+      
+      const supabaseCookie = document.cookie
+        .split('; ')
+        .find(row => row.startsWith(supabaseCookieName + '='));
+      
+      console.log('🔍 CROSS-DOMAIN SYNC: Supabase cookie:', supabaseCookieName, !!supabaseCookie);
+      if (supabaseCookie) {
+        try {
+          const sessionData = decodeURIComponent(supabaseCookie.split('=')[1]);
+          const parsed = JSON.parse(sessionData);
+          console.log('🔍 CROSS-DOMAIN SYNC: Supabase session found:', !!parsed.access_token);
+          return {
+            access_token: parsed.access_token,
+            refresh_token: parsed.refresh_token,
+            user: parsed.user
+          };
+        } catch (error) {
+          console.error('❌ CROSS-DOMAIN SYNC: Error parsing Supabase cookie:', error);
+        }
       }
       
       console.log('❌ CROSS-DOMAIN SYNC: No session found in any storage');

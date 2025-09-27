@@ -38,6 +38,7 @@ export default function SubdomainLayout({ children }: SubdomainLayoutProps) {
       // Essayer de restaurer la session cross-domain si pas authentifié
       if (!isAuthenticated) {
         console.log('🔍 SUBDOMAIN LAYOUT: Not authenticated, trying to restore session');
+        console.log('🔍 SUBDOMAIN LAYOUT: Current cookies:', document.cookie);
         const restored = await crossDomainSessionSync.restoreSessionInSupabase();
         console.log('🔍 SUBDOMAIN LAYOUT: Session restore result:', restored);
         if (!restored) {
