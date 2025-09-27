@@ -39,6 +39,46 @@ export default function SubdomainLayout({ children }: SubdomainLayoutProps) {
       if (!isAuthenticated) {
         console.log('🔍 SUBDOMAIN LAYOUT: Not authenticated, trying to restore session');
         console.log('🔍 SUBDOMAIN LAYOUT: Current cookies:', document.cookie);
+        
+        // Essayer de récupérer la session depuis le domaine principal
+        try {
+          console.log('🔍 SUBDOMAIN LAYOUT: Fetching session from main domain');
+          const mainDomain = window.location.hostname.includes('localhost') 
+            ? 'http://localhost:3000' 
+            : 'https://qgchatting.com';
+          
+          const response = await fetch(`${mainDomain}/api/auth/session`, {
+            credentials: 'include',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+          });
+          
+          if (response.ok) {
+            const sessionData = await response.json();
+            console.log('🔍 SUBDOMAIN LAYOUT: Session data from main domain:', !!sessionData.session);
+            
+            if (sessionData.session) {
+              // Restaurer la session dans Supabase
+              const supabase = supabaseBrowser();
+              const { error } = await supabase.auth.setSession({
+                access_token: sessionData.session.access_token,
+                refresh_token: sessionData.session.refresh_token
+              });
+              
+              if (!error) {
+                console.log('✅ SUBDOMAIN LAYOUT: Session restored from main domain');
+                // Attendre un peu pour que le hook useAuth se mette à jour
+                await new Promise(resolve => setTimeout(resolve, 500));
+              } else {
+                console.error('❌ SUBDOMAIN LAYOUT: Error setting session:', error);
+              }
+            }
+          }
+        } catch (error) {
+          console.error('❌ SUBDOMAIN LAYOUT: Error fetching session from main domain:', error);
+        }
+        
         const restored = await crossDomainSessionSync.restoreSessionInSupabase();
         console.log('🔍 SUBDOMAIN LAYOUT: Session restore result:', restored);
         if (!restored) {
