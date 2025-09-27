@@ -177,6 +177,8 @@ export async function middleware(req: NextRequest) {
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
     const supabaseProjectId = supabaseUrl.split('//')[1]?.split('.')[0] || 'ndlmzwwfwugtwpmebdog';
     
+    console.log('🔍 MIDDLEWARE: Syncing cookies for subdomain:', sub, 'Project ID:', supabaseProjectId);
+    
     const supabaseCookieNames = [
       `sb-${supabaseProjectId}-auth-token`,
       `sb-${supabaseProjectId}-auth-token.0`,
@@ -189,6 +191,7 @@ export async function middleware(req: NextRequest) {
     supabaseCookieNames.forEach(cookieName => {
       const cookie = req.cookies.get(cookieName);
       if (cookie) {
+        console.log('🔍 MIDDLEWARE: Found cookie to sync:', cookieName);
         // Cookie partagé pour TOUS les sous-domaines
         res.cookies.set(cookieName, cookie.value, {
           domain: `.${root}`,
@@ -208,6 +211,9 @@ export async function middleware(req: NextRequest) {
           sameSite: 'lax',
           maxAge: 60 * 60 * 24 * 7 // 7 jours
         });
+        console.log('✅ MIDDLEWARE: Cookie synced:', cookieName);
+      } else {
+        console.log('🔍 MIDDLEWARE: Cookie not found:', cookieName);
       }
     });
   }

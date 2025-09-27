@@ -135,10 +135,12 @@ export class CrossDomainSessionSync {
 
     try {
       const hostname = window.location.hostname;
+      console.log('🔍 CROSS-DOMAIN SYNC: Getting session from storage, hostname:', hostname);
       
       // En développement local, essayer sessionStorage d'abord
       if (hostname.includes('localhost')) {
         const sessionStorageSession = sessionStorage.getItem('cross-domain-session');
+        console.log('🔍 CROSS-DOMAIN SYNC: SessionStorage session:', !!sessionStorageSession);
         if (sessionStorageSession) {
           return JSON.parse(sessionStorageSession);
         }
@@ -146,6 +148,7 @@ export class CrossDomainSessionSync {
       
       // 1. Essayer localStorage
       const localSession = localStorage.getItem('cross-domain-session');
+      console.log('🔍 CROSS-DOMAIN SYNC: LocalStorage session:', !!localSession);
       if (localSession) {
         return JSON.parse(localSession);
       }
@@ -155,13 +158,16 @@ export class CrossDomainSessionSync {
         .split('; ')
         .find(row => row.startsWith('cross-domain-session='));
       
+      console.log('🔍 CROSS-DOMAIN SYNC: Cookie session:', !!cookieValue);
       if (cookieValue) {
         const sessionData = decodeURIComponent(cookieValue.split('=')[1]);
         return JSON.parse(sessionData);
       }
       
+      console.log('❌ CROSS-DOMAIN SYNC: No session found in any storage');
       return null;
-      } catch {
+      } catch (error) {
+      console.error('❌ CROSS-DOMAIN SYNC: Error getting session:', error);
       return null;
     }
   }
@@ -201,17 +207,29 @@ export class CrossDomainSessionSync {
     if (typeof window === 'undefined') return false;
 
     try {
+      console.log('🔍 CROSS-DOMAIN SYNC: Restoring session in Supabase');
       const session = this.getCrossDomainSession();
-      if (!session) return false;
+      if (!session) {
+        console.log('❌ CROSS-DOMAIN SYNC: No session to restore');
+        return false;
+      }
 
+      console.log('🔍 CROSS-DOMAIN SYNC: Session found, setting in Supabase');
       const supabase = supabaseBrowser();
       const { error } = await supabase.auth.setSession({
         access_token: session.access_token,
         refresh_token: session.refresh_token
       });
 
-      return !error;
-      } catch {
+      if (error) {
+        console.error('❌ CROSS-DOMAIN SYNC: Error setting session:', error);
+        return false;
+      }
+
+      console.log('✅ CROSS-DOMAIN SYNC: Session restored successfully');
+      return true;
+      } catch (error) {
+      console.error('❌ CROSS-DOMAIN SYNC: Exception during session restore:', error);
       return false;
     }
   }
