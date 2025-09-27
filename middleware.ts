@@ -31,12 +31,24 @@ export async function middleware(req: NextRequest) {
     pathname.startsWith('/_next') ||
     PUBLIC_FILE.test(pathname)
   ) {
+    console.log('🔍 MIDDLEWARE: API route detected, skipping middleware logic:', pathname);
     if (sub) {
       const res = NextResponse.next()
       res.headers.set('x-tenant-subdomain', sub)
+      // Ajouter les headers CORS pour les requêtes API
+      res.headers.set('Access-Control-Allow-Origin', '*');
+      res.headers.set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+      res.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+      res.headers.set('Access-Control-Allow-Credentials', 'true');
       return res
     }
-    return NextResponse.next()
+    const res = NextResponse.next();
+    // Ajouter les headers CORS pour les requêtes API
+    res.headers.set('Access-Control-Allow-Origin', '*');
+    res.headers.set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+    res.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+    res.headers.set('Access-Control-Allow-Credentials', 'true');
+    return res;
   }
 
   // Si on est sur un sous-domaine, gérer les redirections d'abord
