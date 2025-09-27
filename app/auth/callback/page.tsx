@@ -41,14 +41,20 @@ function AuthCallbackContent() {
           
           
           try {
+            console.log('🔍 AUTH CALLBACK: Exchanging code for session:', code);
             // Configuration minimale - laissez Supabase gérer
-            const { error } = await supabase.auth.exchangeCodeForSession(code);
+            const { data, error } = await supabase.auth.exchangeCodeForSession(code);
+            
+            console.log('🔍 AUTH CALLBACK: Exchange result:', { data: !!data, error: !!error });
             
             if (error) {
+              console.error('❌ AUTH CALLBACK: Exchange error:', error);
               setStatus(`Erreur: ${error.message}`);
               setTimeout(() => router.push('/auth/sign-in?error=auth_failed'), 2000);
               return;
             }
+            
+            console.log('✅ AUTH CALLBACK: Code exchanged successfully');
             
             
             // Vérifier la session créée
@@ -61,6 +67,7 @@ function AuthCallbackContent() {
             }
             
             if (session) {
+              console.log('✅ AUTH CALLBACK: Session created for user:', session.user.id);
               setStatus('Connexion réussie !');
               
               // Synchroniser la session vers tous les domaines
@@ -68,10 +75,15 @@ function AuthCallbackContent() {
               
               setTimeout(async () => {
                 const next = searchParams.get('next') || '/home';
+                console.log('🔍 AUTH CALLBACK: Getting appropriate redirect URL for:', next);
                 const redirectUrl = await getAppropriateRedirectUrl(next);
+                console.log('🔍 AUTH CALLBACK: Redirect URL:', redirectUrl);
+                
                 if (redirectUrl.startsWith('http')) {
+                  console.log('🔄 AUTH CALLBACK: Redirecting to external URL:', redirectUrl);
                   window.location.href = redirectUrl;
                 } else {
+                  console.log('🔄 AUTH CALLBACK: Redirecting to internal path:', redirectUrl);
                   router.push(redirectUrl);
                 }
               }, 1000);
