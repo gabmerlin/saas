@@ -173,10 +173,14 @@ export async function middleware(req: NextRequest) {
     res.headers.set('x-tenant-subdomain', sub)
     
     // Synchroniser TOUS les cookies Supabase entre domaines
+    // Générer dynamiquement le nom du cookie Supabase basé sur l'URL
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+    const supabaseProjectId = supabaseUrl.split('//')[1]?.split('.')[0] || 'ndlmzwwfwugtwpmebdog';
+    
     const supabaseCookieNames = [
-      'sb-ndlmzwwfwugtwpmebdog-auth-token',
-      'sb-ndlmzwwfwugtwpmebdog-auth-token.0',
-      'sb-ndlmzwwfwugtwpmebdog-auth-token.1',
+      `sb-${supabaseProjectId}-auth-token`,
+      `sb-${supabaseProjectId}-auth-token.0`,
+      `sb-${supabaseProjectId}-auth-token.1`,
       'supabase-auth-token',
       'sb-auth-token',
       'cross-domain-session'

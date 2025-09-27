@@ -25,10 +25,14 @@ export async function createClientWithSession() {
     const cookieStore = await cookies();
     
     // Chercher les cookies de session Supabase
+    // Générer dynamiquement le nom du cookie Supabase basé sur l'URL
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+    const supabaseProjectId = supabaseUrl.split('//')[1]?.split('.')[0] || 'ndlmzwwfwugtwpmebdog';
+    
     const cookieNames = [
-      'sb-ndlmzwwfwugtwpmebdog-auth-token',
-      'sb-ndlmzwwfwugtwpmebdog-auth-token.0',
-      'sb-ndlmzwwfwugtwpmebdog-auth-token.1',
+      `sb-${supabaseProjectId}-auth-token`,
+      `sb-${supabaseProjectId}-auth-token.0`,
+      `sb-${supabaseProjectId}-auth-token.1`,
       'supabase-auth-token'
     ];
     

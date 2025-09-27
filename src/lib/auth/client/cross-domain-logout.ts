@@ -18,6 +18,16 @@ export class CrossDomainLogout {
   }
 
   /**
+   * Obtient l'ID du projet Supabase depuis l'URL
+   */
+  private getSupabaseProjectId(): string {
+    if (typeof window === 'undefined') return 'ndlmzwwfwugtwpmebdog';
+    
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+    return supabaseUrl.split('//')[1]?.split('.')[0] || 'ndlmzwwfwugtwpmebdog';
+  }
+
+  /**
    * Déconnexion complète cross-domain
    */
   async signOut(): Promise<void> {
@@ -100,10 +110,11 @@ export class CrossDomainLogout {
       });
 
       // Nettoyer aussi les clés spécifiques de Supabase
+      const supabaseProjectId = this.getSupabaseProjectId();
       const supabaseKeys = [
         'supabase.auth.token',
         'supabase.auth.user',
-        'sb-ndlmzwwfwugtwpmebdog-auth-token',
+        `sb-${supabaseProjectId}-auth-token`,
         'cross-domain-session'
       ];
       
@@ -126,10 +137,11 @@ export class CrossDomainLogout {
       const hostname = window.location.hostname;
       
       // Liste des cookies à nettoyer
+      const supabaseProjectId = this.getSupabaseProjectId();
       const cookiesToClear = [
-        'sb-ndlmzwwfwugtwpmebdog-auth-token',
-        'sb-ndlmzwwfwugtwpmebdog-auth-token.0',
-        'sb-ndlmzwwfwugtwpmebdog-auth-token.1',
+        `sb-${supabaseProjectId}-auth-token`,
+        `sb-${supabaseProjectId}-auth-token.0`,
+        `sb-${supabaseProjectId}-auth-token.1`,
         'supabase-auth-token',
         'sb-auth-token',
         'cross-domain-session'
