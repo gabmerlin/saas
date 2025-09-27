@@ -1,14 +1,22 @@
-import { NextResponse } from "next/server";
-import { supabaseBrowser } from "@/lib/supabase/client";
+import { NextRequest, NextResponse } from "next/server";
+import { createClientWithSession } from "@/lib/supabase/server";
 
 export const runtime = 'nodejs';
 
-export async function GET() {
+export async function GET(req: NextRequest) {
   try {
-    // Cette route sera appelée côté client pour récupérer la session
-    const { data: { session }, error } = await supabaseBrowser().auth.getSession();
+    console.log('🔍 API AUTH SESSION: Request received');
+    console.log('🔍 API AUTH SESSION: Cookies:', req.cookies.getAll().map(c => c.name));
+    
+    // Utiliser le client serveur qui lit les cookies
+    const supabase = await createClientWithSession();
+    
+    const { data: { session }, error } = await supabase.auth.getSession();
+    
+    console.log('🔍 API AUTH SESSION: Session result:', { hasSession: !!session, error: !!error });
     
     if (error) {
+      console.error('❌ API AUTH SESSION: Error:', error);
       return NextResponse.json({ 
         success: false, 
         error: error.message 
@@ -16,11 +24,14 @@ export async function GET() {
     }
     
     if (!session) {
+      console.log('❌ API AUTH SESSION: No session found');
       return NextResponse.json({ 
         success: false, 
         error: 'No session found' 
       }, { status: 401 });
     }
+    
+    console.log('✅ API AUTH SESSION: Session found for user:', session.user.id);
     
     return NextResponse.json({
       success: true,
@@ -35,6 +46,7 @@ export async function GET() {
       }
     });
   } catch (error) {
+    console.error('❌ API AUTH SESSION: Exception:', error);
     return NextResponse.json({
       success: false,
       error: error instanceof Error ? error.message : 'Unknown error'
