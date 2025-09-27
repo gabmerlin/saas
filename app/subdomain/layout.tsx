@@ -5,6 +5,8 @@ import { useAuth } from '@/lib/hooks/use-auth';
 import { LoadingScreen } from '@/components/ui/loading-screen';
 import { supabaseBrowser } from '@/lib/supabase/client';
 import { getCurrentSubdomain } from '@/lib/utils/cross-domain-redirect';
+import { localhostSessionSync } from '@/lib/auth/client/localhost-session-sync';
+import { crossDomainSessionSync } from '@/lib/auth/client/cross-domain-session-sync';
 
 interface SubdomainLayoutProps {
   children: React.ReactNode;
@@ -29,8 +31,24 @@ export default function SubdomainLayout({ children }: SubdomainLayoutProps) {
         return;
       }
 
+      // Initialiser la synchronisation des sessions
+      await localhostSessionSync.initialize();
+      
+      // Essayer de restaurer la session cross-domain si pas authentifié
+      if (!isAuthenticated) {
+        const restored = await crossDomainSessionSync.restoreSessionInSupabase();
+        if (!restored) {
+          setCanAccess(false);
+          setChecking(false);
+          hasChecked.current = true;
+          return;
+        }
+        
+        // Attendre un peu pour que le hook useAuth se mette à jour
+        await new Promise(resolve => setTimeout(resolve, 500));
+      }
+
       if (!user || !isAuthenticated) {
-        console.log('❌ Utilisateur non authentifié:', { user: !!user, isAuthenticated });
         setCanAccess(false);
         setChecking(false);
         hasChecked.current = true;
