@@ -22,6 +22,8 @@ export async function middleware(req: NextRequest) {
   const root = process.env.NEXT_PUBLIC_ROOT_DOMAIN ?? 'qgchatting.com'
   const sub = extractSubdomain(host, root)
   
+  console.log('🔍 MIDDLEWARE START:', { pathname, host, sub, url: req.url })
+  
   
   // Ignore API, fichiers statiques, _next, etc.
   if (
@@ -172,6 +174,9 @@ export async function middleware(req: NextRequest) {
   if (sub) {
     res.headers.set('x-tenant-subdomain', sub)
     
+    console.log('🔍 MIDDLEWARE: Processing subdomain:', sub);
+    console.log('🔍 MIDDLEWARE: Request cookies:', req.cookies.getAll().map(c => c.name));
+    
     // Synchroniser TOUS les cookies Supabase entre domaines
     // Générer dynamiquement le nom du cookie Supabase basé sur l'URL
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
@@ -187,6 +192,8 @@ export async function middleware(req: NextRequest) {
       'sb-auth-token',
       'cross-domain-session'
     ];
+    
+    console.log('🔍 MIDDLEWARE: Looking for cookies:', supabaseCookieNames);
     
     supabaseCookieNames.forEach(cookieName => {
       const cookie = req.cookies.get(cookieName);
