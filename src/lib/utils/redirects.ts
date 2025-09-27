@@ -163,8 +163,31 @@ export async function getUserAgencies(): Promise<Array<{id: string, name: string
 export async function getAppropriateRedirectUrl(path: string = '/home'): Promise<string> {
   if (typeof window === 'undefined') return path;
   
-  // Si on est sur le domaine principal, retourner le chemin tel quel
+  // Si on est sur le domaine principal
   if (isMainDomain()) {
+    // Si on demande /dashboard sur le domaine principal, vérifier les agences
+    if (path === '/dashboard') {
+      try {
+        const agencies = await getUserAgencies();
+        
+        if (agencies.length > 0) {
+          // Si l'utilisateur a des agences, rediriger vers la première
+          const firstAgency = agencies[0];
+          const baseUrl = process.env.NODE_ENV === 'production' 
+            ? `https://${firstAgency.subdomain}.qgchatting.com`
+            : `http://${firstAgency.subdomain}.localhost:3000`;
+          return `${baseUrl}/dashboard`;
+        } else {
+          // Si pas d'agences, rediriger vers /home
+          return '/home';
+        }
+      } catch (error) {
+        // En cas d'erreur, rediriger vers /home
+        return '/home';
+      }
+    }
+    
+    // Pour les autres chemins, retourner tel quel
     return path;
   }
   
@@ -182,11 +205,11 @@ export async function getAppropriateRedirectUrl(path: string = '/home'): Promise
     } else {
       // Si pas d'agences, rediriger vers le domaine principal
       const mainDomainUrl = getMainDomainUrl();
-      return `${mainDomainUrl}${path}`;
+      return `${mainDomainUrl}/home`;
     }
   } catch (error) {
     // En cas d'erreur, rediriger vers le domaine principal
     const mainDomainUrl = getMainDomainUrl();
-    return `${mainDomainUrl}${path}`;
+    return `${mainDomainUrl}/home`;
   }
 }
