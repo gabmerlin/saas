@@ -63,10 +63,8 @@ export function ForceLogoutState() {
         newUrl.searchParams.delete('force_reload');
         window.history.replaceState({}, '', newUrl.toString());
         
-        // Forcer un rechargement complet après un court délai
-        setTimeout(() => {
-          window.location.reload();
-        }, 300);
+        // Ne pas recharger automatiquement pour éviter les boucles
+        // Le nettoyage est suffisant
       }
     }
   }, [searchParams, isLogoutDetected]);

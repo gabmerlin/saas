@@ -4,7 +4,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { supabaseBrowser } from '@/lib/supabase/client';
 import { crossDomainSessionSync } from '@/lib/auth/client/cross-domain-session-sync';
 import { LoadingScreen } from '@/components/ui/loading-screen';
-import { getAppropriateRedirectUrl } from '@/lib/utils/cross-domain-redirect';
+import { getAppropriateRedirectUrl } from '@/lib/utils/redirects';
 
 function AuthCallbackContent() {
   const router = useRouter();
@@ -66,9 +66,9 @@ function AuthCallbackContent() {
               // Synchroniser la session vers tous les domaines
               await crossDomainSessionSync.syncSessionToAllDomains(session);
               
-              setTimeout(() => {
+              setTimeout(async () => {
                 const next = searchParams.get('next') || '/home';
-                const redirectUrl = getAppropriateRedirectUrl(next);
+                const redirectUrl = await getAppropriateRedirectUrl(next);
                 if (redirectUrl.startsWith('http')) {
                   window.location.href = redirectUrl;
                 } else {
@@ -103,9 +103,9 @@ function AuthCallbackContent() {
           // Synchroniser la session vers tous les domaines
           await crossDomainSessionSync.syncSessionToAllDomains(session);
           
-          setTimeout(() => {
+          setTimeout(async () => {
             const next = searchParams.get('next') || '/home';
-            const redirectUrl = getAppropriateRedirectUrl(next);
+            const redirectUrl = await getAppropriateRedirectUrl(next);
             if (redirectUrl.startsWith('http')) {
               window.location.href = redirectUrl;
             } else {

@@ -16,13 +16,11 @@ export default function SubdomainLayout({ children }: SubdomainLayoutProps) {
   const [checking, setChecking] = useState(true);
   const hasChecked = useRef(false);
   
-  console.log('🔄 SubdomainLayout render:', { canAccess, checking, isLoading, isAuthenticated, hasChecked: hasChecked.current });
 
   useEffect(() => {
     const checkAgencyMembership = async () => {
       // Éviter les vérifications multiples
       if (hasChecked.current) {
-        console.log('⏭️ Vérification déjà effectuée, skip');
         return;
       }
       
@@ -43,15 +41,9 @@ export default function SubdomainLayout({ children }: SubdomainLayoutProps) {
         // Récupérer le sous-domaine actuel
         const subdomain = getCurrentSubdomain();
         
-        console.log('🔍 Vérification d\'appartenance:', { 
-          userId: user.id, 
-          subdomain, 
-          isAuthenticated 
-        });
         
         if (!subdomain) {
           // Si pas de sous-domaine, accès refusé
-          console.log('❌ Pas de sous-domaine détecté');
           setCanAccess(false);
           setChecking(false);
           hasChecked.current = true;
@@ -59,7 +51,6 @@ export default function SubdomainLayout({ children }: SubdomainLayoutProps) {
         }
 
         // Vérifier si l'utilisateur est membre de cette agence
-        console.log('🔍 Exécution de la requête Supabase...');
         const { data: userTenants, error } = await supabaseBrowser()
           .from('user_tenants')
           .select(`
@@ -74,7 +65,6 @@ export default function SubdomainLayout({ children }: SubdomainLayoutProps) {
           .eq('user_id', user.id)
           .eq('tenants.subdomain', subdomain);
           
-        console.log('🔍 Résultat de la requête Supabase:', { userTenants, error });
 
         if (error) {
           console.error('Erreur lors de la vérification de l\'appartenance:', error);
@@ -82,13 +72,9 @@ export default function SubdomainLayout({ children }: SubdomainLayoutProps) {
         } else if (userTenants && userTenants.length > 0) {
           // L'utilisateur est membre de cette agence
           const userTenant = userTenants[0] as any;
-          console.log('✅ Utilisateur membre de l\'agence:', subdomain, 'is_owner:', userTenant.is_owner);
-          console.log('✅ Définition de canAccess à true');
           setCanAccess(true);
         } else {
           // L'utilisateur n'est pas membre de cette agence
-          console.log('❌ Utilisateur non membre de l\'agence:', subdomain);
-          console.log('🔍 Résultat de la requête:', { userTenants, error });
           setCanAccess(false);
         }
       } catch (error) {
@@ -104,7 +90,6 @@ export default function SubdomainLayout({ children }: SubdomainLayoutProps) {
   }, [user, isAuthenticated, isLoading]);
 
   useEffect(() => {
-    console.log('🔍 État de redirection:', { checking, canAccess, shouldRedirect: !checking && canAccess === false });
     
     if (!checking && canAccess === false) {
       // Rediriger vers le domaine principal avec la page d'accès refusé
@@ -118,7 +103,6 @@ export default function SubdomainLayout({ children }: SubdomainLayoutProps) {
           ? `${mainDomainUrl}/access-denied?subdomain=${subdomain}`
           : `${mainDomainUrl}/access-denied`;
         
-        console.log('🚫 Accès refusé - Redirection vers:', redirectUrl);
         window.location.href = redirectUrl;
       }
     }

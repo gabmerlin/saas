@@ -1,0 +1,73 @@
+/* Optimisations pour éviter le flickering sur les écrans de chargement */
+
+/* Animation de rotation optimisée */
+@keyframes smooth-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Animation de pulsation optimisée */
+@keyframes smooth-pulse {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.5;
+    transform: scale(0.9);
+  }
+}
+
+/* Classe pour spinner optimisé */
+.smooth-spinner {
+  animation: smooth-spin 1s linear infinite;
+  will-change: transform;
+  backface-visibility: hidden;
+  transform: translateZ(0);
+}
+
+/* Classe pour pulsation optimisée */
+.smooth-pulse {
+  animation: smooth-pulse 1.5s ease-in-out infinite;
+  will-change: opacity, transform;
+  backface-visibility: hidden;
+}
+
+/* Prévention du flickering sur les transitions */
+.loading-container {
+  contain: layout style paint;
+  will-change: auto;
+}
+
+/* Optimisation pour les éléments animés */
+.loading-element {
+  backface-visibility: hidden;
+  transform: translateZ(0);
+  will-change: transform;
+}
+
+/* Animation d'apparition fluide */
+@keyframes fade-in-smooth {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.smooth-fade-in {
+  animation: fade-in-smooth 0.3s ease-out;
+}
+
+/* Prévention des re-renders visuels */
+.loading-stable {
+  contain: layout style;
+  isolation: isolate;
+}

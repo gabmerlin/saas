@@ -37,8 +37,9 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Récupérer les rôles de l'utilisateur connecté
-    let userRoles: string[] = [];
+    // Vérifier si l'utilisateur est propriétaire de l'agence
+    let isOwner = false;
+    let user: any = null;
     const authHeader = request.headers.get('authorization');
     
     
@@ -50,21 +51,22 @@ export async function GET(request: NextRequest) {
         const supabase = createClient();
         
         // Utiliser le token pour récupérer l'utilisateur
-        const { data: { user }, error: userError } = await supabase.auth.getUser(token);
+        const { data: { user: authUser }, error: userError } = await supabase.auth.getUser(token);
         
         if (userError) {
           // Erreur silencieuse
-        } else if (user) {
-          // Vérifier directement si l'utilisateur est owner dans user_tenants
-          const { data: userTenant, error: tenantError } = await dbClient
+        } else if (authUser) {
+          user = authUser;
+          // Vérifier si l'utilisateur est propriétaire dans user_tenants
+          const { data: userTenant, error: userTenantError } = await dbClient
             .from('user_tenants')
             .select('is_owner')
             .eq('user_id', user.id)
             .eq('tenant_id', agency.id)
             .single();
           
-          if (!tenantError && userTenant?.is_owner) {
-            userRoles = ['owner'];
+          if (!userTenantError && userTenant) {
+            isOwner = userTenant.is_owner;
           }
         }
       } catch {
@@ -152,7 +154,7 @@ export async function GET(request: NextRequest) {
     const agencyUrl = `https://${subdomain}.qgchatting.com`;
     const allReady = isAccessible && Object.values(technicalChecks).every(value => value);
 
-    return NextResponse.json({
+    const response = {
       ok: true,
       ready: allReady,
       is_paid: isPaid,
@@ -173,7 +175,7 @@ export async function GET(request: NextRequest) {
           subdomain: agency.subdomain,
           url: agencyUrl
         },
-        user_roles: userRoles
+        is_owner: isOwner
       },
       message: !isAccessible 
         ? subscription?.is_expired 
@@ -182,7 +184,11 @@ export async function GET(request: NextRequest) {
         : allReady 
           ? 'Agence prête' 
           : 'Configuration en cours...'
-    });
+    };
+
+    // Logs de debug supprimés
+    
+    return NextResponse.json(response);
 
   } catch {
     return NextResponse.json(

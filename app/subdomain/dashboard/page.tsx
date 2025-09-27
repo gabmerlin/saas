@@ -83,8 +83,7 @@ function DashboardContent() {
                 setSubscriptionInfo(data.subscription);
                 
                 // Vérifier le statut de propriétaire
-                const userRoles = data.status?.user_roles || [];
-                const isOwnerStatus = userRoles.includes('owner');
+                const isOwnerStatus = data.status?.is_owner || false;
                 setIsOwner(isOwnerStatus);
                 
                 // Si l'utilisateur n'est pas propriétaire, rediriger
@@ -104,8 +103,8 @@ function DashboardContent() {
                 
                 // Vérifier si l'abonement est expiré et rediriger si nécessaire
                 if (data.subscription?.is_expired) {
-                  // Vérifier le rôle de l'utilisateur pour rediriger vers la bonne page
-                  const isOwner = userRoles.includes('owner');
+                  // Vérifier le statut de propriétaire pour rediriger vers la bonne page
+                  const isOwner = isOwnerStatus;
                   
                   
                   if (isOwner) {

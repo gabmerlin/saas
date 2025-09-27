@@ -3,7 +3,7 @@
 import { useEffect, useState, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { LoadingScreen } from "@/components/ui/loading-screen";
-import { getAppropriateRedirectUrl } from "@/lib/utils/cross-domain-redirect";
+import { getAppropriateRedirectUrl } from "@/lib/utils/redirects";
 
 function RootRedirectContent() {
   const searchParams = useSearchParams();
@@ -43,11 +43,11 @@ function RootRedirectContent() {
 
         // Ne pas rediriger si un paiement est en cours
         if (!isPaymentInProgress()) {
-          // Redirection normale vers /home avec gestion cross-domain
+          // Redirection normale vers /home
           setStatus('Redirection vers /home...');
           if (typeof window !== 'undefined') {
-            const redirectUrl = getAppropriateRedirectUrl('/home');
-            window.location.replace(redirectUrl);
+            // Utiliser router.push au lieu de window.location pour éviter les boucles
+            window.location.replace('/home');
           }
         } else {
           setStatus('Paiement en cours...');

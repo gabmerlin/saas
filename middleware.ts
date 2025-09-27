@@ -22,6 +22,7 @@ export async function middleware(req: NextRequest) {
   const root = process.env.NEXT_PUBLIC_ROOT_DOMAIN ?? 'qgchatting.com'
   const sub = extractSubdomain(host, root)
   
+  
   // Ignore API, fichiers statiques, _next, etc.
   if (
     pathname.startsWith('/api') ||
@@ -36,11 +37,136 @@ export async function middleware(req: NextRequest) {
     return NextResponse.next()
   }
 
+  // Si on est sur un sous-domaine, gérer les redirections d'abord
+  if (sub) {
+    
+    // Rediriger /home vers le domaine principal si accédé depuis un sous-domaine
+    if (pathname === '/home') {
+      // Vérifier si on est déjà en train de rediriger (cookie de protection)
+      const redirectingCookie = req.cookies.get('redirecting-to-main');
+      if (redirectingCookie) {
+        return NextResponse.next();
+      }
+      
+      const mainDomain = process.env.NODE_ENV === 'production' 
+        ? 'https://qgchatting.com'
+        : 'http://localhost:3000';
+      const url = new URL(`${mainDomain}/home`);
+      
+      // Créer une réponse HTML qui force la redirection côté client
+      const html = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <meta http-equiv="refresh" content="0;url=${url.toString()}">
+          <script>
+            window.location.replace('${url.toString()}');
+          </script>
+        </head>
+        <body>
+          <p>Redirection vers le domaine principal...</p>
+        </body>
+        </html>
+      `;
+      
+      const response = new NextResponse(html, {
+        status: 200,
+        headers: {
+          'Content-Type': 'text/html',
+        },
+      });
+      
+      response.cookies.set('redirecting-to-main', 'true', {
+        maxAge: 5, // 5 secondes
+        path: '/',
+        httpOnly: false,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax'
+      });
+      return response;
+    }
+    
+    // Rediriger / vers le domaine principal si accédé depuis un sous-domaine
+    if (pathname === '/') {
+      // Vérifier si on est déjà en train de rediriger (cookie de protection)
+      const redirectingCookie = req.cookies.get('redirecting-to-main');
+      if (redirectingCookie) {
+        return NextResponse.next();
+      }
+      
+      const mainDomain = process.env.NODE_ENV === 'production' 
+        ? 'https://qgchatting.com'
+        : 'http://localhost:3000';
+      const url = new URL(`${mainDomain}/home`);
+      
+      // Créer une réponse HTML qui force la redirection côté client
+      const html = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <meta http-equiv="refresh" content="0;url=${url.toString()}">
+          <script>
+            window.location.replace('${url.toString()}');
+          </script>
+        </head>
+        <body>
+          <p>Redirection vers le domaine principal...</p>
+        </body>
+        </html>
+      `;
+      
+      const response = new NextResponse(html, {
+        status: 200,
+        headers: {
+          'Content-Type': 'text/html',
+        },
+      });
+      
+      response.cookies.set('redirecting-to-main', 'true', {
+        maxAge: 5, // 5 secondes
+        path: '/',
+        httpOnly: false,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax'
+      });
+      return response;
+    }
+    
+    // Rediriger /access-denied vers le domaine principal si accédé depuis un sous-domaine
+    if (pathname === '/access-denied') {
+      const mainDomain = process.env.NODE_ENV === 'production' 
+        ? 'https://qgchatting.com'
+        : 'http://localhost:3000';
+      const url = new URL(`${mainDomain}/access-denied?subdomain=${sub}`);
+      return NextResponse.redirect(url);
+    }
+    
+    // Rediriger les routes de sous-domaine vers /subdomain/*
+    // MAIS exclure /, /home et /access-denied qui doivent être redirigés vers le domaine principal
+    if (!pathname.startsWith('/subdomain/') && 
+        pathname !== '/' && 
+        pathname !== '/home' && 
+        pathname !== '/access-denied') {
+      const url = req.nextUrl.clone();
+      url.pathname = `/subdomain${pathname}`;
+      return NextResponse.rewrite(url);
+    }
+    
+    // Si on arrive ici, c'est qu'on est sur un sous-domaine mais pas sur une route à rediriger
+    // On continue avec la synchronisation des cookies
+  }
+
   // Headers de sécurité communs
   const res = NextResponse.next()
   res.headers.set('x-frame-options', 'SAMEORIGIN')
   res.headers.set('x-content-type-options', 'nosniff')
   res.headers.set('referrer-policy', 'strict-origin-when-cross-origin')
+  
+  // Nettoyer le cookie de redirection si on arrive sur le domaine principal
+  if (!sub && pathname === '/home') {
+    res.cookies.delete('redirecting-to-main');
+  }
+  
 
   // Si on est sur un sous-domaine, synchroniser la session
   if (sub) {
@@ -81,34 +207,9 @@ export async function middleware(req: NextRequest) {
       }
     });
   }
-  
+
+  // Vérifier si l'abonnement est expiré pour les sous-domaines
   if (sub) {
-    // Rediriger /home vers le domaine principal si accédé depuis un sous-domaine
-    if (pathname === '/home') {
-      const mainDomain = process.env.NODE_ENV === 'production' 
-        ? 'https://qgchatting.com'
-        : 'http://localhost:3000';
-      const url = new URL(`${mainDomain}/home`);
-      return NextResponse.redirect(url);
-    }
-    
-    // Rediriger /access-denied vers le domaine principal si accédé depuis un sous-domaine
-    if (pathname === '/access-denied') {
-      const mainDomain = process.env.NODE_ENV === 'production' 
-        ? 'https://qgchatting.com'
-        : 'http://localhost:3000';
-      const url = new URL(`${mainDomain}/access-denied?subdomain=${sub}`);
-      return NextResponse.redirect(url);
-    }
-    
-    // Vérifier l'authentification et l'appartenance à l'agence
-    // Cette vérification se fait côté client dans le layout, mais on peut ajouter une vérification basique ici
-    // pour éviter les accès non autorisés au niveau du serveur
-    
-    // Ne pas rediriger automatiquement - laisser les pages gérer leur propre logique
-    // Les pages peuvent décider si elles veulent rediriger ou afficher du contenu
-    
-    // Vérifier si l'abonnement est expiré
     try {
       const dbClient = getServiceClient()
       
@@ -155,12 +256,9 @@ export async function middleware(req: NextRequest) {
           }
           
           // Ajouter les informations d'abonnement aux headers
-          const res = NextResponse.next()
-          res.headers.set('x-tenant-subdomain', sub)
           res.headers.set('x-subscription-status', subscription.status)
           res.headers.set('x-subscription-expires', subscription.current_period_end)
           res.headers.set('x-subscription-expiring-soon', subscription.is_expiring_soon.toString())
-          return res
         }
       }
     } catch (error) {
@@ -168,7 +266,6 @@ export async function middleware(req: NextRequest) {
     }
   }
 
-  if (sub) res.headers.set('x-tenant-subdomain', sub)
   return res
 }
 

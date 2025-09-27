@@ -25,8 +25,9 @@ export default function HomePage() {
     const checkAgencyInfo = async () => {
       // Vérifier si on est sur le domaine principal
       if (!isMainDomain()) {
-        // Si on est sur un sous-domaine, rediriger vers le domaine principal
-        redirectToMainDomain('/home');
+        // Si on est sur un sous-domaine, ne pas faire de redirection
+        // Le middleware s'en charge déjà
+        setLoading(false);
         return;
       }
 
