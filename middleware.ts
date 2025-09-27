@@ -32,6 +32,9 @@ export async function middleware(req: NextRequest) {
     PUBLIC_FILE.test(pathname)
   ) {
     console.log('🔍 MIDDLEWARE: API route detected, skipping middleware logic:', pathname);
+    console.log('🔍 MIDDLEWARE: Request method:', req.method);
+    console.log('🔍 MIDDLEWARE: Request headers:', Object.fromEntries(req.headers.entries()));
+    
     if (sub) {
       const res = NextResponse.next()
       res.headers.set('x-tenant-subdomain', sub)
@@ -40,6 +43,7 @@ export async function middleware(req: NextRequest) {
       res.headers.set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
       res.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization');
       res.headers.set('Access-Control-Allow-Credentials', 'true');
+      console.log('🔍 MIDDLEWARE: Returning API response for subdomain:', sub);
       return res
     }
     const res = NextResponse.next();
@@ -48,6 +52,7 @@ export async function middleware(req: NextRequest) {
     res.headers.set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
     res.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization');
     res.headers.set('Access-Control-Allow-Credentials', 'true');
+    console.log('🔍 MIDDLEWARE: Returning API response for main domain');
     return res;
   }
 
