@@ -22,7 +22,7 @@ export async function middleware(req: NextRequest) {
   const root = process.env.NEXT_PUBLIC_ROOT_DOMAIN ?? 'qgchatting.com'
   const sub = extractSubdomain(host, root)
   
-  console.log('🔍 MIDDLEWARE START:', { pathname, host, sub, url: req.url })
+  console.log('🔍 MIDDLEWARE START:', { pathname, host, sub, url: req.url, root })
   
   
   // Ignore API, fichiers statiques, _next, etc.
@@ -289,23 +289,32 @@ export async function middleware(req: NextRequest) {
 function extractSubdomain(host: string, rootDomain: string): string | null {
   if (!host) return null
   
+  console.log('🔍 EXTRACT SUBDOMAIN: Input:', { host, rootDomain })
+  
   // Si pas de rootDomain défini, utiliser des domaines par défaut
   const defaultRoots = ['qgchatting.com', 'localhost:3000', 'vercel.app']
   const roots = rootDomain ? [rootDomain, ...defaultRoots] : defaultRoots
   
   const h = host.toLowerCase()
+  console.log('🔍 EXTRACT SUBDOMAIN: Processing:', { h, roots })
   
   for (const root of roots) {
     const rootLower = root.toLowerCase()
-    if (h === rootLower || h === `www.${rootLower}`) continue
+    console.log('🔍 EXTRACT SUBDOMAIN: Checking root:', rootLower)
+    if (h === rootLower || h === `www.${rootLower}`) {
+      console.log('🔍 EXTRACT SUBDOMAIN: Main domain detected, skipping')
+      continue
+    }
     if (h.endsWith(`.${rootLower}`)) {
       const sub = h.slice(0, -(rootLower.length + 1))
+      console.log('🔍 EXTRACT SUBDOMAIN: Subdomain found:', sub)
       if (sub && sub !== 'www') {
         return sub
       }
     }
   }
   
+  console.log('🔍 EXTRACT SUBDOMAIN: No subdomain found')
   return null
 }
 
