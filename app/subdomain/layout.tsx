@@ -132,13 +132,8 @@ export default function SubdomainLayout({ children }: SubdomainLayoutProps) {
           console.log('✅ Définition de canAccess à true');
           setCanAccess(true);
           
-          // Si on est sur le domaine principal avec un paramètre subdomain, rediriger vers le sous-domaine
-          if (window.location.hostname.includes('qgchatting.com') && !window.location.hostname.startsWith(subdomain + '.')) {
-            console.log('🔄 Redirection vers le sous-domaine:', subdomain);
-            const subdomainUrl = `https://${subdomain}.qgchatting.com/subdomain/dashboard`;
-            window.location.href = subdomainUrl;
-            return;
-          }
+          // Ne pas rediriger automatiquement - rester sur le domaine principal avec la session active
+          // L'utilisateur peut naviguer normalement sur le domaine principal
         } else {
           // L'utilisateur n'est pas membre de cette agence
           console.log('❌ Utilisateur non membre de l\'agence:', subdomain);
