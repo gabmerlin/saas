@@ -88,7 +88,6 @@ export async function redirectToAgencyDashboard(subdomain: string): Promise<void
     });
     
     // Chercher d'autres cookies Supabase
-    const allCookies = document.cookie.split('; ');
     const supabaseCookies = allCookies.filter(cookie => 
       cookie.includes('sb-') || 
       cookie.includes('supabase') || 
