@@ -13,8 +13,6 @@ export const config = {
      * - favicon.ico (favicon file)
      */
     '/((?!api|_next/static|_next/image|favicon.ico).*)',
-    // Explicitly include subdomain routes
-    '/subdomain/:path*',
   ],
 }
 
@@ -32,6 +30,8 @@ const PUBLIC_PATHS = [
 ]
 
 export async function middleware(req: NextRequest) {
+  console.log('🚀 Middleware START for:', req.url)
+  
   const { pathname } = req.nextUrl
   const host = req.headers.get('host') ?? ''
   const root = process.env.NEXT_PUBLIC_ROOT_DOMAIN ?? 'qgchatting.com'
