@@ -23,8 +23,8 @@ function AuthCallbackContent() {
         
         setStatus('Traitement de l\'authentification...');
         
-        const { supabaseBrowserWithCookies } = await import('@/lib/supabase/client-with-cookies');
-        const supabase = supabaseBrowserWithCookies();
+        const { supabaseBrowserWithPKCEFixed } = await import('@/lib/supabase/client-pkce-fixed');
+        const supabase = supabaseBrowserWithPKCEFixed();
         
         // Vérifier s'il y a un code d'erreur dans l'URL
         const error = searchParams.get('error');
@@ -44,7 +44,6 @@ function AuthCallbackContent() {
             const { error } = await supabase.auth.exchangeCodeForSession(code);
             
             if (error) {
-              console.error('❌ Erreur exchangeCodeForSession:', error);
               setStatus(`Erreur: ${error.message}`);
               setTimeout(() => router.push('/auth/sign-in?error=auth_failed'), 2000);
               return;
@@ -61,10 +60,6 @@ function AuthCallbackContent() {
             }
             
             if (session) {
-              console.log('✅ Session créée avec succès:', {
-                userId: session.user.id,
-                email: session.user.email
-              });
               setStatus('Connexion réussie !');
               
               // Synchroniser la session vers tous les domaines
@@ -88,18 +83,15 @@ function AuthCallbackContent() {
                     
                     if (agencyData.ok && agencyData.hasExistingAgency && agencyData.agency) {
                       // Rediriger vers le sous-domaine de l'agence
-                      console.log('🏢 Agence trouvée, redirection vers:', agencyData.agency.subdomain);
                       const { redirectToAgencyDashboard } = await import('@/lib/auth/client/agency-redirect');
                       await redirectToAgencyDashboard(agencyData.agency.subdomain);
                       return;
                     } else {
                       // Pas d'agence, rediriger vers l'onboarding
-                      console.log('❌ Pas d\'agence trouvée, redirection vers onboarding');
                       router.push('/onboarding/owner');
                       return;
                     }
-                  } catch (error) {
-                    console.error('Erreur lors de la vérification de l\'agence:', error);
+                  } catch {
                     // En cas d'erreur, rediriger vers la page d'accueil
                     router.push('/home');
                     return;
