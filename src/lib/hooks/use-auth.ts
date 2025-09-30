@@ -41,7 +41,7 @@ export function useAuth() {
     window.addEventListener('popstate', handleUrlChange);
     
     // Écouter les changements d'état d'authentification
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event: any, session: any) => {
       
       if (event === 'INITIAL_SESSION') {
         // Session initiale - récupérer la session actuelle

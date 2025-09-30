@@ -28,7 +28,7 @@ export function CrossDomainSessionProvider({ children }: CrossDomainSessionProvi
         }
 
         // 2. Écouter les changements de session Supabase
-        const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+        const { data: { subscription } } = supabase.auth.onAuthStateChange((event: any, session: any) => {
           // Vérifier si un paiement est en cours
           const isPaymentInProgress = () => {
             if (typeof window === 'undefined') return false;

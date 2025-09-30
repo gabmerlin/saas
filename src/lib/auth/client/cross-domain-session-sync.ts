@@ -27,7 +27,7 @@ export class CrossDomainSessionSync {
     const supabase = supabaseBrowserWithCookies();
     
     // Écouter les changements d'état d'authentification
-    supabase.auth.onAuthStateChange(async (event, session) => {
+    supabase.auth.onAuthStateChange(async (event: any, session: any) => {
       // Vérifier si un paiement est en cours
       const isPaymentInProgress = () => {
         if (typeof window === 'undefined') return false;
