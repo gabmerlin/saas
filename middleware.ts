@@ -43,6 +43,13 @@ export async function middleware(req: NextRequest) {
     url: req.url
   })
   
+  console.log('🔍 Middleware - extractSubdomain result:', {
+    host,
+    root,
+    sub,
+    extracted: extractSubdomain(host, root)
+  })
+  
   // Ignore API, fichiers statiques, _next, etc.
   if (
     pathname.startsWith('/api') ||
