@@ -21,6 +21,16 @@ export default function SubdomainLayout({ children }: SubdomainLayoutProps) {
 
   useEffect(() => {
     const checkAgencyMembership = async () => {
+      console.log('🔍 SubdomainLayout - checkAgencyMembership start:', {
+        hasChecked: hasChecked.current,
+        isLoading,
+        isAuthenticated,
+        user: !!user,
+        hostname: window.location.hostname,
+        pathname: window.location.pathname,
+        search: window.location.search
+      });
+      
       // Éviter les vérifications multiples
       if (hasChecked.current) {
         console.log('⏭️ Vérification déjà effectuée, skip');
@@ -29,11 +39,13 @@ export default function SubdomainLayout({ children }: SubdomainLayoutProps) {
       
       // En développement local, essayer de restaurer la session depuis l'URL
       if (window.location.hostname.includes('localhost')) {
+        console.log('🔍 SubdomainLayout - Initialisation localhost session sync');
         await localhostSessionSync.initialize();
       }
       
       // Attendre que l'authentification soit chargée
       if (isLoading) {
+        console.log('🔍 SubdomainLayout - En attente du chargement de l\'auth');
         return;
       }
 

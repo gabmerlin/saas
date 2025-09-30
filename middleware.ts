@@ -22,6 +22,14 @@ export async function middleware(req: NextRequest) {
   const root = process.env.NEXT_PUBLIC_ROOT_DOMAIN ?? 'qgchatting.com'
   const sub = extractSubdomain(host, root)
   
+  console.log('🔍 Middleware - Request:', {
+    pathname,
+    host,
+    root,
+    sub,
+    url: req.url
+  })
+  
   // Ignore API, fichiers statiques, _next, etc.
   if (
     pathname.startsWith('/api') ||
@@ -38,6 +46,8 @@ export async function middleware(req: NextRequest) {
 
   // Si on est sur un sous-domaine, vérifier d'abord s'il faut rediriger pour récupérer la session
   if (sub) {
+    console.log('🔍 Middleware - Sous-domaine détecté:', sub)
+    
     const supabaseCookieNames = [
       'sb-ndlmzwwfwugtwpmebdog-auth-token',
       'sb-ndlmzwwfwugtwpmebdog-auth-token.0',
@@ -47,14 +57,31 @@ export async function middleware(req: NextRequest) {
       'cross-domain-session'
     ];
     
-    // Si pas de cookies d'auth sur le sous-domaine ET qu'on accède au dashboard, rediriger vers le domaine principal
+    // Vérifier les cookies présents
+    const cookies = supabaseCookieNames.map(name => ({
+      name,
+      value: req.cookies.get(name)?.value || null
+    }));
+    
+    console.log('🔍 Middleware - Cookies d\'auth:', cookies)
+    
     const hasAuthCookie = supabaseCookieNames.some(name => req.cookies.get(name));
+    console.log('🔍 Middleware - Has auth cookie:', hasAuthCookie)
+    console.log('🔍 Middleware - Pathname check:', {
+      pathname,
+      isDashboard: pathname === '/dashboard',
+      isSubdomainDashboard: pathname === '/subdomain/dashboard',
+      shouldRedirect: !hasAuthCookie && (pathname === '/dashboard' || pathname === '/subdomain/dashboard')
+    })
+    
+    // Si pas de cookies d'auth sur le sous-domaine ET qu'on accède au dashboard, rediriger vers le domaine principal
     if (!hasAuthCookie && (pathname === '/dashboard' || pathname === '/subdomain/dashboard')) {
       // Rediriger vers le domaine principal pour récupérer la session
       const mainDomain = process.env.NODE_ENV === 'production' 
         ? 'https://qgchatting.com'
         : 'http://localhost:3000';
       const url = new URL(`${mainDomain}/subdomain/dashboard?subdomain=${sub}`);
+      console.log('🔍 Middleware - REDIRECTION vers:', url.toString())
       return NextResponse.redirect(url);
     }
   }
