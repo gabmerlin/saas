@@ -1,38 +1,32 @@
-import { createClient } from '@supabase/supabase-js';
+import { createBrowserClient } from '@supabase/ssr';
 
 export const supabaseBrowserWithCookies = () => {
-  return createClient(
+  return createBrowserClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
-      auth: {
-        persistSession: true,
-        autoRefreshToken: true,
-        detectSessionInUrl: true,
-        flowType: 'pkce',
-        storage: {
-          getItem: (key: string) => {
-            if (typeof window !== 'undefined') {
-              return document.cookie
-                .split('; ')
-                .find(row => row.startsWith(`${key}=`))
-                ?.split('=')[1] || null;
-            }
-            return null;
-          },
-          setItem: (key: string, value: string) => {
-            if (typeof window !== 'undefined') {
-              const cookieString = `${key}=${value}; domain=.qgchatting.com; path=/; ${
-                process.env.NODE_ENV === "production" ? "secure; " : ""
-              }samesite=lax; max-age=${60 * 60 * 24 * 7}`;
-              document.cookie = cookieString;
-            }
-          },
-          removeItem: (key: string) => {
-            if (typeof window !== 'undefined') {
-              document.cookie = `${key}=; domain=.qgchatting.com; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT`;
-            }
-          },
+      cookies: {
+        get(name: string) {
+          if (typeof window !== 'undefined') {
+            return document.cookie
+              .split('; ')
+              .find(row => row.startsWith(`${name}=`))
+              ?.split('=')[1] || undefined;
+          }
+          return undefined;
+        },
+        set(name: string, value: string, options: any) {
+          if (typeof window !== 'undefined') {
+            const cookieString = `${name}=${value}; domain=.qgchatting.com; path=/; ${
+              process.env.NODE_ENV === "production" ? "secure; " : ""
+            }samesite=lax; max-age=${options?.maxAge || 60 * 60 * 24 * 7}`;
+            document.cookie = cookieString;
+          }
+        },
+        remove(name: string, options: any) {
+          if (typeof window !== 'undefined') {
+            document.cookie = `${name}=; domain=.qgchatting.com; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT`;
+          }
         },
       },
     }
