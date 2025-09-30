@@ -258,16 +258,37 @@ function extractSubdomain(host: string, rootDomain: string): string | null {
   
   const h = host.toLowerCase()
   
+  console.log('🔍 extractSubdomain debug:', {
+    host,
+    rootDomain,
+    roots,
+    h
+  })
+  
   for (const root of roots) {
     const rootLower = root.toLowerCase()
+    console.log('🔍 extractSubdomain checking root:', {
+      root,
+      rootLower,
+      h,
+      isExactMatch: h === rootLower,
+      isWwwMatch: h === `www.${rootLower}`,
+      endsWith: h.endsWith(`.${rootLower}`)
+    })
+    
     if (h === rootLower || h === `www.${rootLower}`) continue
     if (h.endsWith(`.${rootLower}`)) {
       const sub = h.slice(0, -(rootLower.length + 1))
+      console.log('🔍 extractSubdomain found subdomain:', {
+        sub,
+        isValid: sub && sub !== 'www'
+      })
       if (sub && sub !== 'www') {
         return sub
       }
     }
   }
   
+  console.log('🔍 extractSubdomain no subdomain found')
   return null
 }
