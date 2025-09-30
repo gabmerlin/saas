@@ -7,21 +7,21 @@ import { supabaseBrowser } from '@/lib/supabase/client';
 import { getCurrentSubdomain } from '@/lib/utils/cross-domain-redirect';
 import { localhostSessionSync } from '@/lib/auth/client/localhost-session-sync';
 
-interface SubdomainLayoutProps {
+interface DashboardLayoutProps {
   children: React.ReactNode;
 }
 
-export default function SubdomainLayout({ children }: SubdomainLayoutProps) {
+export default function DashboardLayout({ children }: DashboardLayoutProps) {
   const { user, isAuthenticated, isLoading } = useAuth();
   const [canAccess, setCanAccess] = useState<boolean | null>(null);
   const [checking, setChecking] = useState(true);
   const hasChecked = useRef(false);
-  
-  console.log('🔄 SubdomainLayout render:', { canAccess, checking, isLoading, isAuthenticated, hasChecked: hasChecked.current });
+
+  console.log('🔄 DashboardLayout render:', { canAccess, checking, isLoading, isAuthenticated, hasChecked: hasChecked.current });
 
   useEffect(() => {
     const checkAgencyMembership = async () => {
-      console.log('🔍 SubdomainLayout - checkAgencyMembership start:', {
+      console.log('🔍 DashboardLayout - checkAgencyMembership start:', {
         hasChecked: hasChecked.current,
         isLoading,
         isAuthenticated,
@@ -30,22 +30,22 @@ export default function SubdomainLayout({ children }: SubdomainLayoutProps) {
         pathname: window.location.pathname,
         search: window.location.search
       });
-      
+
       // Éviter les vérifications multiples
       if (hasChecked.current) {
         console.log('⏭️ Vérification déjà effectuée, skip');
         return;
       }
-      
+
       // En développement local, essayer de restaurer la session depuis l'URL
       if (window.location.hostname.includes('localhost')) {
-        console.log('🔍 SubdomainLayout - Initialisation localhost session sync');
+        console.log('🔍 DashboardLayout - Initialisation localhost session sync');
         await localhostSessionSync.initialize();
       }
-      
+
       // Attendre que l'authentification soit chargée
       if (isLoading) {
-        console.log('🔍 SubdomainLayout - En attente du chargement de l\'auth');
+        console.log('🔍 DashboardLayout - En attente du chargement de l\'auth');
         return;
       }
 
@@ -131,47 +131,6 @@ export default function SubdomainLayout({ children }: SubdomainLayoutProps) {
           console.log('✅ Utilisateur membre de l\'agence:', subdomain, 'is_owner:', userTenant.is_owner);
           console.log('✅ Définition de canAccess à true');
           setCanAccess(true);
-          
-          // Si on est sur le domaine principal avec un paramètre subdomain, synchroniser les cookies et rediriger vers le sous-domaine
-          if (window.location.hostname.includes('qgchatting.com') && !window.location.hostname.startsWith(subdomain + '.')) {
-            console.log('🔄 Synchronisation des cookies et redirection vers le sous-domaine:', subdomain);
-            
-            // Synchroniser les cookies avec le sous-domaine
-            const supabase = supabaseBrowser();
-            const { data: { session } } = await supabase.auth.getSession();
-            
-            if (session) {
-              // Définir les cookies pour le sous-domaine
-              const cookieNames = [
-                'sb-ndlmzwwfwugtwpmebdog-auth-token',
-                'sb-ndlmzwwfwugtwpmebdog-auth-token.0',
-                'sb-ndlmzwwfwugtwpmebdog-auth-token.1',
-                'supabase-auth-token',
-                'sb-auth-token',
-                'cross-domain-session'
-              ];
-              
-              cookieNames.forEach(cookieName => {
-                const cookieValue = document.cookie
-                  .split('; ')
-                  .find(row => row.startsWith(`${cookieName}=`))
-                  ?.split('=')[1];
-                
-                if (cookieValue) {
-                  // Cookie pour le sous-domaine
-                  document.cookie = `${cookieName}=${cookieValue}; domain=.qgchatting.com; path=/; secure; samesite=lax; max-age=${60 * 60 * 24 * 7}`;
-                }
-              });
-              
-              // Attendre un peu pour que les cookies soient définis
-              await new Promise(resolve => setTimeout(resolve, 500));
-            }
-            
-            // Rediriger vers le sous-domaine
-            const subdomainUrl = `https://${subdomain}.qgchatting.com/dashboard`;
-            window.location.href = subdomainUrl;
-            return;
-          }
         } else {
           // L'utilisateur n'est pas membre de cette agence
           console.log('❌ Utilisateur non membre de l\'agence:', subdomain);
@@ -192,19 +151,19 @@ export default function SubdomainLayout({ children }: SubdomainLayoutProps) {
 
   useEffect(() => {
     console.log('🔍 État de redirection:', { checking, canAccess, shouldRedirect: !checking && canAccess === false });
-    
+
     if (!checking && canAccess === false) {
       // Rediriger vers le domaine principal avec la page d'accès refusé
       if (typeof window !== 'undefined') {
         const subdomain = getCurrentSubdomain();
-        const mainDomainUrl = window.location.hostname.includes('localhost') 
-          ? 'http://localhost:3000' 
+        const mainDomainUrl = window.location.hostname.includes('localhost')
+          ? 'http://localhost:3000'
           : 'https://qgchatting.com';
-        
-        const redirectUrl = subdomain 
+
+        const redirectUrl = subdomain
           ? `${mainDomainUrl}/access-denied?subdomain=${subdomain}`
           : `${mainDomainUrl}/access-denied`;
-        
+
         console.log('🚫 Accès refusé - Redirection vers:', redirectUrl);
         window.location.href = redirectUrl;
       }
@@ -213,7 +172,7 @@ export default function SubdomainLayout({ children }: SubdomainLayoutProps) {
 
   if (isLoading || checking) {
     return (
-      <LoadingScreen 
+      <LoadingScreen
         message="Vérification de l'accès"
         submessage="Contrôle de votre appartenance à l'agence..."
         variant="minimal"
@@ -223,7 +182,7 @@ export default function SubdomainLayout({ children }: SubdomainLayoutProps) {
 
   if (!canAccess) {
     return (
-      <LoadingScreen 
+      <LoadingScreen
         message="Redirection en cours..."
         submessage="Vous allez être redirigé vers la page d'accès refusé"
         variant="default"

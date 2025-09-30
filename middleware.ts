@@ -113,12 +113,7 @@ export async function middleware(req: NextRequest) {
       return NextResponse.redirect(url);
     }
     
-    // Rediriger /dashboard vers /subdomain/dashboard si accédé depuis un sous-domaine
-    if (pathname === '/dashboard') {
-      const url = new URL(req.url);
-      url.pathname = '/subdomain/dashboard';
-      return NextResponse.redirect(url);
-    }
+    // Pas de redirection automatique pour /dashboard - laisser passer la requête
     
     // Vérifier si l'abonnement est expiré
     try {
