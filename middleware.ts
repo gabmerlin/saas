@@ -35,6 +35,31 @@ export async function middleware(req: NextRequest) {
   if (sub) {
     res.headers.set('x-tenant-subdomain', sub)
     
+    // Synchroniser les cookies Supabase entre domaines
+    const supabaseCookieNames = [
+      'sb-ndlmzwwfwugtwpmebdog-auth-token',
+      'sb-ndlmzwwfwugtwpmebdog-auth-token.0',
+      'sb-ndlmzwwfwugtwpmebdog-auth-token.1',
+      'supabase-auth-token',
+      'sb-auth-token',
+      'cross-domain-session'
+    ];
+    
+    supabaseCookieNames.forEach(cookieName => {
+      const cookie = req.cookies.get(cookieName);
+      if (cookie) {
+        // Cookie partagé pour TOUS les sous-domaines
+        res.cookies.set(cookieName, cookie.value, {
+          domain: `.${root}`,
+          path: '/',
+          httpOnly: false,
+          secure: process.env.NODE_ENV === 'production',
+          sameSite: 'lax',
+          maxAge: 60 * 60 * 24 * 7 // 7 jours
+        });
+      }
+    });
+    
     // Rediriger /home vers le domaine principal
     if (pathname === '/home') {
       const mainDomain = process.env.NODE_ENV === 'production' 
