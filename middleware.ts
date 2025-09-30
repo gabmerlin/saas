@@ -45,9 +45,12 @@ export async function middleware(req: NextRequest) {
       'cross-domain-session'
     ];
     
+    console.log('🔍 Middleware - Synchronisation des cookies pour le sous-domaine:', sub);
+    
     supabaseCookieNames.forEach(cookieName => {
       const cookie = req.cookies.get(cookieName);
       if (cookie) {
+        console.log('✅ Cookie trouvé:', cookieName);
         // Cookie partagé pour TOUS les sous-domaines
         res.cookies.set(cookieName, cookie.value, {
           domain: `.${root}`,
@@ -57,6 +60,18 @@ export async function middleware(req: NextRequest) {
           sameSite: 'lax',
           maxAge: 60 * 60 * 24 * 7 // 7 jours
         });
+        
+        // AUSSI définir pour le domaine principal
+        res.cookies.set(cookieName, cookie.value, {
+          domain: root,
+          path: '/',
+          httpOnly: false,
+          secure: process.env.NODE_ENV === 'production',
+          sameSite: 'lax',
+          maxAge: 60 * 60 * 24 * 7 // 7 jours
+        });
+      } else {
+        console.log('❌ Cookie non trouvé:', cookieName);
       }
     });
     

@@ -55,14 +55,40 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
           const supabase = supabaseBrowser();
           const { data: { session }, error } = await supabase.auth.getSession();
           
+          console.log('🔍 Session trouvée:', { session: !!session, error });
+          
           if (session && !error) {
             console.log('✅ Session restaurée depuis les cookies');
             // Attendre un peu pour que le hook useAuth se mette à jour
-            await new Promise(resolve => setTimeout(resolve, 1000));
-            return; // Relancer la vérification
+            await new Promise(resolve => setTimeout(resolve, 2000));
+            
+            // Vérifier à nouveau après l'attente
+            const { data: { session: newSession } } = await supabase.auth.getSession();
+            if (newSession) {
+              console.log('✅ Session confirmée après attente');
+              return; // Relancer la vérification
+            }
           }
         } catch (error) {
           console.log('❌ Impossible de restaurer la session:', error);
+        }
+        
+        // Essayer de forcer la restauration de session depuis l'URL
+        try {
+          await localhostSessionSync.initialize();
+          console.log('🔍 Tentative de restauration depuis l\'URL');
+          
+          // Attendre un peu et vérifier à nouveau
+          await new Promise(resolve => setTimeout(resolve, 1000));
+          const supabase = supabaseBrowser();
+          const { data: { session } } = await supabase.auth.getSession();
+          
+          if (session) {
+            console.log('✅ Session restaurée depuis l\'URL');
+            return; // Relancer la vérification
+          }
+        } catch (error) {
+          console.log('❌ Impossible de restaurer depuis l\'URL:', error);
         }
         
         // Si toujours pas authentifié, rediriger vers le domaine principal

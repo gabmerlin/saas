@@ -48,6 +48,8 @@ export async function redirectToAgencyDashboard(subdomain: string): Promise<void
   const supabase = supabaseBrowser();
   const { data: { session } } = await supabase.auth.getSession();
   
+  console.log('🔍 Session avant redirection:', { session: !!session, subdomain });
+  
   if (session) {
     // Définir les cookies pour le sous-domaine
     const cookieNames = [
@@ -59,6 +61,8 @@ export async function redirectToAgencyDashboard(subdomain: string): Promise<void
       'cross-domain-session'
     ];
     
+    console.log('🔍 Synchronisation des cookies...');
+    
     cookieNames.forEach(cookieName => {
       const cookieValue = document.cookie
         .split('; ')
@@ -67,12 +71,19 @@ export async function redirectToAgencyDashboard(subdomain: string): Promise<void
       
       if (cookieValue) {
         // Cookie pour le sous-domaine
-        document.cookie = `${cookieName}=${cookieValue}; domain=.qgchatting.com; path=/; secure; samesite=lax; max-age=${60 * 60 * 24 * 7}`;
+        const cookieString = `${cookieName}=${cookieValue}; domain=.qgchatting.com; path=/; secure; samesite=lax; max-age=${60 * 60 * 24 * 7}`;
+        document.cookie = cookieString;
+        console.log('✅ Cookie défini:', cookieName);
+      } else {
+        console.log('❌ Cookie non trouvé:', cookieName);
       }
     });
     
     // Attendre un peu pour que les cookies soient définis
-    await new Promise(resolve => setTimeout(resolve, 500));
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    console.log('✅ Cookies synchronisés, redirection...');
+  } else {
+    console.log('❌ Pas de session disponible pour la synchronisation');
   }
   
   // Rediriger vers le sous-domaine
