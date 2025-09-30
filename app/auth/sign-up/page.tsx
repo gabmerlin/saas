@@ -3,7 +3,7 @@
 import { useMemo, useState, Suspense, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
 import { z } from "zod";
-import { supabaseBrowser } from "@/lib/supabase/client";
+import { supabaseBrowserWithCookies } from "@/lib/supabase/client-with-cookies";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { usePageTitle } from "@/lib/hooks/use-page-title";
@@ -28,7 +28,7 @@ type FieldErrors = {
 };
 
 function SignUpContent() {
-  const supabase = supabaseBrowser();
+  const supabase = supabaseBrowserWithCookies();
   const searchParams = useSearchParams();
   const invitationToken = searchParams?.get("invitation");
   const next = searchParams?.get("next") ?? "/dashboard";

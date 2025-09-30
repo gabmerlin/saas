@@ -3,7 +3,7 @@
 import React, { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { LoadingScreen } from "@/components/ui/loading-screen";
-import { supabaseBrowser } from "@/lib/supabase/client";
+import { supabaseBrowserWithCookies } from "@/lib/supabase/client-with-cookies";
 import { motion } from "framer-motion";
 import { Building2, ArrowRight, CheckCircle, AlertTriangle, Globe } from "lucide-react";
 import { usePageTitle } from "@/lib/hooks/use-page-title";
@@ -31,7 +31,7 @@ export default function AgencyExistsPage() {
   useEffect(() => {
     const checkExistingAgency = async () => {
       try {
-        const { data: { session }, error: sessionError } = await supabaseBrowser().auth.getSession();
+        const { data: { session }, error: sessionError } = await supabaseBrowserWithCookies().auth.getSession();
         
         if (sessionError || !session) {
           router.push('/auth/sign-in');

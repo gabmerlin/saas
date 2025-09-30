@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from 'react';
-import { supabaseBrowser } from '@/lib/supabase/client';
+import { supabaseBrowserWithCookies } from '@/lib/supabase/client-with-cookies';
 
 interface SubscriptionDetails {
   subscription_id: string;
@@ -30,7 +30,7 @@ export function useSubscriptionStatus() {
         setError(null);
 
         // Récupérer la session utilisateur
-        const { data: { session }, error: sessionError } = await supabaseBrowser().auth.getSession();
+        const { data: { session }, error: sessionError } = await supabaseBrowserWithCookies().auth.getSession();
         
         if (sessionError || !session) {
           setError('Non authentifié');
@@ -47,7 +47,7 @@ export function useSubscriptionStatus() {
         }
 
         // Récupérer le rôle de l'utilisateur
-        const { data: userRoleData, error: roleError } = await supabaseBrowser()
+        const { data: userRoleData, error: roleError } = await supabaseBrowserWithCookies()
           .from('user_roles')
           .select(`
             roles(key),

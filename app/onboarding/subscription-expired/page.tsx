@@ -5,7 +5,7 @@ import { motion } from "framer-motion";
 import { AlertTriangle, Clock, Building2, ArrowRight } from "lucide-react";
 import { usePageTitle } from "@/lib/hooks/use-page-title";
 import { useAuth } from "@/lib/hooks/use-auth";
-import { supabaseBrowser } from "@/lib/supabase/client";
+import { supabaseBrowserWithCookies } from "@/lib/supabase/client-with-cookies";
 
 export default function SubscriptionExpiredPage() {
   const { user, isAuthenticated } = useAuth();
@@ -29,7 +29,7 @@ export default function SubscriptionExpiredPage() {
           
           if (subdomain && subdomain !== 'www' && subdomain !== 'qgchatting' && subdomain !== 'localhost') {
             // Récupérer la session pour le token
-            const supabase = supabaseBrowser();
+            const supabase = supabaseBrowserWithCookies();
             const { data: { session } } = await supabase.auth.getSession();
             
             if (!session) {

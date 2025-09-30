@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/hooks/use-auth';
 import { LoadingScreen } from '@/components/ui/loading-screen';
-import { supabaseBrowser } from '@/lib/supabase/client';
+import { supabaseBrowserWithCookies } from '@/lib/supabase/client-with-cookies';
 import { getCurrentSubdomain, redirectToMainDomain } from '@/lib/utils/cross-domain-redirect';
 
 interface AgencyMemberGuardProps {
@@ -54,7 +54,7 @@ export function AgencyMemberGuard({
         }
 
         // Vérifier si l'utilisateur est membre de cette agence
-        const { data: userTenants, error } = await supabaseBrowser()
+        const { data: userTenants, error } = await supabaseBrowserWithCookies()
           .from('user_tenants')
           .select(`
             tenant_id,

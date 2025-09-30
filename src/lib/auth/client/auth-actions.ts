@@ -3,12 +3,12 @@
  */
 'use client';
 
-import { supabaseBrowser } from '@/lib/supabase/client';
+import { supabaseBrowserWithCookies } from '@/lib/supabase/client-with-cookies';
 import { sessionManager } from './session-manager';
 
 // Connexion par email
 export async function signInWithEmail(email: string, password: string) {
-  const supabase = supabaseBrowser();
+  const supabase = supabaseBrowserWithCookies();
   const { data, error } = await supabase.auth.signInWithPassword({
     email,
     password,
@@ -23,7 +23,7 @@ export async function signInWithEmail(email: string, password: string) {
 
 // Inscription par email
 export async function signUpWithEmail(email: string, password: string, fullName?: string) {
-  const supabase = supabaseBrowser();
+  const supabase = supabaseBrowserWithCookies();
   const { data, error } = await supabase.auth.signUp({
     email,
     password,
@@ -75,7 +75,7 @@ export async function signInWithGoogle(redirectTo?: string) {
 
 // Réinitialisation du mot de passe
 export async function resetPassword(email: string) {
-  const supabase = supabaseBrowser();
+  const supabase = supabaseBrowserWithCookies();
   const { data, error } = await supabase.auth.resetPasswordForEmail(email, {
     redirectTo: `${window.location.origin}/auth/reset-password`,
   });
@@ -89,7 +89,7 @@ export async function resetPassword(email: string) {
 
 // Mise à jour du mot de passe
 export async function updatePassword(newPassword: string) {
-  const supabase = supabaseBrowser();
+  const supabase = supabaseBrowserWithCookies();
   const { data, error } = await supabase.auth.updateUser({
     password: newPassword
   });
@@ -103,7 +103,7 @@ export async function updatePassword(newPassword: string) {
 
 // Renvoyer l'email de vérification
 export async function resendVerificationEmail(email: string) {
-  const supabase = supabaseBrowser();
+  const supabase = supabaseBrowserWithCookies();
   const { data, error } = await supabase.auth.resend({
     type: 'signup',
     email: email,

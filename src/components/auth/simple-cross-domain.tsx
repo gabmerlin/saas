@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { supabaseBrowser } from '@/lib/supabase/client';
+import { supabaseBrowserWithCookies } from '@/lib/supabase/client-with-cookies';
 import { LoadingScreen } from '@/components/ui/loading-screen';
 
 interface SimpleCrossDomainProviderProps {
@@ -14,7 +14,7 @@ export function SimpleCrossDomainProvider({ children }: SimpleCrossDomainProvide
   useEffect(() => {
     const init = async () => {
       try {
-        const supabase = supabaseBrowser();
+        const supabase = supabaseBrowserWithCookies();
         
         // Vérifier si on a une session
         const { data: { session } } = await supabase.auth.getSession();

@@ -1,10 +1,10 @@
 // lib/invitations/actions.js - Version JavaScript pour éviter les problèmes TypeScript
 'use client';
 
-import { supabaseBrowser } from '@/lib/supabase/client';
+import { supabaseBrowserWithCookies } from '@/lib/supabase/client-with-cookies';
 import { AUTH_CONFIG } from '@/lib/auth/config';
 
-const supabase = supabaseBrowser;
+const supabase = supabaseBrowserWithCookies;
 
 export async function createInvitation(data) {
   const { data: invitation, error } = await supabase()

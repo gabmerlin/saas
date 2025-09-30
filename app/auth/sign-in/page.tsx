@@ -5,7 +5,7 @@ import { useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
 import { usePageTitle } from "@/lib/hooks/use-page-title";
 import { MessageSquare, Shield, Users, Zap } from "lucide-react";
-import { supabaseBrowser } from "@/lib/supabase/client";
+import { supabaseBrowserWithCookies } from "@/lib/supabase/client-with-cookies";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -44,7 +44,7 @@ function SignInContent() {
   useEffect(() => {
     const checkSession = async () => {
       try {
-        const { data: { session } } = await supabaseBrowser().auth.getSession();
+        const { data: { session } } = await supabaseBrowserWithCookies().auth.getSession();
         if (session) {
           // L'utilisateur est déjà connecté, rediriger
           window.location.href = next;
@@ -123,7 +123,7 @@ function SignInContent() {
     try {
       
       // Utiliser l'API Supabase standard
-      const { error } = await supabaseBrowser().auth.signInWithOAuth({
+      const { error } = await supabaseBrowserWithCookies().auth.signInWithOAuth({
         provider: 'google',
         options: {
           redirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(next || '/home')}`,

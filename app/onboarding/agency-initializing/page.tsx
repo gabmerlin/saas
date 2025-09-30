@@ -5,7 +5,7 @@ import { LoadingScreen } from "@/components/ui/loading-screen";
 import { motion } from 'framer-motion';
 import { CheckCircle, Clock, AlertCircle, Loader2, Building2, Globe, Server, Shield } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { supabaseBrowser } from '@/lib/supabase/client';
+import { supabaseBrowserWithCookies } from '@/lib/supabase/client-with-cookies';
 import { usePageTitle } from '@/lib/hooks/use-page-title';
 
 interface AgencyInfo {
@@ -42,7 +42,7 @@ export default function AgencyInitializingPage() {
     const checkExistingAgency = async () => {
       try {
         // Utiliser la même méthode que OwnerGuard
-        const { data: { user }, error: userError } = await supabaseBrowser().auth.getUser();
+        const { data: { user }, error: userError } = await supabaseBrowserWithCookies().auth.getUser();
         
         if (userError || !user) {
           setError("Pas d'utilisateur authentifié");
@@ -51,7 +51,7 @@ export default function AgencyInitializingPage() {
         }
 
         // Récupérer la session pour obtenir le token d'accès
-        const { data: { session }, error: sessionError } = await supabaseBrowser().auth.getSession();
+        const { data: { session }, error: sessionError } = await supabaseBrowserWithCookies().auth.getSession();
         
         if (sessionError || !session) {
           setError("Pas de session valide");
@@ -90,7 +90,7 @@ export default function AgencyInitializingPage() {
         const checkInterval = setInterval(async () => {
           try {
             // Récupérer la session pour l'authentification
-            const { data: { session }, error: sessionError } = await supabaseBrowser().auth.getSession();
+            const { data: { session }, error: sessionError } = await supabaseBrowserWithCookies().auth.getSession();
             
             if (sessionError || !session) {
               return;

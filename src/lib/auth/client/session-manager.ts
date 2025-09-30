@@ -3,7 +3,7 @@
  */
 'use client';
 
-import { supabaseBrowser } from '@/lib/supabase/client';
+import { supabaseBrowserWithCookies } from '@/lib/supabase/client-with-cookies';
 import type { Session } from '@supabase/supabase-js';
 
 export class SessionManager {
@@ -23,7 +23,7 @@ export class SessionManager {
 
   private initialize() {
     // Écouter les changements d'état d'authentification
-    const supabase = supabaseBrowser();
+    const supabase = supabaseBrowserWithCookies();
     supabase.auth.onAuthStateChange((event: string, session: Session | null) => {
 
       // Notifier tous les listeners
@@ -49,13 +49,13 @@ export class SessionManager {
   }
 
   async getCurrentSession(): Promise<Session | null> {
-    const supabase = supabaseBrowser();
+    const supabase = supabaseBrowserWithCookies();
     const { data: { session } } = await supabase.auth.getSession();
     return session as Session | null;
   }
 
   async signOut(): Promise<void> {
-    const supabase = supabaseBrowser();
+    const supabase = supabaseBrowserWithCookies();
     await supabase.auth.signOut();
   }
 }

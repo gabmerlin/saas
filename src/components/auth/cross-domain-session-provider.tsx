@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { supabaseBrowser } from '@/lib/supabase/client';
+import { supabaseBrowserWithCookies } from '@/lib/supabase/client-with-cookies';
 import { crossDomainSync } from '@/lib/auth/cross-domain-sync';
 import { LoadingScreen } from '@/components/ui/loading-screen';
 
@@ -16,7 +16,7 @@ export function CrossDomainSessionProvider({ children }: CrossDomainSessionProvi
     const initializeCrossDomainSession = async () => {
       try {
         
-        const supabase = supabaseBrowser();
+        const supabase = supabaseBrowserWithCookies();
         
         // 1. Récupérer la session actuelle
         const currentSession = crossDomainSync.getCurrentSession();

@@ -4,7 +4,7 @@ import React, { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { CreditCard, Clock, Building2, ArrowRight, CheckCircle, AlertTriangle, Users, ClipboardList } from "lucide-react";
 import { usePageTitle } from "@/lib/hooks/use-page-title";
-import { supabaseBrowser } from "@/lib/supabase/client";
+import { supabaseBrowserWithCookies } from "@/lib/supabase/client-with-cookies";
 import BTCPayPopup from "@/components/payment/btcpay-popup";
 import { LoadingScreen } from "@/components/ui/loading-screen";
 
@@ -57,7 +57,7 @@ export default function SubscriptionRenewalPage() {
         }
 
         // Récupérer la session pour le token
-        const supabase = supabaseBrowser();
+        const supabase = supabaseBrowserWithCookies();
         const { data: { session } } = await supabase.auth.getSession();
         
         if (!session) {

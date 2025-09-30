@@ -16,7 +16,7 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { z } from "zod";
-import { supabaseBrowser } from "@/lib/supabase/client";
+import { supabaseBrowserWithCookies } from "@/lib/supabase/client-with-cookies";
 import { AuthGuard } from "@/components/auth/auth-guard";
 import { OnboardingGuard } from "@/components/auth/onboarding-guard";
 import { usePageTitle } from "@/lib/hooks/use-page-title";
@@ -560,7 +560,7 @@ const advDefaults: AdvFormExt = {
 
 
 export default function OwnerOnboardingPage() {
-  const supabase = supabaseBrowser();
+  const supabase = supabaseBrowserWithCookies();
   const router = useRouter();
   const searchParams = useSearchParams();
   

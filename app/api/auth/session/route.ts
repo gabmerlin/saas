@@ -1,12 +1,12 @@
 import { NextResponse } from "next/server";
-import { supabaseBrowser } from "@/lib/supabase/client";
+import { supabaseBrowserWithCookies } from "@/lib/supabase/client-with-cookies";
 
 export const runtime = 'nodejs';
 
 export async function GET() {
   try {
     // Cette route sera appelée côté client pour récupérer la session
-    const { data: { session }, error } = await supabaseBrowser().auth.getSession();
+    const { data: { session }, error } = await supabaseBrowserWithCookies().auth.getSession();
     
     if (error) {
       return NextResponse.json({ 
