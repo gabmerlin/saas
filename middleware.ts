@@ -4,17 +4,6 @@ import type { NextRequest } from 'next/server'
 import { getServiceClient } from '@/lib/tenants'
 
 const PUBLIC_FILE = /\.(.*)$/
-const PUBLIC_PATHS = [
-  '/auth/sign-in',
-  '/auth/sign-up', 
-  '/auth/callback',
-  '/auth/verify-email',
-  '/auth/reset-password',
-  '/invitations/accept',
-  '/debug-auth',
-  '/subscription-expired',
-  '/subscription-renewal',
-]
 
 export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl
@@ -42,50 +31,11 @@ export async function middleware(req: NextRequest) {
   res.headers.set('x-content-type-options', 'nosniff')
   res.headers.set('referrer-policy', 'strict-origin-when-cross-origin')
 
-  // Si on est sur un sous-domaine, synchroniser la session
+  // Si on est sur un sous-domaine
   if (sub) {
     res.headers.set('x-tenant-subdomain', sub)
     
-    // Synchroniser TOUS les cookies Supabase entre domaines
-    const supabaseCookieNames = [
-      'sb-ndlmzwwfwugtwpmebdog-auth-token',
-      'sb-ndlmzwwfwugtwpmebdog-auth-token.0',
-      'sb-ndlmzwwfwugtwpmebdog-auth-token.1',
-      'supabase-auth-token',
-      'sb-auth-token',
-      'cross-domain-session'
-    ];
-    
-    // Ne pas rediriger automatiquement - laisser le DashboardLayout gérer l'authentification
-    
-    supabaseCookieNames.forEach(cookieName => {
-      const cookie = req.cookies.get(cookieName);
-      if (cookie) {
-        // Cookie partagé pour TOUS les sous-domaines
-        res.cookies.set(cookieName, cookie.value, {
-          domain: `.${root}`,
-          path: '/',
-          httpOnly: false,
-          secure: process.env.NODE_ENV === 'production',
-          sameSite: 'lax',
-          maxAge: 60 * 60 * 24 * 7 // 7 jours
-        });
-        
-        // AUSSI synchroniser avec le domaine principal
-        res.cookies.set(cookieName, cookie.value, {
-          domain: root,
-          path: '/',
-          httpOnly: false,
-          secure: process.env.NODE_ENV === 'production',
-          sameSite: 'lax',
-          maxAge: 60 * 60 * 24 * 7 // 7 jours
-        });
-      }
-    });
-  }
-  
-  if (sub) {
-    // Rediriger /home vers le domaine principal si accédé depuis un sous-domaine
+    // Rediriger /home vers le domaine principal
     if (pathname === '/home') {
       const mainDomain = process.env.NODE_ENV === 'production' 
         ? 'https://qgchatting.com'
@@ -94,7 +44,7 @@ export async function middleware(req: NextRequest) {
       return NextResponse.redirect(url);
     }
     
-    // Rediriger /access-denied vers le domaine principal si accédé depuis un sous-domaine
+    // Rediriger /access-denied vers le domaine principal
     if (pathname === '/access-denied') {
       const mainDomain = process.env.NODE_ENV === 'production' 
         ? 'https://qgchatting.com'
@@ -103,13 +53,10 @@ export async function middleware(req: NextRequest) {
       return NextResponse.redirect(url);
     }
     
-    // Pas de redirection automatique pour /dashboard - laisser passer la requête
-    
     // Vérifier si l'abonnement est expiré
     try {
       const dbClient = getServiceClient()
       
-      // D'abord récupérer l'ID du tenant par subdomain
       const { data: tenant } = await dbClient
         .from('tenants')
         .select('id')
@@ -117,13 +64,11 @@ export async function middleware(req: NextRequest) {
         .single()
 
       if (tenant) {
-        // Récupérer les détails de l'abonnement
         const { data: subscriptionDetails } = await dbClient
           .rpc('get_subscription_details', { p_tenant_id: tenant.id })
           .single()
 
         if (subscriptionDetails) {
-          // Type assertion pour les détails de l'abonnement
           const subscription = subscriptionDetails as {
             is_expired: boolean;
             days_until_expiration: number;
@@ -133,7 +78,6 @@ export async function middleware(req: NextRequest) {
             plan_name: string;
           }
 
-          // Si l'abonnement est expiré, rediriger vers la page de renouvellement
           if (subscription.is_expired) {
             const mainDomain = process.env.NODE_ENV === 'production' 
               ? 'https://qgchatting.com'
@@ -144,19 +88,16 @@ export async function middleware(req: NextRequest) {
         }
       }
     } catch (error) {
-      // En cas d'erreur, continuer normalement
       console.error('Erreur lors de la vérification de l\'abonnement:', error);
     }
   }
 
-  if (sub) res.headers.set('x-tenant-subdomain', sub)
   return res
 }
 
 function extractSubdomain(host: string, rootDomain: string): string | null {
   if (!host) return null
   
-  // Si pas de rootDomain défini, utiliser des domaines par défaut
   const defaultRoots = ['qgchatting.com', 'localhost:3000', 'vercel.app']
   const roots = rootDomain ? [rootDomain, ...defaultRoots] : defaultRoots
   

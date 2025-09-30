@@ -43,18 +43,18 @@ export async function redirectToAgencyDashboard(subdomain: string): Promise<void
     return;
   }
 
-  // En développement local, rediriger vers le dashboard du domaine principal
+  // Rediriger directement vers le sous-domaine avec la session
+  const baseUrl = process.env.NODE_ENV === 'production' 
+    ? `https://${subdomain}.qgchatting.com`
+    : `http://${subdomain}.localhost:3000`;
+  
+  const targetUrl = `${baseUrl}/dashboard`;
+  
+  // En développement local, utiliser la synchronisation via URL
   if (process.env.NODE_ENV !== 'production' && window.location.hostname.includes('localhost')) {
-    // En développement, rediriger vers le dashboard du domaine principal avec le sous-domaine en paramètre
-    const mainDomain = 'http://localhost:3000';
-    const targetUrl = `${mainDomain}/subdomain/dashboard?subdomain=${subdomain}`;
-    
-    // Utiliser la synchronisation via URL pour passer la session
     await localhostSessionSync.syncSessionViaRedirect(targetUrl);
   } else {
-    // En production, redirection normale vers le sous-domaine
-    const baseUrl = `https://${subdomain}.qgchatting.com`;
-    const targetUrl = `${baseUrl}/dashboard`;
+    // En production, redirection directe
     window.location.href = targetUrl;
   }
 }

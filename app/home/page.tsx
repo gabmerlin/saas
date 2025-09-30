@@ -30,6 +30,13 @@ export default function HomePage() {
         return;
       }
 
+      // Vérifier si on a un paramètre subdomain - rediriger vers le sous-domaine
+      const subdomainParam = searchParams.get('subdomain');
+      if (subdomainParam && isAuthenticated && user) {
+        await redirectToAgencyDashboard(subdomainParam);
+        return;
+      }
+
       if (!isAuthenticated || !user) {
         setLoading(false);
         return;

@@ -57,7 +57,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
         
         const subdomain = getCurrentSubdomain();
         const redirectUrl = subdomain
-          ? `${mainDomain}/subdomain/dashboard?subdomain=${subdomain}`
+          ? `${mainDomain}/home?subdomain=${subdomain}`
           : `${mainDomain}/home`;
         
         console.log('🔄 Redirection vers:', redirectUrl);
