@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { supabaseBrowser } from '@/lib/supabase/client';
+import { supabaseBrowserWithCookies } from '@/lib/supabase/client-with-cookies';
 
 export function SessionDebug() {
   const [debugInfo, setDebugInfo] = useState<any>(null);
@@ -9,7 +9,7 @@ export function SessionDebug() {
   useEffect(() => {
     const getDebugInfo = async () => {
       try {
-        const supabase = supabaseBrowser();
+        const supabase = supabaseBrowserWithCookies();
         const { data: { session }, error } = await supabase.auth.getSession();
         
         const allCookies = document.cookie.split('; ');

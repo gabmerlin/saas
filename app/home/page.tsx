@@ -5,7 +5,7 @@ import { useSearchParams, useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { MessageSquare, Users, Shield, Zap } from "lucide-react";
-import { supabaseBrowser } from "@/lib/supabase/client";
+import { supabaseBrowserWithCookies } from "@/lib/supabase/client-with-cookies";
 import { useAuth } from "@/lib/hooks/use-auth";
 import { redirectToAgencyDashboard } from "@/lib/auth/client/agency-redirect";
 import { getUserFirstName } from "@/lib/utils/user";
@@ -52,7 +52,7 @@ export default function HomePage() {
       try {
         
         // Récupérer la session pour le token
-        const supabase = supabaseBrowser();
+        const supabase = supabaseBrowserWithCookies();
         const { data: { session } } = await supabase.auth.getSession();
         
         if (session?.access_token) {

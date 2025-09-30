@@ -3,7 +3,7 @@
 import { useEffect, useState, useRef } from 'react';
 import { useAuth } from '@/lib/hooks/use-auth';
 import { LoadingScreen } from '@/components/ui/loading-screen';
-import { supabaseBrowser } from '@/lib/supabase/client';
+import { supabaseBrowserWithCookies } from '@/lib/supabase/client-with-cookies';
 import { getCurrentSubdomain } from '@/lib/utils/cross-domain-redirect';
 import { localhostSessionSync } from '@/lib/auth/client/localhost-session-sync';
 
@@ -59,7 +59,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
         
         // Essayer de restaurer la session depuis les cookies cross-domain
         try {
-          const supabase = supabaseBrowser();
+              const supabase = supabaseBrowserWithCookies();
           
           // D'abord, forcer la restauration de session
           console.log('🔍 Tentative de restauration forcée de session...');
@@ -120,7 +120,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
           
           // Attendre un peu et vérifier à nouveau
           await new Promise(resolve => setTimeout(resolve, 1000));
-          const supabase = supabaseBrowser();
+              const supabase = supabaseBrowserWithCookies();
           const { data: { session } } = await supabase.auth.getSession();
           
           if (session) {
@@ -171,7 +171,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
         console.log('🔍 Subdomain:', subdomain);
         
         // Récupérer la session pour le token
-        const supabase = supabaseBrowser();
+              const supabase = supabaseBrowserWithCookies();
         const { data: { session } } = await supabase.auth.getSession();
         
         if (!session?.access_token) {

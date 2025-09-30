@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { supabaseBrowser } from '@/lib/supabase/client';
+import { supabaseBrowserWithCookies } from '@/lib/supabase/client-with-cookies';
 import { crossDomainLogout } from '@/lib/auth/client/cross-domain-logout';
 
 export function useAuth() {
@@ -11,7 +11,7 @@ export function useAuth() {
   const [isSigningOut, setIsSigningOut] = useState(false);
 
   useEffect(() => {
-    const supabase = supabaseBrowser();
+    const supabase = supabaseBrowserWithCookies();
     
     // Fonction pour vérifier les paramètres de déconnexion
     const checkLogoutParams = () => {

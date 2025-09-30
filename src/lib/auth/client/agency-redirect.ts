@@ -1,6 +1,6 @@
 'use client';
 
-import { supabaseBrowser } from '@/lib/supabase/client';
+import { supabaseBrowserWithCookies } from '@/lib/supabase/client-with-cookies';
 
 /**
  * Redirige vers le dashboard d'une agence
@@ -44,7 +44,7 @@ export async function redirectToAgencyDashboard(subdomain: string): Promise<void
   }
 
   // Synchroniser les cookies avec le sous-domaine avant de rediriger
-  const supabase = supabaseBrowser();
+  const supabase = supabaseBrowserWithCookies();
   const { data: { session } } = await supabase.auth.getSession();
   
   console.log('🔍 Session avant redirection:', { session: !!session, subdomain });

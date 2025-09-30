@@ -3,7 +3,7 @@
  */
 'use client';
 
-import { supabaseBrowser } from '@/lib/supabase/client';
+import { supabaseBrowserWithCookies } from '@/lib/supabase/client-with-cookies';
 
 export class CrossDomainSessionSync {
   private static instance: CrossDomainSessionSync;
@@ -24,7 +24,7 @@ export class CrossDomainSessionSync {
     
     this.isInitialized = true;
     
-    const supabase = supabaseBrowser();
+    const supabase = supabaseBrowserWithCookies();
     
     // Écouter les changements d'état d'authentification
     supabase.auth.onAuthStateChange(async (event, session) => {
@@ -204,7 +204,7 @@ export class CrossDomainSessionSync {
       const session = this.getCrossDomainSession();
       if (!session) return false;
 
-      const supabase = supabaseBrowser();
+      const supabase = supabaseBrowserWithCookies();
       const { error } = await supabase.auth.setSession({
         access_token: session.access_token,
         refresh_token: session.refresh_token
