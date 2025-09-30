@@ -3,7 +3,7 @@
  */
 'use client';
 
-import { supabaseBrowser } from '@/lib/supabase/client';
+import { supabaseBrowserWithCookies } from '@/lib/supabase/client-with-cookies';
 import { crossDomainSessionSync } from './cross-domain-session-sync';
 
 export class CrossDomainLogout {
@@ -31,7 +31,7 @@ export class CrossDomainLogout {
     this.isLoggingOut = true;
 
     try {
-      const supabase = supabaseBrowser();
+      const supabase = supabaseBrowserWithCookies();
       
       // 1. Déconnexion Supabase (sans scope global pour éviter 403)
       try {

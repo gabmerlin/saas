@@ -4,7 +4,7 @@
  */
 'use client';
 
-import { supabaseBrowser } from '@/lib/supabase/client';
+import { supabaseBrowserWithCookies } from '@/lib/supabase/client-with-cookies';
 
 export class LocalhostSessionSync {
   private static instance: LocalhostSessionSync;
@@ -32,7 +32,7 @@ export class LocalhostSessionSync {
     if (!this.isLocalhost() || typeof window === 'undefined') return;
 
     try {
-      const supabase = supabaseBrowser();
+      const supabase = supabaseBrowserWithCookies();
       const { data: { session } } = await supabase.auth.getSession();
       
       if (session) {
@@ -71,7 +71,7 @@ export class LocalhostSessionSync {
 
       const sessionData = JSON.parse(decodeURIComponent(sessionParam));
       
-      const supabase = supabaseBrowser();
+      const supabase = supabaseBrowserWithCookies();
       const { error } = await supabase.auth.setSession({
         access_token: sessionData.access_token,
         refresh_token: sessionData.refresh_token

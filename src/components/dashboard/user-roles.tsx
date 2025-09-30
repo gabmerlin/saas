@@ -23,7 +23,7 @@ export function UserRoles() {
       if (!subdomain) return;
 
       try {
-        const supabase = (await import('@/lib/supabase/client')).supabaseBrowser();
+        const supabase = (await import('@/lib/supabase/client-with-cookies')).supabaseBrowserWithCookies();
         const { data: { session } } = await supabase.auth.getSession();
         
         if (!session?.access_token) return;
