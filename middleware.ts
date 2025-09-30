@@ -3,21 +3,6 @@ import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 import { getServiceClient } from '@/lib/tenants'
 
-export const config = {
-  matcher: [
-    /*
-     * Match all request paths except for the ones starting with:
-     * - api (API routes)
-     * - _next/static (static files)
-     * - _next/image (image optimization files)
-     * - favicon.ico (favicon file)
-     */
-    '/((?!api|_next/static|_next/image|favicon.ico).*)',
-    // Explicitly include all subdomain routes
-    '/(.*)',
-  ],
-}
-
 const PUBLIC_FILE = /\.(.*)$/
 const PUBLIC_PATHS = [
   '/auth/sign-in',
@@ -32,27 +17,10 @@ const PUBLIC_PATHS = [
 ]
 
 export async function middleware(req: NextRequest) {
-  console.log('🚀 Middleware START for:', req.url)
-  
   const { pathname } = req.nextUrl
   const host = req.headers.get('host') ?? ''
   const root = process.env.NEXT_PUBLIC_ROOT_DOMAIN ?? 'qgchatting.com'
   const sub = extractSubdomain(host, root)
-  
-  console.log('🔍 Middleware - Request:', {
-    pathname,
-    host,
-    root,
-    sub,
-    url: req.url
-  })
-  
-  console.log('🔍 Middleware - extractSubdomain result:', {
-    host,
-    root,
-    sub,
-    extracted: extractSubdomain(host, root)
-  })
   
   // Ignore API, fichiers statiques, _next, etc.
   if (
@@ -70,8 +38,6 @@ export async function middleware(req: NextRequest) {
 
   // Si on est sur un sous-domaine, vérifier d'abord s'il faut rediriger pour récupérer la session
   if (sub) {
-    console.log('🔍 Middleware - Sous-domaine détecté:', sub)
-    
     const supabaseCookieNames = [
       'sb-ndlmzwwfwugtwpmebdog-auth-token',
       'sb-ndlmzwwfwugtwpmebdog-auth-token.0',
@@ -81,31 +47,14 @@ export async function middleware(req: NextRequest) {
       'cross-domain-session'
     ];
     
-    // Vérifier les cookies présents
-    const cookies = supabaseCookieNames.map(name => ({
-      name,
-      value: req.cookies.get(name)?.value || null
-    }));
-    
-    console.log('🔍 Middleware - Cookies d\'auth:', cookies)
-    
     const hasAuthCookie = supabaseCookieNames.some(name => req.cookies.get(name));
-    console.log('🔍 Middleware - Has auth cookie:', hasAuthCookie)
-    console.log('🔍 Middleware - Pathname check:', {
-      pathname,
-      isDashboard: pathname === '/dashboard',
-      isSubdomainDashboard: pathname === '/subdomain/dashboard',
-      shouldRedirect: !hasAuthCookie && (pathname === '/dashboard' || pathname === '/subdomain/dashboard')
-    })
     
     // Si pas de cookies d'auth sur le sous-domaine ET qu'on accède au dashboard, rediriger vers le domaine principal
     if (!hasAuthCookie && (pathname === '/dashboard' || pathname === '/subdomain/dashboard')) {
-      // Rediriger vers le domaine principal pour récupérer la session
       const mainDomain = process.env.NODE_ENV === 'production' 
         ? 'https://qgchatting.com'
         : 'http://localhost:3000';
       const url = new URL(`${mainDomain}/subdomain/dashboard?subdomain=${sub}`);
-      console.log('🔍 Middleware - REDIRECTION vers:', url.toString())
       return NextResponse.redirect(url);
     }
   }
@@ -209,43 +158,27 @@ export async function middleware(req: NextRequest) {
         if (subscriptionDetails) {
           // Type assertion pour les détails de l'abonnement
           const subscription = subscriptionDetails as {
-            subscription_id: string;
-            plan_name: string;
-            status: string;
-            current_period_start: string;
-            current_period_end: string;
-            days_remaining: number;
-            is_active: boolean;
-            is_expiring_soon: boolean;
             is_expired: boolean;
-          };
-
-          // Si l'abonnement est expiré, rediriger vers la page appropriée
-          if (subscription.is_expired) {
-            // Ne pas rediriger si on est déjà sur une page d'expiration
-            if (pathname === '/onboarding/subscription-expired' || pathname === '/onboarding/subscription-renewal') {
-              // Laisser passer sans redirection
-            } else {
-              // Rediriger vers subscription-renewal par défaut
-              // La page subscription-renewal vérifiera si l'utilisateur est owner
-              // et redirigera vers subscription-expired si ce n'est pas le cas
-              const url = req.nextUrl.clone()
-              url.pathname = '/onboarding/subscription-renewal'
-              return NextResponse.redirect(url)
-            }
+            days_until_expiration: number;
+            is_expiring_soon: boolean;
+            status: string;
+            days_remaining: number;
+            plan_name: string;
           }
-          
-          // Ajouter les informations d'abonnement aux headers
-          const res = NextResponse.next()
-          res.headers.set('x-tenant-subdomain', sub)
-          res.headers.set('x-subscription-status', subscription.status)
-          res.headers.set('x-subscription-expires', subscription.current_period_end)
-          res.headers.set('x-subscription-expiring-soon', subscription.is_expiring_soon.toString())
-          return res
+
+          // Si l'abonnement est expiré, rediriger vers la page de renouvellement
+          if (subscription.is_expired) {
+            const mainDomain = process.env.NODE_ENV === 'production' 
+              ? 'https://qgchatting.com'
+              : 'http://localhost:3000';
+            const url = new URL(`${mainDomain}/onboarding/subscription-renewal`);
+            return NextResponse.redirect(url);
+          }
         }
       }
     } catch (error) {
-      // En cas d'erreur, laisser passer mais ajouter le subdomain
+      // En cas d'erreur, continuer normalement
+      console.error('Erreur lors de la vérification de l\'abonnement:', error);
     }
   }
 
@@ -262,37 +195,16 @@ function extractSubdomain(host: string, rootDomain: string): string | null {
   
   const h = host.toLowerCase()
   
-  console.log('🔍 extractSubdomain debug:', {
-    host,
-    rootDomain,
-    roots,
-    h
-  })
-  
   for (const root of roots) {
     const rootLower = root.toLowerCase()
-    console.log('🔍 extractSubdomain checking root:', {
-      root,
-      rootLower,
-      h,
-      isExactMatch: h === rootLower,
-      isWwwMatch: h === `www.${rootLower}`,
-      endsWith: h.endsWith(`.${rootLower}`)
-    })
-    
     if (h === rootLower || h === `www.${rootLower}`) continue
     if (h.endsWith(`.${rootLower}`)) {
       const sub = h.slice(0, -(rootLower.length + 1))
-      console.log('🔍 extractSubdomain found subdomain:', {
-        sub,
-        isValid: sub && sub !== 'www'
-      })
       if (sub && sub !== 'www') {
         return sub
       }
     }
   }
   
-  console.log('🔍 extractSubdomain no subdomain found')
   return null
 }
