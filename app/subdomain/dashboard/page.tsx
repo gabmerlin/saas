@@ -60,10 +60,9 @@ function DashboardContent() {
         }
 
         // Récupérer les informations de l'agence
-        const agencyHostname = window.location.hostname;
-        const agencySubdomain = agencyHostname.split('.')[0];
+        const agencySubdomain = getCurrentSubdomain();
         
-        if (agencySubdomain && agencySubdomain !== 'www' && agencySubdomain !== 'qgchatting') {
+        if (agencySubdomain) {
           try {
             // Récupérer la session pour le token
             const supabase = supabaseBrowser();

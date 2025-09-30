@@ -12,6 +12,15 @@ export function isMainDomain(): boolean {
   const hostname = window.location.hostname;
   const subdomain = hostname.split('.')[0];
   
+  // En développement local, vérifier aussi les paramètres URL
+  if (hostname.includes('localhost')) {
+    const urlParams = new URLSearchParams(window.location.search);
+    const subdomainParam = urlParams.get('subdomain');
+    if (subdomainParam) {
+      return false; // On est sur un sous-domaine via paramètre URL
+    }
+  }
+  
   return !subdomain || subdomain === 'www' || subdomain === 'qgchatting' || subdomain === 'localhost';
 }
 
@@ -38,6 +47,15 @@ export function getCurrentSubdomain(): string | null {
   
   const hostname = window.location.hostname;
   const subdomain = hostname.split('.')[0];
+  
+  // En développement local, vérifier aussi les paramètres URL
+  if (hostname.includes('localhost')) {
+    const urlParams = new URLSearchParams(window.location.search);
+    const subdomainParam = urlParams.get('subdomain');
+    if (subdomainParam) {
+      return subdomainParam;
+    }
+  }
   
   if (!subdomain || subdomain === 'www' || subdomain === 'qgchatting' || subdomain === 'localhost') {
     return null;

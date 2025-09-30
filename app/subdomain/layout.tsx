@@ -5,6 +5,7 @@ import { useAuth } from '@/lib/hooks/use-auth';
 import { LoadingScreen } from '@/components/ui/loading-screen';
 import { supabaseBrowser } from '@/lib/supabase/client';
 import { getCurrentSubdomain } from '@/lib/utils/cross-domain-redirect';
+import { localhostSessionSync } from '@/lib/auth/client/localhost-session-sync';
 
 interface SubdomainLayoutProps {
   children: React.ReactNode;
@@ -24,6 +25,11 @@ export default function SubdomainLayout({ children }: SubdomainLayoutProps) {
       if (hasChecked.current) {
         console.log('⏭️ Vérification déjà effectuée, skip');
         return;
+      }
+      
+      // En développement local, essayer de restaurer la session depuis l'URL
+      if (window.location.hostname.includes('localhost')) {
+        await localhostSessionSync.initialize();
       }
       
       // Attendre que l'authentification soit chargée
