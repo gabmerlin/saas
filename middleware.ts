@@ -47,6 +47,7 @@ export async function middleware(req: NextRequest) {
     
     console.log('🔍 Middleware - Synchronisation des cookies pour le sous-domaine:', sub);
     console.log('🔍 Tous les cookies disponibles:', Object.keys(req.cookies.getAll()));
+    console.log('🔍 Détail des cookies:', req.cookies.getAll());
     
     supabaseCookieNames.forEach(cookieName => {
       const cookie = req.cookies.get(cookieName);
