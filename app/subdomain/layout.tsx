@@ -131,6 +131,14 @@ export default function SubdomainLayout({ children }: SubdomainLayoutProps) {
           console.log('✅ Utilisateur membre de l\'agence:', subdomain, 'is_owner:', userTenant.is_owner);
           console.log('✅ Définition de canAccess à true');
           setCanAccess(true);
+          
+          // Si on est sur le domaine principal avec un paramètre subdomain, rediriger vers le sous-domaine
+          if (window.location.hostname.includes('qgchatting.com') && !window.location.hostname.startsWith(subdomain + '.')) {
+            console.log('🔄 Redirection vers le sous-domaine:', subdomain);
+            const subdomainUrl = `https://${subdomain}.qgchatting.com/subdomain/dashboard`;
+            window.location.href = subdomainUrl;
+            return;
+          }
         } else {
           // L'utilisateur n'est pas membre de cette agence
           console.log('❌ Utilisateur non membre de l\'agence:', subdomain);

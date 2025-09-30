@@ -10,16 +10,16 @@ export function isMainDomain(): boolean {
   if (typeof window === 'undefined') return true;
   
   const hostname = window.location.hostname;
-  const subdomain = hostname.split('.')[0];
   
-  // En développement local, vérifier aussi les paramètres URL
-  if (hostname.includes('localhost')) {
-    const urlParams = new URLSearchParams(window.location.search);
-    const subdomainParam = urlParams.get('subdomain');
-    if (subdomainParam) {
-      return false; // On est sur un sous-domaine via paramètre URL
-    }
+  // D'abord vérifier les paramètres URL (pour les redirections cross-domain)
+  const urlParams = new URLSearchParams(window.location.search);
+  const subdomainParam = urlParams.get('subdomain');
+  if (subdomainParam) {
+    return false; // On est sur un sous-domaine via paramètre URL
   }
+  
+  // Ensuite vérifier le hostname
+  const subdomain = hostname.split('.')[0];
   
   return !subdomain || subdomain === 'www' || subdomain === 'qgchatting' || subdomain === 'localhost';
 }
@@ -46,16 +46,16 @@ export function getCurrentSubdomain(): string | null {
   if (typeof window === 'undefined') return null;
   
   const hostname = window.location.hostname;
-  const subdomain = hostname.split('.')[0];
   
-  // En développement local, vérifier aussi les paramètres URL
-  if (hostname.includes('localhost')) {
-    const urlParams = new URLSearchParams(window.location.search);
-    const subdomainParam = urlParams.get('subdomain');
-    if (subdomainParam) {
-      return subdomainParam;
-    }
+  // D'abord vérifier les paramètres URL (pour les redirections cross-domain)
+  const urlParams = new URLSearchParams(window.location.search);
+  const subdomainParam = urlParams.get('subdomain');
+  if (subdomainParam) {
+    return subdomainParam;
   }
+  
+  // Ensuite vérifier le hostname
+  const subdomain = hostname.split('.')[0];
   
   if (!subdomain || subdomain === 'www' || subdomain === 'qgchatting' || subdomain === 'localhost') {
     return null;
