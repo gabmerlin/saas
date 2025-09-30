@@ -1,7 +1,6 @@
 'use client';
 import { useEffect, useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { supabaseBrowser } from '@/lib/supabase/client';
 import { crossDomainSessionSync } from '@/lib/auth/client/cross-domain-session-sync';
 import { LoadingScreen } from '@/components/ui/loading-screen';
 import { getAppropriateRedirectUrl } from '@/lib/utils/cross-domain-redirect';
@@ -24,7 +23,8 @@ function AuthCallbackContent() {
         
         setStatus('Traitement de l\'authentification...');
         
-        const supabase = supabaseBrowser();
+        const { supabaseBrowserWithCookies } = await import('@/lib/supabase/client-with-cookies');
+        const supabase = supabaseBrowserWithCookies();
         
         // Vérifier s'il y a un code d'erreur dans l'URL
         const error = searchParams.get('error');
@@ -40,35 +40,15 @@ function AuthCallbackContent() {
           setStatus('Échange du code d\'autorisation...');
           
           try {
-            // Récupérer le code verifier stocké pour PKCE
-            const { PKCEHelper } = await import('@/lib/auth/pkce-helper');
-            const codeVerifier = PKCEHelper.getStoredCodeVerifier();
-            
-            console.log('🔍 Code verifier récupéré:', codeVerifier ? codeVerifier.substring(0, 20) + '...' : 'AUCUN');
-            
-            if (!codeVerifier) {
-              setStatus('Erreur: Code verifier manquant pour PKCE');
-              setTimeout(() => router.push('/auth/sign-in?error=auth_failed'), 2000);
-              return;
-            }
-            
-            // Utiliser le code verifier pour l'échange
-            const { error } = await supabase.auth.exchangeCodeForSession(code, {
-              codeVerifier
-            });
+            // Les auth-helpers gèrent automatiquement le PKCE
+            const { error } = await supabase.auth.exchangeCodeForSession(code);
             
             if (error) {
               console.error('❌ Erreur exchangeCodeForSession:', error);
               setStatus(`Erreur: ${error.message}`);
-              // Nettoyer le code verifier en cas d'erreur
-              PKCEHelper.clearCodeVerifier();
               setTimeout(() => router.push('/auth/sign-in?error=auth_failed'), 2000);
               return;
             }
-            
-            // Nettoyer le code verifier après utilisation
-            PKCEHelper.clearCodeVerifier();
-            console.log('✅ Code verifier nettoyé');
             
             
             // Vérifier la session créée

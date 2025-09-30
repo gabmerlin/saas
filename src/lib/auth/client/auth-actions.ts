@@ -43,17 +43,21 @@ export async function signUpWithEmail(email: string, password: string, fullName?
 
 // Connexion Google
 export async function signInWithGoogle(redirectTo?: string) {
-  const supabase = supabaseBrowser();
+  const { supabaseBrowserWithCookies } = await import('@/lib/supabase/client-with-cookies');
+  const supabase = supabaseBrowserWithCookies();
   
-  // Générer et stocker le code verifier pour PKCE
-  const { PKCEHelper } = await import('@/lib/auth/pkce-helper');
-  const codeVerifier = PKCEHelper.generateAndStore();
-  console.log('🔑 Code verifier généré:', codeVerifier.substring(0, 20) + '...');
+  // Les auth-helpers gèrent automatiquement le PKCE
+  
+  // Toujours rediriger vers www.qgchatting.com pour centraliser l'auth
+  const authCallbackUrl = `https://www.qgchatting.com/auth/callback`;
+  const finalRedirectTo = redirectTo || `${authCallbackUrl}?next=${encodeURIComponent(window.location.origin + '/dashboard')}`;
+  
+  console.log('🔄 Redirection OAuth vers:', finalRedirectTo);
   
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider: 'google',
     options: {
-      redirectTo: redirectTo || `${window.location.origin}/auth/callback`,
+      redirectTo: finalRedirectTo,
       scopes: 'email profile',
       queryParams: {
         access_type: 'offline',
