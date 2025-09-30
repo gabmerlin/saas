@@ -16,6 +16,7 @@ export default function AccessDeniedPage() {
   const [agencyInfo, setAgencyInfo] = useState<{ name: string; subdomain: string } | null>(null);
   const [loading, setLoading] = useState(true);
   const [attemptedSubdomain, setAttemptedSubdomain] = useState<string | null>(null);
+  const [reason, setReason] = useState<string | null>(null);
   
   // Définir le titre de la page
   usePageTitle("Accès refusé - QG Chatting");
@@ -27,9 +28,11 @@ export default function AccessDeniedPage() {
         const subdomainFromUrl = searchParams.get('subdomain');
         const currentSubdomain = getCurrentSubdomain();
         const subdomain = subdomainFromUrl || currentSubdomain;
+        const reasonParam = searchParams.get('reason');
         
         if (subdomain) {
           setAttemptedSubdomain(subdomain);
+          setReason(reasonParam);
           
           // Essayer de récupérer les informations de l'agence
           const response = await fetch(`/api/agency/status?subdomain=${subdomain}`);
@@ -158,10 +161,13 @@ export default function AccessDeniedPage() {
                 </motion.div>
                 
                 <h1 className="text-xl font-bold text-gray-900 mb-2">
-                  Accès refusé
+                  {reason === 'not_found' ? 'Agence introuvable' : 'Accès refusé'}
                 </h1>
                 <p className="text-gray-600 mb-4 text-sm leading-relaxed">
-                  Vous n'avez pas les permissions nécessaires pour accéder à cette agence.
+                  {reason === 'not_found' 
+                    ? `L'agence "${attemptedSubdomain}" n'existe pas ou a été supprimée.`
+                    : 'Vous n\'avez pas les permissions nécessaires pour accéder à cette agence.'
+                  }
                 </p>
                 
                 {/* Informations sur l'agence */}
@@ -184,38 +190,74 @@ export default function AccessDeniedPage() {
                 <div className="text-left mb-4">
                   <h3 className="text-sm font-semibold text-gray-900 mb-3 flex items-center">
                     <Shield className="h-4 w-4 mr-2 text-gray-600" />
-                    Pourquoi cette erreur ?
+                    {reason === 'not_found' ? 'Pourquoi cette erreur ?' : 'Pourquoi cette erreur ?'}
                   </h3>
                   <div className="space-y-2">
-                    <motion.div 
-                      className="flex items-center space-x-3 p-3 bg-red-50 rounded-lg border border-red-200 hover:bg-red-100 transition-colors"
-                      whileHover={{ scale: 1.02 }}
-                    >
-                      <div className="w-5 h-5 bg-red-100 rounded-full flex items-center justify-center flex-shrink-0">
-                        <span className="text-red-600 text-xs font-bold">1</span>
-                      </div>
-                      <p className="font-medium text-red-900 text-sm">Pas membre de cette agence</p>
-                    </motion.div>
-                    
-                    <motion.div 
-                      className="flex items-center space-x-3 p-3 bg-orange-50 rounded-lg border border-orange-200 hover:bg-orange-100 transition-colors"
-                      whileHover={{ scale: 1.02 }}
-                    >
-                      <div className="w-5 h-5 bg-orange-100 rounded-full flex items-center justify-center flex-shrink-0">
-                        <span className="text-orange-600 text-xs font-bold">2</span>
-                      </div>
-                      <p className="font-medium text-orange-900 text-sm">Invitation non acceptée</p>
-                    </motion.div>
-                    
-                    <motion.div 
-                      className="flex items-center space-x-3 p-3 bg-yellow-50 rounded-lg border border-yellow-200 hover:bg-yellow-100 transition-colors"
-                      whileHover={{ scale: 1.02 }}
-                    >
-                      <div className="w-5 h-5 bg-yellow-100 rounded-full flex items-center justify-center flex-shrink-0">
-                        <span className="text-yellow-600 text-xs font-bold">3</span>
-                      </div>
-                      <p className="font-medium text-yellow-900 text-sm">Mauvais compte connecté</p>
-                    </motion.div>
+                    {reason === 'not_found' ? (
+                      <>
+                        <motion.div 
+                          className="flex items-center space-x-3 p-3 bg-red-50 rounded-lg border border-red-200 hover:bg-red-100 transition-colors"
+                          whileHover={{ scale: 1.02 }}
+                        >
+                          <div className="w-5 h-5 bg-red-100 rounded-full flex items-center justify-center flex-shrink-0">
+                            <span className="text-red-600 text-xs font-bold">1</span>
+                          </div>
+                          <p className="font-medium text-red-900 text-sm">L'agence n'existe pas</p>
+                        </motion.div>
+                        
+                        <motion.div 
+                          className="flex items-center space-x-3 p-3 bg-orange-50 rounded-lg border border-orange-200 hover:bg-orange-100 transition-colors"
+                          whileHover={{ scale: 1.02 }}
+                        >
+                          <div className="w-5 h-5 bg-orange-100 rounded-full flex items-center justify-center flex-shrink-0">
+                            <span className="text-orange-600 text-xs font-bold">2</span>
+                          </div>
+                          <p className="font-medium text-orange-900 text-sm">L'agence a été supprimée</p>
+                        </motion.div>
+                        
+                        <motion.div 
+                          className="flex items-center space-x-3 p-3 bg-yellow-50 rounded-lg border border-yellow-200 hover:bg-yellow-100 transition-colors"
+                          whileHover={{ scale: 1.02 }}
+                        >
+                          <div className="w-5 h-5 bg-yellow-100 rounded-full flex items-center justify-center flex-shrink-0">
+                            <span className="text-yellow-600 text-xs font-bold">3</span>
+                          </div>
+                          <p className="font-medium text-yellow-900 text-sm">URL incorrecte</p>
+                        </motion.div>
+                      </>
+                    ) : (
+                      <>
+                        <motion.div 
+                          className="flex items-center space-x-3 p-3 bg-red-50 rounded-lg border border-red-200 hover:bg-red-100 transition-colors"
+                          whileHover={{ scale: 1.02 }}
+                        >
+                          <div className="w-5 h-5 bg-red-100 rounded-full flex items-center justify-center flex-shrink-0">
+                            <span className="text-red-600 text-xs font-bold">1</span>
+                          </div>
+                          <p className="font-medium text-red-900 text-sm">Pas membre de cette agence</p>
+                        </motion.div>
+                        
+                        <motion.div 
+                          className="flex items-center space-x-3 p-3 bg-orange-50 rounded-lg border border-orange-200 hover:bg-orange-100 transition-colors"
+                          whileHover={{ scale: 1.02 }}
+                        >
+                          <div className="w-5 h-5 bg-orange-100 rounded-full flex items-center justify-center flex-shrink-0">
+                            <span className="text-orange-600 text-xs font-bold">2</span>
+                          </div>
+                          <p className="font-medium text-orange-900 text-sm">Invitation non acceptée</p>
+                        </motion.div>
+                        
+                        <motion.div 
+                          className="flex items-center space-x-3 p-3 bg-yellow-50 rounded-lg border border-yellow-200 hover:bg-yellow-100 transition-colors"
+                          whileHover={{ scale: 1.02 }}
+                        >
+                          <div className="w-5 h-5 bg-yellow-100 rounded-full flex items-center justify-center flex-shrink-0">
+                            <span className="text-yellow-600 text-xs font-bold">3</span>
+                          </div>
+                          <p className="font-medium text-yellow-900 text-sm">Mauvais compte connecté</p>
+                        </motion.div>
+                      </>
+                    )}
                   </div>
                 </div>
 

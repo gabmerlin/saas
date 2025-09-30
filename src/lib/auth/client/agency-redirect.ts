@@ -10,6 +10,39 @@ export async function redirectToAgencyDashboard(subdomain: string): Promise<void
     return;
   }
 
+  // Vérifier d'abord si l'agence existe
+  try {
+    const response = await fetch(`/api/agency/status?subdomain=${subdomain}`);
+    
+    // Vérifier le status HTTP et la réponse
+    if (!response.ok || response.status === 404) {
+      // L'agence n'existe pas, rediriger vers la page d'accès refusé
+      const mainDomain = process.env.NODE_ENV === 'production' 
+        ? 'https://qgchatting.com'
+        : 'http://localhost:3000';
+      window.location.href = `${mainDomain}/access-denied?subdomain=${subdomain}&reason=not_found`;
+      return;
+    }
+    
+    const data = await response.json();
+    
+    if (!data.ok || !data.status?.agency) {
+      // L'agence n'existe pas, rediriger vers la page d'accès refusé
+      const mainDomain = process.env.NODE_ENV === 'production' 
+        ? 'https://qgchatting.com'
+        : 'http://localhost:3000';
+      window.location.href = `${mainDomain}/access-denied?subdomain=${subdomain}&reason=not_found`;
+      return;
+    }
+  } catch (error) {
+    // En cas d'erreur, rediriger vers la page d'accès refusé
+    const mainDomain = process.env.NODE_ENV === 'production' 
+      ? 'https://qgchatting.com'
+      : 'http://localhost:3000';
+    window.location.href = `${mainDomain}/access-denied?subdomain=${subdomain}&reason=not_found`;
+    return;
+  }
+
   // Construire l'URL du sous-domaine
   const baseUrl = process.env.NODE_ENV === 'production' 
     ? `https://${subdomain}.qgchatting.com`
