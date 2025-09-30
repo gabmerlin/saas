@@ -45,6 +45,11 @@ export async function signUpWithEmail(email: string, password: string, fullName?
 export async function signInWithGoogle(redirectTo?: string) {
   const supabase = supabaseBrowser();
   
+  // Générer et stocker le code verifier pour PKCE
+  const { PKCEHelper } = await import('@/lib/auth/pkce-helper');
+  const codeVerifier = PKCEHelper.generateAndStore();
+  console.log('🔑 Code verifier généré:', codeVerifier.substring(0, 20) + '...');
+  
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider: 'google',
     options: {

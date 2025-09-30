@@ -40,14 +40,35 @@ function AuthCallbackContent() {
           setStatus('Échange du code d\'autorisation...');
           
           try {
-            // Configuration minimale - laissez Supabase gérer le PKCE automatiquement
-            const { error } = await supabase.auth.exchangeCodeForSession(code);
+            // Récupérer le code verifier stocké pour PKCE
+            const { PKCEHelper } = await import('@/lib/auth/pkce-helper');
+            const codeVerifier = PKCEHelper.getStoredCodeVerifier();
             
-            if (error) {
-              setStatus(`Erreur: ${error.message}`);
+            console.log('🔍 Code verifier récupéré:', codeVerifier ? codeVerifier.substring(0, 20) + '...' : 'AUCUN');
+            
+            if (!codeVerifier) {
+              setStatus('Erreur: Code verifier manquant pour PKCE');
               setTimeout(() => router.push('/auth/sign-in?error=auth_failed'), 2000);
               return;
             }
+            
+            // Utiliser le code verifier pour l'échange
+            const { error } = await supabase.auth.exchangeCodeForSession(code, {
+              codeVerifier
+            });
+            
+            if (error) {
+              console.error('❌ Erreur exchangeCodeForSession:', error);
+              setStatus(`Erreur: ${error.message}`);
+              // Nettoyer le code verifier en cas d'erreur
+              PKCEHelper.clearCodeVerifier();
+              setTimeout(() => router.push('/auth/sign-in?error=auth_failed'), 2000);
+              return;
+            }
+            
+            // Nettoyer le code verifier après utilisation
+            PKCEHelper.clearCodeVerifier();
+            console.log('✅ Code verifier nettoyé');
             
             
             // Vérifier la session créée

@@ -19,23 +19,30 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
 
   console.log('🔄 DashboardLayout render:', { canAccess, checking, isLoading, isAuthenticated, hasChecked: hasChecked.current });
 
-  useEffect(() => {
-    const checkAgencyMembership = async () => {
-      console.log('🔍 DashboardLayout - checkAgencyMembership start:', {
-        hasChecked: hasChecked.current,
-        isLoading,
-        isAuthenticated,
-        user: !!user,
-        hostname: window.location.hostname,
-        pathname: window.location.pathname,
-        search: window.location.search
-      });
+      useEffect(() => {
+        const checkAgencyMembership = async () => {
+          console.log('🔍 DashboardLayout - checkAgencyMembership start:', {
+            hasChecked: hasChecked.current,
+            isLoading,
+            isAuthenticated,
+            user: !!user,
+            hostname: window.location.hostname,
+            pathname: window.location.pathname,
+            search: window.location.search
+          });
 
-      // Éviter les vérifications multiples
-      if (hasChecked.current) {
-        console.log('⏭️ Vérification déjà effectuée, skip');
-        return;
-      }
+          // Éviter les vérifications multiples
+          if (hasChecked.current) {
+            console.log('⏭️ Vérification déjà effectuée, skip');
+            return;
+          }
+
+          // Si on est sur le domaine principal (www.qgchatting.com), rediriger vers /home
+          if (window.location.hostname === 'www.qgchatting.com' || window.location.hostname === 'qgchatting.com') {
+            console.log('🚫 Accès à /dashboard sur le domaine principal interdit, redirection vers /home');
+            window.location.href = '/home';
+            return;
+          }
 
       // Essayer de restaurer la session depuis l'URL (pour tous les environnements)
       console.log('🔍 DashboardLayout - Initialisation session sync');
