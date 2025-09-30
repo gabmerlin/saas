@@ -13,6 +13,8 @@ export const config = {
      * - favicon.ico (favicon file)
      */
     '/((?!api|_next/static|_next/image|favicon.ico).*)',
+    // Explicitly include subdomain routes
+    '/subdomain/:path*',
   ],
 }
 
