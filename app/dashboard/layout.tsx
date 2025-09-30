@@ -75,12 +75,12 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
                   await new Promise(resolve => setTimeout(resolve, 1000));
                   return; // Relancer la vérification
                 }
-              } catch (restoreError) {
+              } catch {
                 // Erreur silencieuse
               }
             }
           }
-        } catch (err) {
+        } catch {
           // Erreur silencieuse
         }
         
@@ -96,7 +96,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
           if (session) {
             return; // Relancer la vérification
           }
-        } catch (err) {
+        } catch {
           // Erreur silencieuse
         }
         
@@ -154,7 +154,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
           
           setCanAccess(hasAccess);
         }
-      } catch (error) {
+      } catch {
         setCanAccess(false);
       } finally {
         setChecking(false);
