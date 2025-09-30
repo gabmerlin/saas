@@ -101,6 +101,13 @@ export async function middleware(req: NextRequest) {
       return NextResponse.redirect(url);
     }
     
+    // Rediriger /dashboard vers /subdomain/dashboard si accédé depuis un sous-domaine
+    if (pathname === '/dashboard') {
+      const url = new URL(req.url);
+      url.pathname = '/subdomain/dashboard';
+      return NextResponse.redirect(url);
+    }
+    
     // Vérifier l'authentification et l'appartenance à l'agence
     // Cette vérification se fait côté client dans le layout, mais on peut ajouter une vérification basique ici
     // pour éviter les accès non autorisés au niveau du serveur
