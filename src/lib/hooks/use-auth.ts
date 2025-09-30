@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { supabaseBrowserWithCookies } from '@/lib/supabase/client-with-cookies';
+import { supabaseBrowserWithCookies } from '@/lib/supabase/client-global';
 import { crossDomainLogout } from '@/lib/auth/client/cross-domain-logout';
 
 export function useAuth() {

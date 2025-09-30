@@ -23,7 +23,7 @@ function AuthCallbackContent() {
         
         setStatus('Traitement de l\'authentification...');
         
-        const { supabaseBrowserWithPKCEFixed } = await import('@/lib/supabase/client-pkce-fixed');
+        const { supabaseBrowserWithPKCEFixed } = await import('@/lib/supabase/client-global');
         const supabase = supabaseBrowserWithPKCEFixed();
         
         // Vérifier s'il y a un code d'erreur dans l'URL

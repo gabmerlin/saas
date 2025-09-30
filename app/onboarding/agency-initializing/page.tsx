@@ -5,7 +5,7 @@ import { LoadingScreen } from "@/components/ui/loading-screen";
 import { motion } from 'framer-motion';
 import { CheckCircle, Clock, AlertCircle, Loader2, Building2, Globe, Server, Shield } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { supabaseBrowserWithCookies } from '@/lib/supabase/client-with-cookies';
+import { supabaseBrowserWithCookies } from '@/lib/supabase/client-global';
 import { usePageTitle } from '@/lib/hooks/use-page-title';
 
 interface AgencyInfo {

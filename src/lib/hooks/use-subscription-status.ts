@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from 'react';
-import { supabaseBrowserWithCookies } from '@/lib/supabase/client-with-cookies';
+import { supabaseBrowserWithCookies } from '@/lib/supabase/client-global';
 
 interface SubscriptionDetails {
   subscription_id: string;

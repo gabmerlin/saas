@@ -1,6 +1,6 @@
 'use client';
 
-import { supabaseBrowserWithCookies } from '@/lib/supabase/client-with-cookies';
+import { supabaseBrowserWithCookies } from '@/lib/supabase/client-global';
 
 /**
  * Redirige vers le dashboard d'une agence

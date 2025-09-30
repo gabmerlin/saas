@@ -3,7 +3,7 @@
 import { useMemo, useState, Suspense, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
 import { z } from "zod";
-import { supabaseBrowserWithCookies } from "@/lib/supabase/client-with-cookies";
+import { supabaseBrowserWithCookies } from "@/lib/supabase/client-global";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { usePageTitle } from "@/lib/hooks/use-page-title";

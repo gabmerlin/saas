@@ -4,6 +4,11 @@ import { pkceFix } from '@/lib/auth/pkce-fix';
 let supabaseInstance: ReturnType<typeof createBrowserClient> | null = null;
 
 export const supabaseBrowserWithCookies = () => {
+  // Forcer la réinitialisation pour appliquer le fix PKCE
+  if (!supabaseInstance || !supabaseInstance.auth.signInWithOAuth.toString().includes('codeVerifier')) {
+    supabaseInstance = null;
+  }
+  
   if (!supabaseInstance) {
     supabaseInstance = createBrowserClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,

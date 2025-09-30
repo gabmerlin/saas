@@ -4,7 +4,7 @@ import React, { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { CreditCard, Clock, Building2, ArrowRight, CheckCircle, AlertTriangle, Users, ClipboardList } from "lucide-react";
 import { usePageTitle } from "@/lib/hooks/use-page-title";
-import { supabaseBrowserWithCookies } from "@/lib/supabase/client-with-cookies";
+import { supabaseBrowserWithCookies } from "@/lib/supabase/client-global";
 import BTCPayPopup from "@/components/payment/btcpay-popup";
 import { LoadingScreen } from "@/components/ui/loading-screen";
 

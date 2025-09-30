@@ -3,7 +3,7 @@
  */
 'use client';
 
-import { supabaseBrowserWithCookies } from '@/lib/supabase/client-with-cookies';
+import { supabaseBrowserWithCookies } from '@/lib/supabase/client-global';
 import type { Session } from '@supabase/supabase-js';
 
 export class SessionManager {

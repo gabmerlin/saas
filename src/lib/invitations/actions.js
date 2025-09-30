@@ -1,7 +1,7 @@
 // lib/invitations/actions.js - Version JavaScript pour éviter les problèmes TypeScript
 'use client';
 
-import { supabaseBrowserWithCookies } from '@/lib/supabase/client-with-cookies';
+import { supabaseBrowserWithCookies } from '@/lib/supabase/client-global';
 import { AUTH_CONFIG } from '@/lib/auth/config';
 
 const supabase = supabaseBrowserWithCookies;

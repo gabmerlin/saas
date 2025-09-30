@@ -3,7 +3,7 @@
 import React, { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { LoadingScreen } from "@/components/ui/loading-screen";
-import { supabaseBrowserWithCookies } from "@/lib/supabase/client-with-cookies";
+import { supabaseBrowserWithCookies } from "@/lib/supabase/client-global";
 import { motion } from "framer-motion";
 import { Building2, ArrowRight, CheckCircle, AlertTriangle, Globe } from "lucide-react";
 import { usePageTitle } from "@/lib/hooks/use-page-title";

@@ -3,7 +3,7 @@
  */
 'use client';
 
-import { supabaseBrowserWithCookies } from '@/lib/supabase/client-with-cookies';
+import { supabaseBrowserWithCookies } from '@/lib/supabase/client-global';
 
 export class CrossDomainSessionSync {
   private static instance: CrossDomainSessionSync;

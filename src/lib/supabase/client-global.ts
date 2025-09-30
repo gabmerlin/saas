@@ -1,32 +1,50 @@
 'use client';
-import { createClient as createSupabaseClient } from '@supabase/supabase-js';
-import { SUPABASE_CONFIG } from './config';
+
+import { createBrowserClient } from '@supabase/ssr';
 import { pkceFix } from '@/lib/auth/pkce-fix';
 
-let supabaseInstance: ReturnType<typeof createSupabaseClient> | null = null;
+// Instance globale avec fix PKCE intégré
+let globalSupabaseInstance: ReturnType<typeof createBrowserClient> | null = null;
 
-export const supabaseBrowser = () => {
-  // Forcer la réinitialisation pour appliquer le fix PKCE
-  if (!supabaseInstance || !supabaseInstance.auth.signInWithOAuth.toString().includes('codeVerifier')) {
-    supabaseInstance = null;
-  }
-  
-  if (!supabaseInstance) {
-    supabaseInstance = createSupabaseClient(
+export function createGlobalSupabaseClient() {
+  if (!globalSupabaseInstance) {
+    globalSupabaseInstance = createBrowserClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
       {
-        ...SUPABASE_CONFIG,
         auth: {
-          ...SUPABASE_CONFIG.auth,
           flowType: 'pkce' as const
-        }
+        },
+        cookies: {
+          get(name: string) {
+            if (typeof window !== 'undefined') {
+              return document.cookie
+                .split('; ')
+                .find(row => row.startsWith(`${name}=`))
+                ?.split('=')[1] || undefined;
+            }
+            return undefined;
+          },
+          set(name: string, value: string, options: any) {
+            if (typeof window !== 'undefined') {
+              const cookieString = `${name}=${value}; domain=.qgchatting.com; path=/; ${
+                process.env.NODE_ENV === "production" ? "secure; " : ""
+              }samesite=lax; max-age=${options?.maxAge || 60 * 60 * 24 * 7}`;
+              document.cookie = cookieString;
+            }
+          },
+          remove(name: string, options: any) {
+            if (typeof window !== 'undefined') {
+              document.cookie = `${name}=; domain=.qgchatting.com; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT`;
+            }
+          },
+        },
       }
     );
 
     // Intercepter signInWithOAuth pour gérer PKCE
-    const originalSignInWithOAuth = supabaseInstance.auth.signInWithOAuth.bind(supabaseInstance.auth);
-    supabaseInstance.auth.signInWithOAuth = async (options: any) => {
+    const originalSignInWithOAuth = globalSupabaseInstance.auth.signInWithOAuth.bind(globalSupabaseInstance.auth);
+    globalSupabaseInstance.auth.signInWithOAuth = async (options: any) => {
       try {
         // Générer et stocker le code verifier
         const codeVerifier = pkceFix.generateCodeVerifier();
@@ -60,8 +78,8 @@ export const supabaseBrowser = () => {
     };
 
     // Intercepter exchangeCodeForSession pour utiliser le code verifier
-    const originalExchangeCodeForSession = supabaseInstance.auth.exchangeCodeForSession.bind(supabaseInstance.auth);
-    supabaseInstance.auth.exchangeCodeForSession = async (code: string) => {
+    const originalExchangeCodeForSession = globalSupabaseInstance.auth.exchangeCodeForSession.bind(globalSupabaseInstance.auth);
+    globalSupabaseInstance.auth.exchangeCodeForSession = async (code: string) => {
       try {
         // Récupérer le code verifier stocké
         const codeVerifier = pkceFix.getCodeVerifier();
@@ -113,15 +131,17 @@ export const supabaseBrowser = () => {
     };
 
     // Listener pour nettoyer le code verifier
-    supabaseInstance.auth.onAuthStateChange((event: any) => {
+    globalSupabaseInstance.auth.onAuthStateChange((event: any) => {
       if (event === 'SIGNED_OUT') {
         pkceFix.clearCodeVerifier();
       }
     });
   }
-  return supabaseInstance;
-};
-
-export function createClient() {
-  return supabaseBrowser();
+  
+  return globalSupabaseInstance;
 }
+
+// Fonctions d'export pour compatibilité
+export const supabaseBrowserWithCookies = createGlobalSupabaseClient;
+export const supabaseBrowser = createGlobalSupabaseClient;
+export const supabaseBrowserWithPKCEFixed = createGlobalSupabaseClient;

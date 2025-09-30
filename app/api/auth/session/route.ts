@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { supabaseBrowserWithCookies } from "@/lib/supabase/client-with-cookies";
+import { supabaseBrowserWithCookies } from "@/lib/supabase/client-global";
 
 export const runtime = 'nodejs';
 

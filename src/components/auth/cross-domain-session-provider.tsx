@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { supabaseBrowserWithCookies } from '@/lib/supabase/client-with-cookies';
+import { supabaseBrowserWithCookies } from '@/lib/supabase/client-global';
 import { crossDomainSync } from '@/lib/auth/cross-domain-sync';
 import { LoadingScreen } from '@/components/ui/loading-screen';
 

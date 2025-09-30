@@ -5,7 +5,7 @@ import { useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
 import { usePageTitle } from "@/lib/hooks/use-page-title";
 import { MessageSquare, Shield, Users, Zap } from "lucide-react";
-import { supabaseBrowserWithPKCEFixed } from "@/lib/supabase/client-pkce-fixed";
+import { supabaseBrowserWithPKCEFixed } from "@/lib/supabase/client-global";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";

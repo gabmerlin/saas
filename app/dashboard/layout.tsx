@@ -3,7 +3,7 @@
 import { useEffect, useState, useRef } from 'react';
 import { useAuth } from '@/lib/hooks/use-auth';
 import { LoadingScreen } from '@/components/ui/loading-screen';
-import { supabaseBrowserWithCookies } from '@/lib/supabase/client-with-cookies';
+import { supabaseBrowserWithCookies } from '@/lib/supabase/client-global';
 import { getCurrentSubdomain } from '@/lib/utils/cross-domain-redirect';
 import { localhostSessionSync } from '@/lib/auth/client/localhost-session-sync';
 
