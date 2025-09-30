@@ -47,9 +47,9 @@ export function createGlobalSupabaseClient() {
   return globalSupabaseInstance;
 }
 
-// Rediriger vers le client force-implicit
+// Rediriger vers le client PKCE correct
 export { 
-  supabaseForceImplicit as supabaseBrowserWithCookies,
-  supabaseForceImplicit as supabaseBrowser,
-  supabaseForceImplicit as supabaseBrowserWithPKCEFixed
-} from './client-force-implicit';
+  supabasePKCECorrect as supabaseBrowserWithCookies,
+  supabasePKCECorrect as supabaseBrowser,
+  supabasePKCECorrect as supabaseBrowserWithPKCEFixed
+} from './client-pkce-correct';

@@ -60,6 +60,8 @@ export function createForceImplicitClient() {
             code_challenge: undefined,
             code_challenge_method: undefined,
             code_verifier: undefined,
+            // Supprimer access_type offline car incompatible avec response_type token
+            access_type: undefined,
             // Forcer le flow implicit
             response_type: 'token'
           }
