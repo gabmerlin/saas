@@ -63,6 +63,14 @@ export async function redirectToAgencyDashboard(subdomain: string): Promise<void
     console.log('🔍 Synchronisation des cookies...');
     console.log('🔍 Tous les cookies disponibles:', document.cookie);
     
+    // Analyser chaque cookie individuellement
+    const allCookies = document.cookie.split('; ');
+    console.log('🔍 Analyse détaillée des cookies:');
+    allCookies.forEach(cookie => {
+      const [name, value] = cookie.split('=');
+      console.log(`  - ${name}: ${value ? value.substring(0, 30) + '...' : 'vide'}`);
+    });
+    
     cookieNames.forEach(cookieName => {
       const cookieValue = document.cookie
         .split('; ')

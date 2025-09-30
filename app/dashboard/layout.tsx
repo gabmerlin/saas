@@ -53,6 +53,9 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
         // Essayer de restaurer la session depuis les cookies cross-domain
         try {
           const supabase = supabaseBrowser();
+          
+          // D'abord, forcer la restauration de session
+          console.log('🔍 Tentative de restauration forcée de session...');
           const { data: { session }, error } = await supabase.auth.getSession();
           
           console.log('🔍 Session trouvée:', { session: !!session, error });
@@ -67,6 +70,36 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
             if (newSession) {
               console.log('✅ Session confirmée après attente');
               return; // Relancer la vérification
+            }
+          } else {
+            // Essayer de forcer la restauration depuis les cookies du navigateur
+            console.log('🔍 Tentative de restauration depuis les cookies du navigateur...');
+            
+            // Récupérer tous les cookies
+            const allCookies = document.cookie.split('; ');
+            console.log('🔍 Cookies disponibles sur le sous-domaine:', allCookies);
+            
+            // Chercher les cookies Supabase
+            const supabaseCookies = allCookies.filter(cookie => 
+              cookie.includes('sb-') || 
+              cookie.includes('supabase') || 
+              cookie.includes('auth-token')
+            );
+            
+            console.log('🔍 Cookies Supabase trouvés:', supabaseCookies);
+            
+            if (supabaseCookies.length > 0) {
+              // Essayer de restaurer la session manuellement
+              try {
+                const { data: { session: restoredSession } } = await supabase.auth.getSession();
+                if (restoredSession) {
+                  console.log('✅ Session restaurée manuellement');
+                  await new Promise(resolve => setTimeout(resolve, 1000));
+                  return; // Relancer la vérification
+                }
+              } catch (restoreError) {
+                console.log('❌ Erreur lors de la restauration manuelle:', restoreError);
+              }
             }
           }
         } catch (err) {
