@@ -62,6 +62,7 @@ export async function redirectToAgencyDashboard(subdomain: string): Promise<void
     ];
     
     console.log('🔍 Synchronisation des cookies...');
+    console.log('🔍 Tous les cookies disponibles:', document.cookie);
     
     cookieNames.forEach(cookieName => {
       const cookieValue = document.cookie
@@ -73,11 +74,32 @@ export async function redirectToAgencyDashboard(subdomain: string): Promise<void
         // Cookie pour le sous-domaine
         const cookieString = `${cookieName}=${cookieValue}; domain=.qgchatting.com; path=/; secure; samesite=lax; max-age=${60 * 60 * 24 * 7}`;
         document.cookie = cookieString;
-        console.log('✅ Cookie défini:', cookieName);
+        console.log('✅ Cookie défini:', cookieName, 'valeur:', cookieValue.substring(0, 20) + '...');
       } else {
         console.log('❌ Cookie non trouvé:', cookieName);
       }
     });
+    
+    // Chercher d'autres cookies Supabase
+    const allCookies = document.cookie.split('; ');
+    const supabaseCookies = allCookies.filter(cookie => 
+      cookie.includes('sb-') || 
+      cookie.includes('supabase') || 
+      cookie.includes('auth-token')
+    );
+    
+    if (supabaseCookies.length > 0) {
+      console.log('🔍 Cookies Supabase supplémentaires trouvés:', supabaseCookies);
+      
+      supabaseCookies.forEach(cookie => {
+        const [name, value] = cookie.split('=');
+        if (name && value) {
+          const cookieString = `${name}=${value}; domain=.qgchatting.com; path=/; secure; samesite=lax; max-age=${60 * 60 * 24 * 7}`;
+          document.cookie = cookieString;
+          console.log('✅ Cookie supplémentaire défini:', name);
+        }
+      });
+    }
     
     // Attendre un peu pour que les cookies soient définis
     await new Promise(resolve => setTimeout(resolve, 1000));
