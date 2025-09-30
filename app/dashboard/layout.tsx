@@ -132,9 +132,8 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
           const data = await response.json();
           console.log('✅ Données API agency/status:', data);
           
-          // Vérifier si l'utilisateur a accès (owner ou membre)
-          const hasAccess = data.status?.user_roles?.includes('owner') || 
-                           (data.status?.user_roles && data.status.user_roles.length > 0);
+          // Vérifier si l'utilisateur a accès (owner, admin, manager, employee, marketing)
+          const hasAccess = data.status?.user_roles && data.status.user_roles.length > 0;
           
           console.log('🔍 Vérification d\'accès:', { 
             userRoles: data.status?.user_roles, 
