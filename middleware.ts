@@ -81,9 +81,9 @@ export async function middleware(req: NextRequest) {
       }
     });
     
-    // Si pas de cookies d'auth sur le sous-domaine, essayer de les récupérer depuis le domaine principal
+    // Si pas de cookies d'auth sur le sous-domaine ET qu'on accède au dashboard, rediriger vers le domaine principal
     const hasAuthCookie = supabaseCookieNames.some(name => req.cookies.get(name));
-    if (!hasAuthCookie) {
+    if (!hasAuthCookie && (pathname === '/dashboard' || pathname === '/subdomain/dashboard')) {
       // Rediriger vers le domaine principal pour récupérer la session
       const mainDomain = process.env.NODE_ENV === 'production' 
         ? 'https://qgchatting.com'
