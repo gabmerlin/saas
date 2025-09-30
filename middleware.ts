@@ -80,6 +80,17 @@ export async function middleware(req: NextRequest) {
         });
       }
     });
+    
+    // Si pas de cookies d'auth sur le sous-domaine, essayer de les récupérer depuis le domaine principal
+    const hasAuthCookie = supabaseCookieNames.some(name => req.cookies.get(name));
+    if (!hasAuthCookie) {
+      // Rediriger vers le domaine principal pour récupérer la session
+      const mainDomain = process.env.NODE_ENV === 'production' 
+        ? 'https://qgchatting.com'
+        : 'http://localhost:3000';
+      const url = new URL(`${mainDomain}/subdomain/dashboard?subdomain=${sub}`);
+      return NextResponse.redirect(url);
+    }
   }
   
   if (sub) {
