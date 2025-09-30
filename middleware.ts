@@ -56,17 +56,7 @@ export async function middleware(req: NextRequest) {
       'cross-domain-session'
     ];
     
-    // Vérifier si on a des cookies d'auth sur le sous-domaine
-    const hasAuthCookie = supabaseCookieNames.some(name => req.cookies.get(name));
-    
-    if (!hasAuthCookie) {
-      // Pas de cookies d'auth, rediriger vers le domaine principal pour les récupérer
-      const mainDomain = process.env.NODE_ENV === 'production' 
-        ? 'https://qgchatting.com'
-        : 'http://localhost:3000';
-      const url = new URL(`${mainDomain}/subdomain/dashboard?subdomain=${sub}`);
-      return NextResponse.redirect(url);
-    }
+    // Ne pas rediriger automatiquement - laisser le DashboardLayout gérer l'authentification
     
     supabaseCookieNames.forEach(cookieName => {
       const cookie = req.cookies.get(cookieName);

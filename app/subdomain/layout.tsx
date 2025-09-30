@@ -132,43 +132,27 @@ export default function SubdomainLayout({ children }: SubdomainLayoutProps) {
           console.log('✅ Définition de canAccess à true');
           setCanAccess(true);
           
-          // Si on est sur le domaine principal avec un paramètre subdomain, synchroniser les cookies et rediriger vers le sous-domaine
+          // Si on est sur le domaine principal avec un paramètre subdomain, rediriger vers le sous-domaine avec la session
           if (window.location.hostname.includes('qgchatting.com') && !window.location.hostname.startsWith(subdomain + '.')) {
-            console.log('🔄 Synchronisation des cookies et redirection vers le sous-domaine:', subdomain);
+            console.log('🔄 Redirection vers le sous-domaine avec session:', subdomain);
             
-            // Synchroniser les cookies avec le sous-domaine
+            // Récupérer la session et la passer en paramètre URL
             const supabase = supabaseBrowser();
             const { data: { session } } = await supabase.auth.getSession();
             
+            let subdomainUrl = `https://${subdomain}.qgchatting.com/dashboard`;
+            
             if (session) {
-              // Définir les cookies pour le sous-domaine
-              const cookieNames = [
-                'sb-ndlmzwwfwugtwpmebdog-auth-token',
-                'sb-ndlmzwwfwugtwpmebdog-auth-token.0',
-                'sb-ndlmzwwfwugtwpmebdog-auth-token.1',
-                'supabase-auth-token',
-                'sb-auth-token',
-                'cross-domain-session'
-              ];
-              
-              cookieNames.forEach(cookieName => {
-                const cookieValue = document.cookie
-                  .split('; ')
-                  .find(row => row.startsWith(`${cookieName}=`))
-                  ?.split('=')[1];
-                
-                if (cookieValue) {
-                  // Cookie pour le sous-domaine
-                  document.cookie = `${cookieName}=${cookieValue}; domain=.qgchatting.com; path=/; secure; samesite=lax; max-age=${60 * 60 * 24 * 7}`;
-                }
-              });
-              
-              // Attendre un peu pour que les cookies soient définis
-              await new Promise(resolve => setTimeout(resolve, 500));
+              // Passer la session en paramètre URL pour la synchronisation
+              const sessionData = encodeURIComponent(JSON.stringify({
+                access_token: session.access_token,
+                refresh_token: session.refresh_token,
+                expires_at: session.expires_at,
+                user: session.user
+              }));
+              subdomainUrl += `?session=${sessionData}`;
             }
             
-            // Rediriger vers le sous-domaine
-            const subdomainUrl = `https://${subdomain}.qgchatting.com/dashboard`;
             window.location.href = subdomainUrl;
             return;
           }
