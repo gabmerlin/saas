@@ -46,7 +46,7 @@ export async function middleware(req: NextRequest) {
     ];
     
     console.log('🔍 Middleware - Synchronisation des cookies pour le sous-domaine:', sub);
-    console.log('🔍 Tous les cookies disponibles:', Array.from(req.cookies.keys()));
+    console.log('🔍 Tous les cookies disponibles:', Object.keys(req.cookies.getAll()));
     
     supabaseCookieNames.forEach(cookieName => {
       const cookie = req.cookies.get(cookieName);
@@ -77,7 +77,7 @@ export async function middleware(req: NextRequest) {
     });
     
     // Chercher d'autres cookies Supabase qui pourraient exister
-    const allCookies = Array.from(req.cookies.keys());
+    const allCookies = Object.keys(req.cookies.getAll());
     const supabaseCookies = allCookies.filter(name => 
       name.includes('sb-') || 
       name.includes('supabase') || 

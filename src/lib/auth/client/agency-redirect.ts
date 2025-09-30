@@ -1,6 +1,5 @@
 'use client';
 
-import { localhostSessionSync } from './localhost-session-sync';
 import { supabaseBrowser } from '@/lib/supabase/client';
 
 /**
@@ -35,7 +34,7 @@ export async function redirectToAgencyDashboard(subdomain: string): Promise<void
       window.location.href = `${mainDomain}/access-denied?subdomain=${subdomain}&reason=not_found`;
       return;
     }
-  } catch (error) {
+  } catch {
     // En cas d'erreur, rediriger vers la page d'accès refusé
     const mainDomain = process.env.NODE_ENV === 'production' 
       ? 'https://qgchatting.com'

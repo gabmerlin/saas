@@ -69,8 +69,8 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
               return; // Relancer la vérification
             }
           }
-        } catch (error) {
-          console.log('❌ Impossible de restaurer la session:', error);
+        } catch (err) {
+          console.log('❌ Impossible de restaurer la session:', err);
         }
         
         // Essayer de forcer la restauration de session depuis l'URL
@@ -87,8 +87,8 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
             console.log('✅ Session restaurée depuis l\'URL');
             return; // Relancer la vérification
           }
-        } catch (error) {
-          console.log('❌ Impossible de restaurer depuis l\'URL:', error);
+        } catch (err) {
+          console.log('❌ Impossible de restaurer depuis l\'URL:', err);
         }
         
         // Si toujours pas authentifié, rediriger vers le domaine principal
