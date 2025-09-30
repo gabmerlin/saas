@@ -1,23 +1,40 @@
-// Script pour forcer le nettoyage du cache du navigateur
+// Script pour forcer le nettoyage COMPLET du cache du navigateur
 (function() {
-  // Supprimer tous les tokens Supabase du localStorage
-  const keysToRemove = [];
-  for (let i = 0; i < localStorage.length; i++) {
-    const key = localStorage.key(i);
-    if (key && (key.includes('supabase') || key.includes('auth'))) {
-      keysToRemove.push(key);
-    }
-  }
+  console.log('🧹 Nettoyage complet du cache...');
   
-  keysToRemove.forEach(key => {
-    localStorage.removeItem(key);
-  });
+  // 1. Supprimer TOUT du localStorage
+  localStorage.clear();
+  console.log('✅ localStorage vidé');
   
-  // Supprimer tous les cookies Supabase
+  // 2. Supprimer TOUT du sessionStorage
+  sessionStorage.clear();
+  console.log('✅ sessionStorage vidé');
+  
+  // 3. Supprimer tous les cookies
   document.cookie.split(";").forEach(function(c) { 
-    document.cookie = c.replace(/^ +/, "").replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/;domain=.qgchatting.com"); 
+    const cookie = c.replace(/^ +/, "").split('=')[0];
+    document.cookie = cookie + "=;expires=" + new Date().toUTCString() + ";path=/";
+    document.cookie = cookie + "=;expires=" + new Date().toUTCString() + ";path=/;domain=.qgchatting.com";
+    document.cookie = cookie + "=;expires=" + new Date().toUTCString() + ";path=/;domain=www.qgchatting.com";
   });
+  console.log('✅ Cookies supprimés');
   
-  // Forcer le rechargement de la page
+  // 4. Supprimer le cache du service worker si présent
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.getRegistrations().then(function(registrations) {
+      for(let registration of registrations) {
+        registration.unregister();
+      }
+    });
+  }
+  console.log('✅ Service workers supprimés');
+  
+  // 5. Forcer le rechargement avec cache bypass
+  console.log('🔄 Rechargement avec bypass cache...');
   window.location.reload(true);
+  
+  // 6. Fallback si reload ne fonctionne pas
+  setTimeout(() => {
+    window.location.href = window.location.origin + '?cache_cleared=' + Date.now();
+  }, 1000);
 })();

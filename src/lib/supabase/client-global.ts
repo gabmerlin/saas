@@ -47,7 +47,9 @@ export function createGlobalSupabaseClient() {
   return globalSupabaseInstance;
 }
 
-// Fonctions d'export pour compatibilité
-export const supabaseBrowserWithCookies = createGlobalSupabaseClient;
-export const supabaseBrowser = createGlobalSupabaseClient;
-export const supabaseBrowserWithPKCEFixed = createGlobalSupabaseClient;
+// Rediriger vers le client force-implicit
+export { 
+  supabaseForceImplicit as supabaseBrowserWithCookies,
+  supabaseForceImplicit as supabaseBrowser,
+  supabaseForceImplicit as supabaseBrowserWithPKCEFixed
+} from './client-force-implicit';

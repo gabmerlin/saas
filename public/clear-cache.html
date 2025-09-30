@@ -1,12 +1,136 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Nettoyage du Cache - PKCE Fix</title>
+    <title>🧹 Nettoyage du Cache - Fix PKCE</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            padding: 50px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            margin: 0;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+        .container {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 30px;
+            border-radius: 15px;
+            backdrop-filter: blur(10px);
+            max-width: 500px;
+            margin: 0 auto;
+        }
+        h1 { font-size: 2.5em; margin-bottom: 20px; }
+        .status { font-size: 1.2em; margin: 10px 0; }
+        .success { color: #4ade80; }
+        .error { color: #f87171; }
+        .info { color: #60a5fa; }
+        .progress { 
+            width: 100%; 
+            height: 10px; 
+            background: rgba(255,255,255,0.2); 
+            border-radius: 5px; 
+            margin: 20px 0; 
+            overflow: hidden;
+        }
+        .progress-bar { 
+            height: 100%; 
+            background: linear-gradient(90deg, #4ade80, #60a5fa); 
+            width: 0%; 
+            transition: width 0.3s ease;
+        }
+    </style>
 </head>
 <body>
-    <h1>Nettoyage du cache en cours...</h1>
-    <p>Suppression des tokens PKCE et rechargement de la page...</p>
+    <div class="container">
+        <h1>🧹 Nettoyage du Cache</h1>
+        <div id="status" class="status">Initialisation...</div>
+        <div class="progress">
+            <div id="progress" class="progress-bar"></div>
+        </div>
+        <div id="details"></div>
+    </div>
     
-    <script src="/clear-cache.js"></script>
+    <script>
+        let progress = 0;
+        const progressBar = document.getElementById('progress');
+        const status = document.getElementById('status');
+        const details = document.getElementById('details');
+        
+        function updateProgress(percent, message, className = 'info') {
+            progress = percent;
+            progressBar.style.width = percent + '%';
+            status.innerHTML = message;
+            status.className = 'status ' + className;
+        }
+        
+        function addDetail(message, className = 'info') {
+            details.innerHTML += '<div class="' + className + '">' + message + '</div>';
+        }
+        
+        // Démarrer le nettoyage
+        setTimeout(() => {
+            updateProgress(10, 'Suppression localStorage...', 'info');
+            addDetail('🗑️ Nettoyage du localStorage...');
+            
+            setTimeout(() => {
+                localStorage.clear();
+                updateProgress(30, 'localStorage vidé ✅', 'success');
+                addDetail('✅ localStorage complètement vidé');
+                
+                setTimeout(() => {
+                    updateProgress(40, 'Suppression sessionStorage...', 'info');
+                    addDetail('🗑️ Nettoyage du sessionStorage...');
+                    
+                    setTimeout(() => {
+                        sessionStorage.clear();
+                        updateProgress(60, 'sessionStorage vidé ✅', 'success');
+                        addDetail('✅ sessionStorage complètement vidé');
+                        
+                        setTimeout(() => {
+                            updateProgress(70, 'Suppression cookies...', 'info');
+                            addDetail('🍪 Nettoyage des cookies...');
+                            
+                            // Supprimer tous les cookies
+                            document.cookie.split(";").forEach(function(c) { 
+                                const cookie = c.replace(/^ +/, "").split('=')[0];
+                                document.cookie = cookie + "=;expires=" + new Date().toUTCString() + ";path=/";
+                                document.cookie = cookie + "=;expires=" + new Date().toUTCString() + ";path=/;domain=.qgchatting.com";
+                                document.cookie = cookie + "=;expires=" + new Date().toUTCString() + ";path=/;domain=www.qgchatting.com";
+                            });
+                            
+                            updateProgress(85, 'Cookies supprimés ✅', 'success');
+                            addDetail('✅ Tous les cookies supprimés');
+                            
+                            setTimeout(() => {
+                                updateProgress(95, 'Suppression service workers...', 'info');
+                                addDetail('⚙️ Nettoyage des service workers...');
+                                
+                                if ('serviceWorker' in navigator) {
+                                    navigator.serviceWorker.getRegistrations().then(function(registrations) {
+                                        for(let registration of registrations) {
+                                            registration.unregister();
+                                        }
+                                    });
+                                }
+                                
+                                updateProgress(100, 'Cache nettoyé ! Redirection...', 'success');
+                                addDetail('✅ Cache complètement nettoyé !');
+                                addDetail('🔄 Redirection vers l\'application...');
+                                
+                                setTimeout(() => {
+                                    window.location.href = window.location.origin + '/home?cache_cleared=' + Date.now();
+                                }, 2000);
+                                
+                            }, 500);
+                        }, 500);
+                    }, 500);
+                }, 500);
+            }, 500);
+        }, 1000);
+    </script>
 </body>
 </html>

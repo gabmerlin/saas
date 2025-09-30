@@ -53,7 +53,7 @@ export const SUPABASE_CONFIG = {
     autoRefreshToken: true,
     detectSessionInUrl: true,
     debug: false, // Désactiver tous les logs de debug
-    flowType: 'pkce' as const
+    flowType: 'implicit' as const
   },
   global: {
     headers: {
@@ -69,7 +69,7 @@ export const SUPABASE_SERVER_CONFIG = {
     autoRefreshToken: false,
     detectSessionInUrl: false,
     debug: false, // Désactiver tous les logs de debug
-    flowType: 'pkce' as const
+    flowType: 'implicit' as const
   },
   global: {
     headers: {
