@@ -99,41 +99,49 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
           return;
         }
 
-        // Vérifier si l'utilisateur est membre de cette agence
-        console.log('🔍 Exécution de la requête Supabase...');
+        // Utiliser l'API /api/agency/status pour vérifier l'accès
+        console.log('🔍 Vérification via API agency/status...');
         console.log('🔍 User ID:', user.id);
         console.log('🔍 Subdomain:', subdomain);
         
-        const { data: userTenants, error } = await supabaseBrowser()
-          .from('user_tenants')
-          .select(`
-            tenant_id,
-            is_owner,
-            tenants!inner(
-              id,
-              name,
-              subdomain
-            )
-          `)
-          .eq('user_id', user.id)
-          .eq('tenants.subdomain', subdomain);
-          
-        console.log('🔍 Résultat de la requête Supabase:', { userTenants, error });
-
-        if (error) {
-          console.error('Erreur lors de la vérification de l\'appartenance:', error);
+        // Récupérer la session pour le token
+        const supabase = supabaseBrowser();
+        const { data: { session } } = await supabase.auth.getSession();
+        
+        if (!session?.access_token) {
+          console.log('❌ Pas de token d\'accès disponible');
           setCanAccess(false);
-        } else if (userTenants && userTenants.length > 0) {
-          // L'utilisateur est membre de cette agence
-          const userTenant = userTenants[0] as any;
-          console.log('✅ Utilisateur membre de l\'agence:', subdomain, 'is_owner:', userTenant.is_owner);
-          console.log('✅ Définition de canAccess à true');
-          setCanAccess(true);
+          setChecking(false);
+          hasChecked.current = true;
+          return;
+        }
+        
+        const response = await fetch(`/api/agency/status?subdomain=${subdomain}`, {
+          headers: {
+            'Authorization': `Bearer ${session.access_token}`,
+            'x-session-token': session.access_token
+          }
+        });
+        
+        console.log('🔍 Réponse API agency/status:', response.status);
+        
+        if (!response.ok) {
+          console.log('❌ Erreur API agency/status:', response.status);
+          setCanAccess(false);
         } else {
-          // L'utilisateur n'est pas membre de cette agence
-          console.log('❌ Utilisateur non membre de l\'agence:', subdomain);
-          console.log('🔍 Résultat de la requête:', { userTenants, error });
-          setCanAccess(false);
+          const data = await response.json();
+          console.log('✅ Données API agency/status:', data);
+          
+          // Vérifier si l'utilisateur a accès (owner ou membre)
+          const hasAccess = data.status?.user_roles?.includes('owner') || 
+                           (data.status?.user_roles && data.status.user_roles.length > 0);
+          
+          console.log('🔍 Vérification d\'accès:', { 
+            userRoles: data.status?.user_roles, 
+            hasAccess 
+          });
+          
+          setCanAccess(hasAccess);
         }
       } catch (error) {
         console.error('Erreur lors de la vérification de l\'appartenance:', error);
