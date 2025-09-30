@@ -40,29 +40,14 @@ function AuthCallbackContent() {
           setStatus('Échange du code d\'autorisation...');
           
           try {
-            // Récupérer le code verifier stocké pour PKCE
-            const { PKCEHelper } = await import('@/lib/auth/pkce-helper');
-            const codeVerifier = PKCEHelper.getStoredCodeVerifier();
-            
-            if (!codeVerifier) {
-              setStatus('Erreur: Code verifier manquant pour PKCE');
-              setTimeout(() => router.push('/auth/sign-in?error=auth_failed'), 2000);
-              return;
-            }
-            
-            // Configuration minimale - laissez Supabase gérer
+            // Configuration minimale - laissez Supabase gérer le PKCE automatiquement
             const { error } = await supabase.auth.exchangeCodeForSession(code);
             
             if (error) {
               setStatus(`Erreur: ${error.message}`);
-              // Nettoyer le code verifier en cas d'erreur
-              PKCEHelper.clearCodeVerifier();
               setTimeout(() => router.push('/auth/sign-in?error=auth_failed'), 2000);
               return;
             }
-            
-            // Nettoyer le code verifier après utilisation
-            PKCEHelper.clearCodeVerifier();
             
             
             // Vérifier la session créée
@@ -75,13 +60,52 @@ function AuthCallbackContent() {
             }
             
             if (session) {
+              console.log('✅ Session créée avec succès:', {
+                userId: session.user.id,
+                email: session.user.email
+              });
               setStatus('Connexion réussie !');
               
               // Synchroniser la session vers tous les domaines
               await crossDomainSessionSync.syncSessionToAllDomains(session);
               
-              setTimeout(() => {
+              setTimeout(async () => {
                 const next = searchParams.get('next') || '/home';
+                
+                // Si l'utilisateur veut aller au dashboard, vérifier s'il a une agence
+                if (next === '/dashboard') {
+                  try {
+                    // Vérifier si l'utilisateur a une agence existante
+                    const agencyResponse = await fetch('/api/auth/check-existing-agency', {
+                      headers: {
+                        'Authorization': `Bearer ${session.access_token}`,
+                        'x-session-token': session.access_token
+                      }
+                    });
+                    
+                    const agencyData = await agencyResponse.json();
+                    
+                    if (agencyData.ok && agencyData.hasExistingAgency && agencyData.agency) {
+                      // Rediriger vers le sous-domaine de l'agence
+                      console.log('🏢 Agence trouvée, redirection vers:', agencyData.agency.subdomain);
+                      const { redirectToAgencyDashboard } = await import('@/lib/auth/client/agency-redirect');
+                      await redirectToAgencyDashboard(agencyData.agency.subdomain);
+                      return;
+                    } else {
+                      // Pas d'agence, rediriger vers l'onboarding
+                      console.log('❌ Pas d\'agence trouvée, redirection vers onboarding');
+                      router.push('/onboarding/owner');
+                      return;
+                    }
+                  } catch (error) {
+                    console.error('Erreur lors de la vérification de l\'agence:', error);
+                    // En cas d'erreur, rediriger vers la page d'accueil
+                    router.push('/home');
+                    return;
+                  }
+                }
+                
+                // Pour les autres redirections, utiliser la logique normale
                 const redirectUrl = getAppropriateRedirectUrl(next);
                 if (redirectUrl.startsWith('http')) {
                   window.location.href = redirectUrl;
