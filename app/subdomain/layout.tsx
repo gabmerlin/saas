@@ -50,10 +50,35 @@ export default function SubdomainLayout({ children }: SubdomainLayoutProps) {
       }
 
       if (!user || !isAuthenticated) {
-        console.log('❌ Utilisateur non authentifié:', { user: !!user, isAuthenticated });
-        setCanAccess(false);
-        setChecking(false);
-        hasChecked.current = true;
+        console.log('❌ Utilisateur non authentifié, tentative de restauration de session:', { user: !!user, isAuthenticated });
+        
+        // Essayer de restaurer la session depuis les cookies cross-domain
+        try {
+          const supabase = supabaseBrowser();
+          const { data: { session }, error } = await supabase.auth.getSession();
+          
+          if (session && !error) {
+            console.log('✅ Session restaurée depuis les cookies');
+            // Attendre un peu pour que le hook useAuth se mette à jour
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            return; // Relancer la vérification
+          }
+        } catch (error) {
+          console.log('❌ Impossible de restaurer la session:', error);
+        }
+        
+        // Si toujours pas authentifié, rediriger vers le domaine principal
+        const mainDomain = window.location.hostname.includes('localhost')
+          ? 'http://localhost:3000'
+          : 'https://qgchatting.com';
+        
+        const subdomain = getCurrentSubdomain();
+        const redirectUrl = subdomain
+          ? `${mainDomain}/subdomain/dashboard?subdomain=${subdomain}`
+          : `${mainDomain}/home`;
+        
+        console.log('🔄 Redirection vers:', redirectUrl);
+        window.location.href = redirectUrl;
         return;
       }
 
@@ -78,6 +103,9 @@ export default function SubdomainLayout({ children }: SubdomainLayoutProps) {
 
         // Vérifier si l'utilisateur est membre de cette agence
         console.log('🔍 Exécution de la requête Supabase...');
+        console.log('🔍 User ID:', user.id);
+        console.log('🔍 Subdomain:', subdomain);
+        
         const { data: userTenants, error } = await supabaseBrowser()
           .from('user_tenants')
           .select(`

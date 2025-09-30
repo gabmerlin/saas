@@ -36,29 +36,6 @@ export async function middleware(req: NextRequest) {
     return NextResponse.next()
   }
 
-  // Si on est sur un sous-domaine, vérifier d'abord s'il faut rediriger pour récupérer la session
-  if (sub) {
-    const supabaseCookieNames = [
-      'sb-ndlmzwwfwugtwpmebdog-auth-token',
-      'sb-ndlmzwwfwugtwpmebdog-auth-token.0',
-      'sb-ndlmzwwfwugtwpmebdog-auth-token.1',
-      'supabase-auth-token',
-      'sb-auth-token',
-      'cross-domain-session'
-    ];
-    
-    const hasAuthCookie = supabaseCookieNames.some(name => req.cookies.get(name));
-    
-    // Si pas de cookies d'auth sur le sous-domaine ET qu'on accède au dashboard, rediriger vers le domaine principal
-    if (!hasAuthCookie && (pathname === '/dashboard' || pathname === '/subdomain/dashboard')) {
-      const mainDomain = process.env.NODE_ENV === 'production' 
-        ? 'https://qgchatting.com'
-        : 'http://localhost:3000';
-      const url = new URL(`${mainDomain}/subdomain/dashboard?subdomain=${sub}`);
-      return NextResponse.redirect(url);
-    }
-  }
-
   // Headers de sécurité communs
   const res = NextResponse.next()
   res.headers.set('x-frame-options', 'SAMEORIGIN')
@@ -130,13 +107,6 @@ export async function middleware(req: NextRequest) {
       url.pathname = '/subdomain/dashboard';
       return NextResponse.redirect(url);
     }
-    
-    // Vérifier l'authentification et l'appartenance à l'agence
-    // Cette vérification se fait côté client dans le layout, mais on peut ajouter une vérification basique ici
-    // pour éviter les accès non autorisés au niveau du serveur
-    
-    // Ne pas rediriger automatiquement - laisser les pages gérer leur propre logique
-    // Les pages peuvent décider si elles veulent rediriger ou afficher du contenu
     
     // Vérifier si l'abonnement est expiré
     try {
