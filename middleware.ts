@@ -36,6 +36,29 @@ export async function middleware(req: NextRequest) {
     return NextResponse.next()
   }
 
+  // Si on est sur un sous-domaine, vérifier d'abord s'il faut rediriger pour récupérer la session
+  if (sub) {
+    const supabaseCookieNames = [
+      'sb-ndlmzwwfwugtwpmebdog-auth-token',
+      'sb-ndlmzwwfwugtwpmebdog-auth-token.0',
+      'sb-ndlmzwwfwugtwpmebdog-auth-token.1',
+      'supabase-auth-token',
+      'sb-auth-token',
+      'cross-domain-session'
+    ];
+    
+    // Si pas de cookies d'auth sur le sous-domaine ET qu'on accède au dashboard, rediriger vers le domaine principal
+    const hasAuthCookie = supabaseCookieNames.some(name => req.cookies.get(name));
+    if (!hasAuthCookie && (pathname === '/dashboard' || pathname === '/subdomain/dashboard')) {
+      // Rediriger vers le domaine principal pour récupérer la session
+      const mainDomain = process.env.NODE_ENV === 'production' 
+        ? 'https://qgchatting.com'
+        : 'http://localhost:3000';
+      const url = new URL(`${mainDomain}/subdomain/dashboard?subdomain=${sub}`);
+      return NextResponse.redirect(url);
+    }
+  }
+
   // Headers de sécurité communs
   const res = NextResponse.next()
   res.headers.set('x-frame-options', 'SAMEORIGIN')
@@ -80,17 +103,6 @@ export async function middleware(req: NextRequest) {
         });
       }
     });
-    
-    // Si pas de cookies d'auth sur le sous-domaine ET qu'on accède au dashboard, rediriger vers le domaine principal
-    const hasAuthCookie = supabaseCookieNames.some(name => req.cookies.get(name));
-    if (!hasAuthCookie && (pathname === '/dashboard' || pathname === '/subdomain/dashboard')) {
-      // Rediriger vers le domaine principal pour récupérer la session
-      const mainDomain = process.env.NODE_ENV === 'production' 
-        ? 'https://qgchatting.com'
-        : 'http://localhost:3000';
-      const url = new URL(`${mainDomain}/subdomain/dashboard?subdomain=${sub}`);
-      return NextResponse.redirect(url);
-    }
   }
   
   if (sub) {
