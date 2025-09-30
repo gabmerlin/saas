@@ -2,7 +2,6 @@
 
 import { getCurrentSubdomain } from '@/lib/utils/cross-domain-redirect';
 import { UserRoles } from '@/components/dashboard/user-roles';
-import { SessionDebug } from '@/components/debug/session-debug';
 
 export default function DashboardPage() {
   const subdomain = getCurrentSubdomain();
@@ -18,15 +17,10 @@ export default function DashboardPage() {
             Bienvenue sur le dashboard de l'agence <strong>{subdomain}</strong>
           </p>
           
-          <div className="mb-6">
-            <h2 className="text-lg font-semibold text-gray-900 mb-2">Vos rôles :</h2>
-            <UserRoles />
-          </div>
-          
-          <div className="mb-6">
-            <h2 className="text-lg font-semibold text-gray-900 mb-2">Debug Session :</h2>
-            <SessionDebug />
-          </div>
+              <div className="mb-6">
+                <h2 className="text-lg font-semibold text-gray-900 mb-2">Vos rôles :</h2>
+                <UserRoles />
+              </div>
           
           <div className="bg-green-50 border border-green-200 rounded-lg p-4">
             <p className="text-green-800">

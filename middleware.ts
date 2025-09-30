@@ -45,64 +45,52 @@ export async function middleware(req: NextRequest) {
       'cross-domain-session'
     ];
     
-    console.log('🔍 Middleware - Synchronisation des cookies pour le sous-domaine:', sub);
-    console.log('🔍 Tous les cookies disponibles:', Object.keys(req.cookies.getAll()));
-    console.log('🔍 Détail des cookies:', req.cookies.getAll());
-    
-    supabaseCookieNames.forEach(cookieName => {
-      const cookie = req.cookies.get(cookieName);
-      if (cookie) {
-        console.log('✅ Cookie trouvé:', cookieName, 'valeur:', cookie.value.substring(0, 20) + '...');
-        // Cookie partagé pour TOUS les sous-domaines
-        res.cookies.set(cookieName, cookie.value, {
-          domain: `.${root}`,
-          path: '/',
-          httpOnly: false,
-          secure: process.env.NODE_ENV === 'production',
-          sameSite: 'lax',
-          maxAge: 60 * 60 * 24 * 7 // 7 jours
+        supabaseCookieNames.forEach(cookieName => {
+          const cookie = req.cookies.get(cookieName);
+          if (cookie) {
+            // Cookie partagé pour TOUS les sous-domaines
+            res.cookies.set(cookieName, cookie.value, {
+              domain: `.${root}`,
+              path: '/',
+              httpOnly: false,
+              secure: process.env.NODE_ENV === 'production',
+              sameSite: 'lax',
+              maxAge: 60 * 60 * 24 * 7 // 7 jours
+            });
+            
+            // AUSSI définir pour le domaine principal
+            res.cookies.set(cookieName, cookie.value, {
+              domain: root,
+              path: '/',
+              httpOnly: false,
+              secure: process.env.NODE_ENV === 'production',
+              sameSite: 'lax',
+              maxAge: 60 * 60 * 24 * 7 // 7 jours
+            });
+          }
         });
         
-        // AUSSI définir pour le domaine principal
-        res.cookies.set(cookieName, cookie.value, {
-          domain: root,
-          path: '/',
-          httpOnly: false,
-          secure: process.env.NODE_ENV === 'production',
-          sameSite: 'lax',
-          maxAge: 60 * 60 * 24 * 7 // 7 jours
+        // Chercher d'autres cookies Supabase qui pourraient exister
+        const allCookies = Object.keys(req.cookies.getAll());
+        const supabaseCookies = allCookies.filter(name => 
+          name.includes('sb-') || 
+          name.includes('supabase') || 
+          name.includes('auth-token')
+        );
+        
+        supabaseCookies.forEach(cookieName => {
+          const cookie = req.cookies.get(cookieName);
+          if (cookie) {
+            res.cookies.set(cookieName, cookie.value, {
+              domain: `.${root}`,
+              path: '/',
+              httpOnly: false,
+              secure: process.env.NODE_ENV === 'production',
+              sameSite: 'lax',
+              maxAge: 60 * 60 * 24 * 7 // 7 jours
+            });
+          }
         });
-      } else {
-        console.log('❌ Cookie non trouvé:', cookieName);
-      }
-    });
-    
-    // Chercher d'autres cookies Supabase qui pourraient exister
-    const allCookies = Object.keys(req.cookies.getAll());
-    const supabaseCookies = allCookies.filter(name => 
-      name.includes('sb-') || 
-      name.includes('supabase') || 
-      name.includes('auth-token')
-    );
-    
-    if (supabaseCookies.length > 0) {
-      console.log('🔍 Cookies Supabase supplémentaires trouvés:', supabaseCookies);
-      
-      supabaseCookies.forEach(cookieName => {
-        const cookie = req.cookies.get(cookieName);
-        if (cookie) {
-          console.log('✅ Synchronisation cookie supplémentaire:', cookieName);
-          res.cookies.set(cookieName, cookie.value, {
-            domain: `.${root}`,
-            path: '/',
-            httpOnly: false,
-            secure: process.env.NODE_ENV === 'production',
-            sameSite: 'lax',
-            maxAge: 60 * 60 * 24 * 7 // 7 jours
-          });
-        }
-      });
-    }
     
     // Rediriger /home vers le domaine principal
     if (pathname === '/home') {

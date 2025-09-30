@@ -17,74 +17,48 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
   const [checking, setChecking] = useState(true);
   const hasChecked = useRef(false);
 
-  console.log('🔄 DashboardLayout render:', { canAccess, checking, isLoading, isAuthenticated, hasChecked: hasChecked.current });
 
       useEffect(() => {
         const checkAgencyMembership = async () => {
-          console.log('🔍 DashboardLayout - checkAgencyMembership start:', {
-            hasChecked: hasChecked.current,
-            isLoading,
-            isAuthenticated,
-            user: !!user,
-            hostname: window.location.hostname,
-            pathname: window.location.pathname,
-            search: window.location.search
-          });
-
           // Éviter les vérifications multiples
           if (hasChecked.current) {
-            console.log('⏭️ Vérification déjà effectuée, skip');
             return;
           }
 
           // Si on est sur le domaine principal (www.qgchatting.com), rediriger vers /home
           if (window.location.hostname === 'www.qgchatting.com' || window.location.hostname === 'qgchatting.com') {
-            console.log('🚫 Accès à /dashboard sur le domaine principal interdit, redirection vers /home');
             window.location.href = '/home';
             return;
           }
 
-      // Essayer de restaurer la session depuis l'URL (pour tous les environnements)
-      console.log('🔍 DashboardLayout - Initialisation session sync');
-      await localhostSessionSync.initialize();
+          // Essayer de restaurer la session depuis l'URL (pour tous les environnements)
+          await localhostSessionSync.initialize();
 
-      // Attendre que l'authentification soit chargée
-      if (isLoading) {
-        console.log('🔍 DashboardLayout - En attente du chargement de l\'auth');
-        return;
-      }
+          // Attendre que l'authentification soit chargée
+          if (isLoading) {
+            return;
+          }
 
       if (!user || !isAuthenticated) {
-        console.log('❌ Utilisateur non authentifié, tentative de restauration de session:', { user: !!user, isAuthenticated });
-        
         // Essayer de restaurer la session depuis les cookies cross-domain
         try {
-              const supabase = supabaseBrowserWithCookies();
+          const supabase = supabaseBrowserWithCookies();
           
           // D'abord, forcer la restauration de session
-          console.log('🔍 Tentative de restauration forcée de session...');
           const { data: { session }, error } = await supabase.auth.getSession();
           
-          console.log('🔍 Session trouvée:', { session: !!session, error });
-          
           if (session && !error) {
-            console.log('✅ Session restaurée depuis les cookies');
             // Attendre un peu pour que le hook useAuth se mette à jour
             await new Promise(resolve => setTimeout(resolve, 2000));
             
             // Vérifier à nouveau après l'attente
             const { data: { session: newSession } } = await supabase.auth.getSession();
             if (newSession) {
-              console.log('✅ Session confirmée après attente');
               return; // Relancer la vérification
             }
           } else {
             // Essayer de forcer la restauration depuis les cookies du navigateur
-            console.log('🔍 Tentative de restauration depuis les cookies du navigateur...');
-            
-            // Récupérer tous les cookies
             const allCookies = document.cookie.split('; ');
-            console.log('🔍 Cookies disponibles sur le sous-domaine:', allCookies);
             
             // Chercher les cookies Supabase
             const supabaseCookies = allCookies.filter(cookie => 
@@ -93,42 +67,37 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
               cookie.includes('auth-token')
             );
             
-            console.log('🔍 Cookies Supabase trouvés:', supabaseCookies);
-            
             if (supabaseCookies.length > 0) {
               // Essayer de restaurer la session manuellement
               try {
                 const { data: { session: restoredSession } } = await supabase.auth.getSession();
                 if (restoredSession) {
-                  console.log('✅ Session restaurée manuellement');
                   await new Promise(resolve => setTimeout(resolve, 1000));
                   return; // Relancer la vérification
                 }
               } catch (restoreError) {
-                console.log('❌ Erreur lors de la restauration manuelle:', restoreError);
+                // Erreur silencieuse
               }
             }
           }
         } catch (err) {
-          console.log('❌ Impossible de restaurer la session:', err);
+          // Erreur silencieuse
         }
         
         // Essayer de forcer la restauration de session depuis l'URL
         try {
           await localhostSessionSync.initialize();
-          console.log('🔍 Tentative de restauration depuis l\'URL');
           
           // Attendre un peu et vérifier à nouveau
           await new Promise(resolve => setTimeout(resolve, 1000));
-              const supabase = supabaseBrowserWithCookies();
+          const supabase = supabaseBrowserWithCookies();
           const { data: { session } } = await supabase.auth.getSession();
           
           if (session) {
-            console.log('✅ Session restaurée depuis l\'URL');
             return; // Relancer la vérification
           }
         } catch (err) {
-          console.log('❌ Impossible de restaurer depuis l\'URL:', err);
+          // Erreur silencieuse
         }
         
         // Si toujours pas authentifié, rediriger vers le domaine principal
@@ -141,7 +110,6 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
           ? `${mainDomain}/home?subdomain=${subdomain}`
           : `${mainDomain}/home`;
         
-        console.log('🔄 Redirection vers:', redirectUrl);
         window.location.href = redirectUrl;
         return;
       }
@@ -150,32 +118,19 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
         // Récupérer le sous-domaine actuel
         const subdomain = getCurrentSubdomain();
         
-        console.log('🔍 Vérification d\'appartenance:', { 
-          userId: user.id, 
-          subdomain, 
-          isAuthenticated 
-        });
-        
         if (!subdomain) {
           // Si pas de sous-domaine, accès refusé
-          console.log('❌ Pas de sous-domaine détecté');
           setCanAccess(false);
           setChecking(false);
           hasChecked.current = true;
           return;
         }
-
-        // Utiliser l'API /api/agency/status pour vérifier l'accès
-        console.log('🔍 Vérification via API agency/status...');
-        console.log('🔍 User ID:', user.id);
-        console.log('🔍 Subdomain:', subdomain);
         
         // Récupérer la session pour le token
-              const supabase = supabaseBrowserWithCookies();
+        const supabase = supabaseBrowserWithCookies();
         const { data: { session } } = await supabase.auth.getSession();
         
         if (!session?.access_token) {
-          console.log('❌ Pas de token d\'accès disponible');
           setCanAccess(false);
           setChecking(false);
           hasChecked.current = true;
@@ -189,27 +144,17 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
           }
         });
         
-        console.log('🔍 Réponse API agency/status:', response.status);
-        
         if (!response.ok) {
-          console.log('❌ Erreur API agency/status:', response.status);
           setCanAccess(false);
         } else {
           const data = await response.json();
-          console.log('✅ Données API agency/status:', data);
           
           // Vérifier si l'utilisateur a accès (owner, admin, manager, employee, marketing)
           const hasAccess = data.status?.user_roles && data.status.user_roles.length > 0;
           
-          console.log('🔍 Vérification d\'accès:', { 
-            userRoles: data.status?.user_roles, 
-            hasAccess 
-          });
-          
           setCanAccess(hasAccess);
         }
       } catch (error) {
-        console.error('Erreur lors de la vérification de l\'appartenance:', error);
         setCanAccess(false);
       } finally {
         setChecking(false);
@@ -221,8 +166,6 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
   }, [user, isAuthenticated, isLoading]);
 
   useEffect(() => {
-    console.log('🔍 État de redirection:', { checking, canAccess, shouldRedirect: !checking && canAccess === false });
-
     if (!checking && canAccess === false) {
       // Rediriger vers le domaine principal avec la page d'accès refusé
       if (typeof window !== 'undefined') {
@@ -235,7 +178,6 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
           ? `${mainDomainUrl}/access-denied?subdomain=${subdomain}`
           : `${mainDomainUrl}/access-denied`;
 
-        console.log('🚫 Accès refusé - Redirection vers:', redirectUrl);
         window.location.href = redirectUrl;
       }
     }
